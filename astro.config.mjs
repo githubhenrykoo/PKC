@@ -1,6 +1,5 @@
 // @ts-check
 import { defineConfig } from 'astro/config';
-import tailwind from '@astrojs/tailwind';
 import react from '@astrojs/react';
 import { VitePWA } from 'vite-plugin-pwa';
 
@@ -12,7 +11,6 @@ export default defineConfig({
     port: 62165
   },
   integrations: [
-    tailwind(),
     react(),
   ],
   vite: {

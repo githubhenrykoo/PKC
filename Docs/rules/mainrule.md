@@ -1,17 +1,10 @@
-- We use Astro as our framework.
-- We use MCard as our database.
-- We use API as interaction with database.
-- We use Docker to deploy the project.
-- We use Progressive Web App (PWA) to this project.
+- We are using Astro as our framework.
+- We are using MCard as our database.
+- We are using Docker to deploy the project.
+- We are using Progressive Web App (PWA) to this project.
 - Make sure that the npm will always pass.
 - We will always use "npm run build" to build the project.
 - Every code should be in "/src" shouldnt be out side.
-- Follow the "Astro", "Shadcn UI", and "animeJS" style for code formatting.
-- Make the interface look clean and tidy.
-- Make the application work, correct, and fast.
-- Use lowercase with dashes for directories and files name (e.g., components/auth-wizard/testing.txt).
-- Make the sensitive data like "token", "api_key" and "password" should be in environment variables (e.g., .env).
-- Document complex logic and code with clear comments.
-- Make sure everyone can access on any device.
-- Ensure responsive design for all screen sizes.
-- Maintain a consistent color scheme and typography.
+- Follow the "Astro", "Shadcn UI", and "animeJS" style guide for code formatting.
+- Makes the interface look clean and tidy.
+- Our principle is to

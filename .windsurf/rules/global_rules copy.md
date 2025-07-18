@@ -2,15 +2,10 @@
 trigger: always_on
 ---
 
-- We use Astro as our framework.
-- We use MCard as our database.
 - We use API as interaction with database.
-- We use Docker to deploy the project.
+- We will use Docker Image to deploy the project, ensuring the project can be deployed on Docker.
 - We use Progressive Web App (PWA) to this project.
-- We use "Shadcn UI" as our component library.
-- We use "animeJS" as our animation library.
-- Make sure that the npm will always pass.
-- We will always use "npm run build" to build the project.
+- Make sure that the npm will ways pass.
 - Every code should be in "/src" shouldnt be out side.
 - Make the interface look clean and tidy.
 - Make the application work, correct, and fast.
