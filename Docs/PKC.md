@@ -1,21 +1,17 @@
 ---
-title: PKC - A Resource-Aware Computational Infrastructure for Community Learning
-subtitle: Enabling the Extreme Learning Process through Self-Sovereign Knowledge Management, Layer 2, Signal To Noise Ratio, Hybrid Search, BM25, RRF
+title: PKC - Progressive Knowledge Container Implementation Guide
+subtitle: A Triadic Architecture for Self-Sovereign Knowledge Management and Community Learning
 author: Ben Koo
-date: 2025-06-04
+date: 2025-07-20
 tags:
-  - PKM
-  - Self-Sovereign
-  - Identity
-  - Knowledge
-  - Management
-  - Fractal
-  - Computing
-  - Resource
-  - Accounting
-  - Community
-  - Learning
-  - XLP
+  - PKC
+  - Implementation
+  - Architecture
+  - Progressive Web App
+  - Triadic Design
+  - MCard
+  - PCard
+  - VCard
 website: https://pkc.pub
 github: https://github.com/xlp0/PKC
 aliases:
@@ -23,983 +19,1353 @@ aliases:
   - Personal Knowledge Container
   - Project Knowledge Container
   - Public Knowledge Container
-  - 個人知識容器
-  - Distributed Knowledge Operating System
-  - Resource-Aware Knowledge Vault
-  - Computational Knowledge Instrument
-modified: 2025-07-07T12:37:01+08:00
+  - Progressive Knowledge Container
+modified: 2025-07-20T22:16:59+08:00
 ---
 
-# PKC: The Polynomial Knowledge Platform
+# PKC: Progressive Knowledge Container Implementation Guide
 
 ## Executive Summary
-PKC is a revolutionary platform built on polynomial functor theory and computational trinitarianism, implementing a Web5-native [[Decentralized Web Node|Decentralized Web Node (DWN)]] architecture. At its core, PKC serves as a triadic computational framework where data, computation, and value are unified through three integrated planes of meaning:
 
-1. **Data Plane (MCard)**: The foundation of physically meaningful, immutable knowledge units with cryptographic integrity
-2. **Control Plane (PCard)**: The computational layer that transforms and mediates between physical data and social meaning
-3. **Application Plane (VCard)**: The value layer where knowledge becomes socially meaningful through economic and cultural contexts
+PKC (Progressive Knowledge Container) is a **modular, card-based web application** built on **Astro Islands Architecture** and **libP2P modular networking** that implements a triadic system for self-sovereign knowledge management and community learning. The system treats every piece of content as an atomic "Card" component, leveraging **MCard** as the universal storage foundation, **PCard** for compositional logic, and **VCard** for security boundaries and value exchange over distributed networks.
 
-Built as the foundational infrastructure for the [[Extreme Learning Process]] (XLP), PKC combines decentralized Web5 architecture with the formal structures of the [[Cubical Logic Model]] (CLM), creating a self-sovereign environment where knowledge gains both physical verifiability and social significance.
+### Core Implementation Philosophy: Islands Architecture with Modular Networking
 
-### Core Architectural Principles
+PKC adopts Astro's Islands Architecture paradigm enhanced with **libP2P modular networking** for universal connectivity:
 
-1. **Triadic Meaning Architecture**
-   - **Physically Meaningful (MCard)**: Grounded in cryptographic hashes and immutable storage
-   - **Mediated Meaning (PCard)**: Transformations that preserve physical meaning while enabling social interpretation
-   - **Socially Meaningful (VCard)**: Embedded in cultural, economic, and contextual value systems
-
-2. **Web5 Foundations**
-   - **Decentralized Web Node**: Self-hosted node in the Web5 network
-   - **Self-Sovereign Identity**: [[DID|Decentralized Identifiers]] for verifiable credentials
-   - **Content-Addressable Storage**: Immutable, versioned knowledge assets with cryptographic integrity
-   - **Value-Aware Networking**: Direct, encrypted communication with built-in economic primitives
-
-### Platform Architecture
-PKC's architecture is built on polynomial functor theory, providing a unified computational framework where:
-
-1. **Polynomial Functor Foundation**
-   - All data structures are represented as either linear (MCard) or recursive (PCard) polynomial functors
-   - Enables type-safe transformations and compositions of knowledge units
-   - Supports machine learning through tensor-compatible representations
-
-2. **Content Navigation & Integration**
-   - **MCard System**: Content-addressable storage for raw data in any format (JSON, YAML, media, etc.)
-   - **PCard System**: Interactive exploration of structured content through polynomial functor interfaces
-   - **MCP Functions**: Composable operations for data transformation and analysis
-
-3. **Computational Capabilities**
-   - **Type-Aware Processing**: Automatic content type detection and handling
-   - **Functional Programming**: MCP-compatible functions for building complex data workflows
-   - **ML Integration**: Native support for machine learning operations on polynomial structures
-
-4. **CLM Integration**
-   Implements the three-dimensional framework ([[Abstract Specification]], [[Concrete Implementation]], and [[Balanced Expectations]]) to create a verifiable, community-driven knowledge graph that enables:
-   - Formal knowledge representation with cryptographic integrity
-   - Privacy-preserving collaboration through fine-grained access controls
-   - AI-enhanced learning with local processing and federated learning capabilities
-
-### XLP Integration & Learning Ecosystem
-
-PKC is specifically designed to support diverse learning modalities, from individual exploration to large-scale organizational learning. At its core is the integration with the [[Extreme Learning Process]] (XLP) methodology, which PKC implements through its decentralized architecture:
-
-#### Core XLP Methodology
-1. **Early Success** ([[Quick Win]])
-   - Rapid deployment of learning nodes for immediate engagement
-   - Structured bootcamp programs for quick onboarding
-   - Peer-guided learning circles for collaborative growth
-
-2. **Fail Early, Fail Safe**
-   - Isolated testing environments with rollback capabilities
-   - Safe spaces for experimentation and iteration
-   - Project-based learning with built-in version control
-
-3. **Convergence**
-   - Federated knowledge synthesis across nodes and teams
-   - Networked collaboration tools for distributed learning
-   - Organizational learning dashboards and analytics
-
-4. **Demonstration**
-   - Verifiable presentation of learning outcomes
-   - Portfolio development with cryptographic proof of skills
-   - Community validation and peer review systems
-
-#### Learning Modes
-- **Self-Directed Learning**: Personalized learning paths with AI-assisted recommendations
-- **Group Learning**: Collaborative workspaces with real-time co-editing and discussion
-- **Organizational Learning**: Federated knowledge graphs for enterprise-wide learning
-- **Bootcamp Programs**: Intensive, structured learning experiences with peer support
-
-By transforming static educational content into dynamic, interconnected knowledge assets, PKC creates a living learning ecosystem where knowledge evolves through community interaction while respecting individual data sovereignty and institutional governance requirements. The platform's support for project-based learning and networked collaboration makes it ideal for everything from individual skill development to large-scale organizational transformation initiatives.
-
-## Origins and Purpose
-
-### Infrastructure for the Extreme Learning Process
-PKC was originally conceived as the technical infrastructure to enable [[Literature/PKM/Tools/Open Source/Extreme Learning Process|Extreme Learning Process]] (XLP), providing the necessary computational foundation for community-based, student-centered learning. This infrastructure directly supports XLP's core principles:
-
-- **Self-Directed Learning**: PKC's self-sovereign identity and data architecture enables learners to take ownership of their learning process
-- **Collaborative Knowledge Building**: Content-addressable storage and selective sharing mechanisms allow seamless collaboration while maintaining individual attribution
-- **Reflection and Iteration**: Version control and knowledge provenance support XLP's four-stage learning process
-- **Personalization**: Resource-aware computing adapts to individual learning contexts and resource constraints
-
-### Technical Foundation for Community Learning
-As educational environments increasingly incorporate generative AI and advanced computing, PKC provides an essential infrastructure that protects student privacy while enabling powerful learning experiences:
-
-- **Privacy-First Learning**: Local-first processing of sensitive student data with selective sharing
-- **Learning Coordination**: Decentralized consensus mechanisms align with XLP's emphasis on shared responsibility
-- **Evidence-Based Assessment**: Transparent, verifiable learning outcomes through content-addressable storage
-- **Multi-Scale Learning**: Infrastructure that supports learning from individual to community scales
-
-## Core Features
-
-### 1. Resource-Aware Inference Engine
-- **Evidence-Based Reasoning**: Automates the mechanical manipulation of locally stored statistical evidence
-- **Computational Potentiality**: Treats knowledge as executable, versioned resources for coherent inference operations
-- **Machine-Learnable Structure**: Implements vector embeddings and tensor representations for statistical evidence processing
-- **Version-Controlled Evolution**: Tracks inference processes and knowledge refinement through transparent computation history
-- **Adaptive Precision**: Dynamically adjusts representation fidelity and inference depth based on context and available resources
-
-### 2. Self-Sovereign Architecture
-- Local-first data ownership
-- End-to-end encryption
-- Verifiable credentials and decentralized identity
-
-### 3. Fractal Knowledge Organization
-- Scale-invariant knowledge representation
-- Recursive composition of knowledge units
-- Consistent interaction patterns across all scales
-
-### 4. Personal and Community MLOps
-- **Streamlined CI/CD Pipeline**: Simplified deployment of machine learning operations for individuals and communities
-- **Localized Model Fine-Tuning**: Adaptation of general models to personal and community-specific contexts
-- **Cost-Effective LLM Deployment**: Brings modern language technologies to individuals at significantly lower costs
-- **Evidence Sovereignty**: Maintains ownership and provenance of data used for model training and inference
-- **Collaborative Model Improvement**: Enables community-based model refinement while preserving privacy
-
-## Polynomial Functor Foundation
-
-PKC is built on the fundamental principle that all data can be computationally manipulated as [[polynomial functors]], creating a unified framework for knowledge representation and processing. This foundation is implemented through two complementary components:
-
-### 1. MCard: The Physically Meaningful Data Plane
-
-### 1.1 Core Structure: Immutable Knowledge Atoms
-- **Content-Addressable Identity**: Cryptographic hash (SHA-256) serves as both identifier and integrity check
-- **Immutable Storage**: Content cannot be altered, only referenced by new versions, ensuring data provenance
-- **Temporal Metadata**: Global timestamps (Lamport clocks) for versioning and causal ordering
-- **Vector Embeddings**: Native support for semantic similarity search and knowledge graph navigation
-- **CRDT Foundation**: State-based Conflict-free Replicated Data Types (G-Set) for distributed consistency
-
-### 1.2 Physical Meaning Implementation
-- **Content-Addressable Storage**: SQLite BLOBs with SHA-256 hashing for cryptographic integrity
-- **Hybrid Search Architecture**:
-  - Exact matching via cryptographic hashes
-  - Fuzzy search for human-readable content
-  - Vector similarity for semantic relationships
-- **Distributed Synchronization**: Gossip protocol for eventual consistency across nodes
-- **Resource-Aware Processing**: Automatic optimization based on available computational resources
-
-### 2. PCard: The Mediating Control Plane
-
-### 2.1 Core Structure: Meaning Mediation
-- **Polynomial Functor Composition**: Recursive structures that preserve type safety across transformations
-- **Bidirectional Transformation**: Mediates between physical storage (MCard) and social meaning (VCard)
-- **Adaptive UI Components**: Interface elements that respond to both data structure and user context
-- **Dynamic Loading & Caching**: On-demand loading with intelligent prefetching based on usage patterns
-- **Version-Aware Execution**: Maintains consistency across different versions of components and data
-
-### 2.2 Mediation Implementation
-- **Type-Theoretic Foundation**: Based on polynomial functors representing sum and product types
-- **Computational Trinitarianism**: Unifies proof theory, category theory, and type theory in implementation
-- **Reactive Architecture**: Event-driven updates with minimal re-rendering
-- **Contextual Adaptation**: UI and processing adapt based on:
-  - Device capabilities
-  - Network conditions
-  - User preferences
-  - Social context
-- **Formal Verification**: Integration with theorem provers for critical components
-
-### 3. VCard: The Socially Meaningful Application Plane
-
-#### 3.1 Core Structure: Value-Centric Knowledge
-- **Tokenized Knowledge Units**: Represent knowledge as tradable assets with economic value
-- **Smart Contract Integration**: Programmable rules for knowledge exchange and governance
-- **Reputation Systems**: Track contributions and expertise within communities
-- **Economic Primitives**: Built-in support for microtransactions and value exchange
-- **Cultural Context**: Embed knowledge within specific social and cultural frameworks
-
-#### 3.2 Social Meaning Implementation
-- **Verifiable Credentials**: Standards-compliant attestations of knowledge and skills
-- **Decentralized Identifiers (DIDs)**: Self-sovereign identity management
-- **Token Economies**: Native support for knowledge-based incentive systems
-- **Governance Mechanisms**: Community-driven decision making and knowledge validation
-- **Privacy-Preserving Analytics**: Extract insights while protecting individual data
-
-## 4. Architectural Integration: Bridging Physical and Social Meaning
-
-The PKC framework creates a complete computational stack that bridges physical reality with social meaning through the integration of its three components:
+- **Everything is a Card**: All content, components, and interactions are first stored as atomic MCards with IPFS-compatible content addressing
+- **Hash-Based Composition**: PCards compose Astro Components and Hydrated HTML JSX components through cryptographic hash references
+- **Selective Hydration**: Only interactive components are hydrated on the client, optimizing performance
+- **Local-First Foundation**: All data resides in embedded databases with global P2P networking through libP2P and IPFS
+- **Universal Connectivity**: libP2P enables seamless networking across any devices and network conditions
+- **Distributed Content Addressing**: IPFS integration provides content-addressable storage that works across the global network
 
 ```mermaid
-%%{init: {"flowchart": {"htmlLabels": true, "curve": "basis", "diagramPadding": 10}, "theme": "base", "themeVariables": {"fontSize": "10px", "fontFamily": "arial", "nodeSpacing": 20, "rankSpacing": 20}}}%%
+%%{init: {"flowchart": {"htmlLabels": true, "curve": "basis"}}}%%
 graph TB
-    subgraph "Application Plane (VCard)"
-        A[Tokens] --> B[Contracts]
-        B --> C[Gov]
+    subgraph "Astro Islands Architecture"
+        Static[Static HTML/CSS]
+        Island1[Interactive Card Component]
+        Island2[Dynamic PCard Widget]
+        Island3[VCard Authentication]
     end
-    subgraph "Control Plane (PCard)"
-        D[Functors] --> E[UI]
+    
+    subgraph "MCard Storage Layer"
+        DB[(Embedded Database)]
+        Content[Content MCards]
+        Components[Component MCards]
+        Auth[Auth MCards]
     end
-    subgraph "Data Plane (MCard)"
-        F[Storage] --> G[Records]
+    
+    subgraph "libP2P Networking Layer"
+        P2P[libP2P Node]
+        IPFS[IPFS Integration]
+        DHT[Distributed Hash Table]
+        PeerDiscovery[Peer Discovery]
     end
-    A <-->|Value| D
-    D <-->|Data| F
-    style A fill:#ffebee,stroke:#f44336
-    style B fill:#ffebee,stroke:#f44336
-    style C fill:#ffebee,stroke:#f44336
-    style D fill:#e3f2fd,stroke:#2196f3
-    style E fill:#e3f2fd,stroke:#2196f3
-    style F fill:#e8f5e9,stroke:#4caf50
-    style G fill:#e8f5e9,stroke:#4caf50
+    
+    Static -.->|References| Content
+    Island1 -.->|Hash Composition| Components
+    Island2 -.->|Hash Composition| Components
+    Island3 -.->|JWT/Signatures| Auth
+    
+    Content --> DB
+    Components --> DB
+    Auth --> DB
+    
+    DB <--> P2P
+    P2P --> IPFS
+    P2P --> DHT
+    P2P --> PeerDiscovery
+    
+    style Static fill:#f9f9f9,stroke:#333
+    style Island1 fill:#e3f2fd,stroke:#2196f3
+    style Island2 fill:#e3f2fd,stroke:#2196f3
+    style Island3 fill:#e8f5e9,stroke:#4caf50
+    style P2P fill:#fff3e0,stroke:#ff9800
 ```
 
-### 4.1 Data Flow Architecture
+### Upgradable Architecture Pattern with Distributed Networking
 
-The three-plane architecture enables sophisticated data flow patterns:
+PKC implements **upgradable smart contract design patterns** enhanced with **modular networking capabilities**, ensuring:
 
-1. **Storage to Presentation (MCard → PCard)**
-   - Linear data structures transformed into recursive UI components
-   - Content-addressable references enable efficient lazy loading
-   - Polynomial functor operations maintain mathematical consistency
+- **Continuous Evolution**: Software infrastructure evolves without breaking existing functionality
+- **Version Compatibility**: Hash-based references maintain backward compatibility across network nodes
+- **Modular Upgrades**: Individual cards and components can be upgraded independently across the P2P network
+- **Global Integration**: Local-first data synchronizes with distributed systems through libP2P protocols
+- **Universal Connectivity**: libP2P's modular networking enables operation across any network topology
+- **Content Distribution**: IPFS provides efficient, decentralized content distribution and caching
 
-2. **Presentation to Value (PCard → VCard)**
-   - Interactive components generate value through user engagement
-   - Computational capabilities packaged as tradable assets
-   - UI interactions create measurable economic outcomes
+### Networking-Enabled Value Exchange
 
-3. **Value to Storage (VCard → MCard)**
-   - Economic transactions generate new immutable records
-   - Value exchanges create provenance trails
-   - Social consensus mechanisms validate and secure knowledge
+The **modular networking foundation** is crucial for VCard's value-carrying capabilities:
 
-### The Polynomial Place Value System
+- **Secure P2P Transactions**: libP2P's security model provides cryptographic guarantees for value exchange
+- **Distributed Authentication**: JWT tokens and hash-based signatures work across P2P networks
+- **Network-Agnostic Operation**: Value exchange works across any network configuration
+- **Resilient Connectivity**: DHT-based peer discovery ensures robust network participation
 
-PKC adapts the mathematical elegance of polynomial place value systems to create a universal framework for knowledge representation. This approach provides a consistent way to handle data at multiple levels of abstraction:
+The system serves as the foundational infrastructure for the Extreme Learning Process (XLP), combining decentralized Web5 architecture with formal computational structures and modular networking to create environments where individuals and communities maintain full control over their knowledge assets while leveraging advanced AI capabilities through modular, upgradable components that operate seamlessly across distributed networks.
 
-1. **MCard: Content-Addressable Foundation**
-   - Acts as the atomic storage unit, preserving data in its raw form (JSON, YAML, XML, JPG, MP4, etc.)
-   - Uses cryptographic hashes as unique identifiers, similar to how digits represent values in a number system
-   - Maintains data integrity while remaining agnostic to content type
+### Core Implementation Philosophy: Islands Architecture
 
-2. **PCard: Structural Representation**
-   - Dynamically interprets and displays the internal structure of MCard content
-   - Implements a polynomial functor interface that can navigate and transform nested data
-   - Enables interactive exploration through layers of abstraction
+PKC adopts Astro's Islands Architecture paradigm where:
 
-3. **Type-Aware Processing**
-   - Content type detection triggers appropriate processing pipelines
-   - Supports industry-standard formats while maintaining a unified interface
-   - Enables computational operations (ML, transformations) without modifying the original data
+- **Everything is a Card**: All content, components, and interactions are first stored as atomic MCards
+- **Hash-Based Composition**: PCards compose Astro Components and Hydrated HTML JSX components through cryptographic hash references
+- **Selective Hydration**: Only interactive components are hydrated on the client, optimizing performance
+- **Local-First Foundation**: All data resides in embedded databases with global API integration through upgradable patterns
 
-This architecture creates a "Super App" platform where:
-- New data types require minimal additional development
-- Existing tools and libraries can be integrated seamlessly
-- The system remains flexible and extensible while preserving data integrity
-- Users can work with complex data structures through a consistent, mathematically-grounded interface
+```mermaid
+%%{init: {"flowchart": {"htmlLabels": true, "curve": "basis"}}}%%
+graph TB
+    subgraph "Astro Islands Architecture"
+        Static[Static HTML/CSS]
+        Island1[Interactive Card Component]
+        Island2[Dynamic PCard Widget]
+        Island3[VCard Authentication]
+    end
+    
+    subgraph "MCard Storage Layer"
+        DB[(Embedded Database)]
+        Content[Content MCards]
+        Components[Component MCards]
+        Auth[Auth MCards]
+    end
+    
+    Static -.->|References| Content
+    Island1 -.->|Hash Composition| Components
+    Island2 -.->|Hash Composition| Components
+    Island3 -.->|JWT/Signatures| Auth
+    
+    Content --> DB
+    Components --> DB
+    Auth --> DB
+    
+    style Static fill:#f9f9f9,stroke:#333
+    style Island1 fill:#e3f2fd,stroke:#2196f3
+    style Island2 fill:#e3f2fd,stroke:#2196f3
+    style Island3 fill:#e8f5e9,stroke:#4caf50
+```
 
-This approach creates a common knowledge substrate that spans all domains, making the fundamental structures of computation visible and manipulable to users.
+### Upgradable Architecture Pattern
 
-## Technical Specifications
+PKC implements **upgradable smart contract design patterns** from functional configuration management, ensuring:
 
-### Computational Foundations
-- **Framework**: Cubical Logic Model (CLM) for coherent inference from versioned evidence
-- **Logic**: Linear Logic for precise resource accounting in statistical inference processes
-- **Arithmetic Core**: GASing-inspired digit-wise processing for efficient manipulation of statistical evidence
-- **Type System**: Homotopy Type Theory for managing knowledge evolution and inference paths
-- **MLOps Pipeline**: Integrated CI/CD workflow for personal and community-scale model deployment
-- **Functor Calculus**: Polynomial functor operations for knowledge composition and transformation
+- **Continuous Evolution**: Software infrastructure evolves without breaking existing functionality
+- **Version Compatibility**: Hash-based references maintain backward compatibility
+- **Modular Upgrades**: Individual cards and components can be upgraded independently
+- **Global Integration**: Local-first data synchronizes with legacy systems through standardized APIs
 
-### Storage & Infrastructure
-- **Evidence Store**: Immutable, content-addressable storage of statistical evidence with full provenance tracking
-- **Distributed Storage**: IPFS and Decentralized Web Nodes for resilient evidence sharing while maintaining sovereignty
-- **Containerization**: Docker and Kubernetes for reproducible inference environments and model deployment
-- **Vector Database**: Optimized storage for efficient statistical evidence processing and retrieval
-- **Local-First Processing**: Prioritizes on-device inference to preserve privacy and reduce dependency on cloud services
+The system serves as the foundational infrastructure for the Extreme Learning Process (XLP), combining decentralized Web5 architecture with formal computational structures to create environments where individuals and communities maintain full control over their knowledge assets while leveraging advanced AI capabilities through modular, upgradable components.
 
-### Security & Identity
-- **Authentication**: Self-Sovereign Identity (SSI)
-- **Provenance**: Blockchain-based verification
-- **Access Control**: Fine-grained permission system
+### Core Implementation Philosophy
 
-## Use Cases
+PKC implements a **resource-aware computational infrastructure** that adapts to available hardware and network conditions while maintaining mathematical rigor. The system is designed to:
 
-### Personal Knowledge Management
-- Version-controlled notes and documents
-- Personal knowledge graphs
-- Cross-device synchronization
+- **Scale from personal to community use** through fractal architectural patterns
+- **Operate offline-first** with eventual consistency across distributed nodes
+- **Integrate with modern AI systems** while preserving data sovereignty
+- **Support progressive enhancement** from simple document storage to complex knowledge networks
 
-### Collaborative Research
-- Verifiable knowledge sharing
-- Collaborative annotation
-- Citation management
+## 1. Triadic Architecture Overview: Card-Based Modular Web Implementation with Distributed Networking
 
-### Educational Applications
-- **Visual Polynomial Manipulation**: Interactive tools for exploring polynomial functor transformations
-- **Structure-Aware Learning**: Understanding knowledge through its polynomial representation
-- **Personalized Learning Paths**: Adaptive learning experiences that evolve based on individual progress and knowledge representation
-- **Knowledge Verification & Assessment**: Automated validation of learning outcomes against versioned knowledge structures
-- **Learning Analytics Dashboard**: Visual tracking of knowledge acquisition and skill development over time
-- **Automated Knowledge Gap Analysis**: AI-powered identification of learning needs based on knowledge graph analysis
+PKC's implementation is organized around three complementary architectural planes that map directly to Astro Islands Architecture patterns, all built on a **libP2P modular networking foundation** that provides universal connectivity across any devices and networks. Each plane represents a different aspect of modular, card-based web development enhanced with distributed networking capabilities:
 
-### Why This Matters
-By revealing the polynomial functor foundation of all data, PKC helps users:
-1. **See the Invisible**: Make the fundamental structures of computation visible
-2. **Think Mathematically**: Understand knowledge through its algebraic properties
-3. **Navigate Complexity**: Use polynomial operations to manage complex information
-4. **Bridge Disciplines**: Apply the same conceptual framework across all domains
+```mermaid
+%%{init: {"flowchart": {"htmlLabels": true}}}%%
+graph TB
+    subgraph "Application Plane: VCard Security Islands"
+        V[VCard: Authentication & Authorization]
+        V1[P2P JWT Token Management]
+        V2[Distributed Hash Signatures]
+        V3[Network Security Boundaries]
+        V --> V1
+        V --> V2
+        V --> V3
+    end
+    
+    subgraph "Control Plane: PCard Component Islands"
+        P[PCard: Astro Component Composition]
+        P1[Hash-Based Component References]
+        P2[Hydrated JSX Components]
+        P3[Interactive UI Islands]
+        P --> P1
+        P --> P2
+        P --> P3
+    end
+    
+    subgraph "Data Plane: MCard Atomic Storage"
+        M[MCard: Universal Content Storage]
+        M1[Embedded Database (SQLite)]
+        M2[IPFS-Compatible Content Addressing]
+        M3[Local-First Data Layer]
+        M --> M1
+        M --> M2
+        M --> M3
+    end
+    
+    subgraph "Networking Foundation: libP2P Layer"
+        N[libP2P Modular Networking]
+        N1[Distributed Hash Table (DHT)]
+        N2[IPFS Content Distribution]
+        N3[Peer Discovery & Routing]
+        N4[Transport Layer Security]
+        N --> N1
+        N --> N2
+        N --> N3
+        N --> N4
+    end
+    
+    V -.->|Secures| P
+    P -.->|Composes| M
+    V -.->|Authenticates| M
+    
+    M <--> N
+    P <--> N
+    V <--> N
+    
+    style V fill:#e8f5e9,stroke:#4caf50
+    style P fill:#e3f2fd,stroke:#2196f3
+    style M fill:#fff3e0,stroke:#ff9800
+    style N fill:#f3e5f5,stroke:#9c27b0
+```
 
-This approach transforms knowledge management from a passive activity into an active exploration of mathematical structures, empowering users to see and work with the fundamental building blocks of information.
+### 1.1 Card-Based Implementation Principles with Distributed Networking
 
-## Getting Started
+Each plane operates as a modular layer in the Astro Islands Architecture, enhanced with libP2P networking capabilities:
 
-### System Requirements
+- **Atomic Card Storage**: Every piece of content, component definition, and security token is first stored as an atomic MCard with IPFS-compatible content addressing
+- **Hash-Based Composition**: PCards reference MCards through cryptographic hashes that work seamlessly across P2P networks
+- **Selective Security Hydration**: VCards provide authentication islands that activate only when security validation is needed, with distributed authentication support
+- **Upgradable Pattern Integration**: Components can evolve through versioned hash references without breaking existing functionality across network nodes
+- **Universal Connectivity**: libP2P enables seamless operation across any network topology, from local networks to global internet
+- **Content Distribution**: IPFS integration provides efficient, decentralized content distribution and caching
+
+### 1.2 Astro Islands Mapping with P2P Networking
+
+```mermaid
+%%{init: {"flowchart": {"htmlLabels": true}}}%%
+graph LR
+    subgraph "Static HTML Generation"
+        StaticContent[Static Content from MCards]
+        StaticLayout[Layout Components]
+    end
+    
+    subgraph "Interactive Islands"
+        AuthIsland[VCard Auth Island]
+        ComponentIsland[PCard Component Island]
+        DataIsland[MCard Data Island]
+    end
+    
+    subgraph "Local-First Storage"
+        EmbeddedDB[(SQLite Database)]
+        HashIndex[Content Hash Index]
+        VersionControl[Version Control System]
+    end
+    
+    subgraph "libP2P Network Layer"
+        P2PNode[libP2P Node]
+        IPFSGateway[IPFS Gateway]
+        DHTRouting[DHT Routing]
+        PeerNetwork[Peer Network]
+    end
+    
+    StaticContent --> EmbeddedDB
+    StaticLayout --> HashIndex
+    
+    AuthIsland --> VersionControl
+    ComponentIsland --> HashIndex
+    DataIsland --> EmbeddedDB
+    
+    EmbeddedDB <--> P2PNode
+    HashIndex <--> IPFSGateway
+    VersionControl <--> DHTRouting
+    
+    P2PNode --> PeerNetwork
+    IPFSGateway --> PeerNetwork
+    DHTRouting --> PeerNetwork
+    
+    style StaticContent fill:#f9f9f9,stroke:#333
+    style AuthIsland fill:#e8f5e9,stroke:#4caf50
+    style ComponentIsland fill:#e3f2fd,stroke:#2196f3
+    style DataIsland fill:#fff3e0,stroke:#ff9800
+    style P2PNode fill:#f3e5f5,stroke:#9c27b0
+```
+
+### 1.3 Modular Networking Foundation
+
+**libP2P Integration Benefits:**
+- **Transport Agnostic**: Works over TCP, WebSockets, WebRTC, and other transport protocols
+- **Modular Security**: Pluggable security protocols including TLS, Noise, and Secio
+- **Peer Discovery**: Automatic peer discovery through DHT, mDNS, and bootstrap nodes
+- **Content Routing**: Efficient content discovery and routing through Kademlia DHT
+- **Stream Multiplexing**: Multiple streams over single connections for efficient networking
+
+**IPFS Content Addressing:**
+- **Content-Addressable Storage**: MCard hashes are compatible with IPFS content identifiers (CIDs)
+- **Distributed Caching**: Content automatically cached across network participants
+- **Deduplication**: Identical content shares the same hash across the entire network
+- **Offline Availability**: Content remains accessible through local cache when offline
+
+This architecture ensures that:
+- **Static content is pre-rendered** from MCard storage for optimal performance
+- **Interactive components hydrate selectively** based on user interaction needs
+- **Security boundaries are enforced** through VCard authentication islands with P2P security
+- **All data remains local-first** with embedded database storage
+- **Universal connectivity** is maintained through libP2P modular networking
+- **Content distribution** is efficient and decentralized through IPFS integration
+
+## 2. MCard: Universal Atomic Storage Foundation with IPFS Integration
+
+**MCard** serves as the **universal storage foundation** for all content in PKC's Astro Islands Architecture, enhanced with **IPFS-compatible content addressing** and **libP2P networking integration**. Every piece of content—from static HTML to component definitions to authentication tokens—is first stored as an atomic MCard with cryptographic hashes that work seamlessly across distributed networks before being composed into Astro components.
+
+### 2.1 Core Data Structure with IPFS Compatibility
+
+```mermaid
+%%{init: {"er": {"fontSize": 12}}}%%
+erDiagram
+    MCard {
+        string content_hash PK "SHA-256 hash / IPFS CID"
+        blob content "Dynamic content (text/binary)"
+        string g_time "Global timestamp"
+    }
+    
+    MCard ||--o{ AstroComponent : "generates"
+    MCard ||--o{ StaticAsset : "renders_to"
+    MCard ||--o{ SecurityToken : "authenticates"
+    MCard ||--o{ IPFSNode : "distributes_via"
+    
+    AstroComponent {
+        string hash FK
+        string component_type "JSX, Vue, React, etc."
+        json props "Component properties"
+        boolean hydrated "Client-side hydration flag"
+    }
+    
+    StaticAsset {
+        string hash FK
+        string asset_type "HTML, CSS, JS, Image"
+        string cache_policy "Browser caching strategy"
+    }
+    
+    SecurityToken {
+        string hash FK
+        string token_type "JWT, Session, API Key"
+        timestamp expires_at "Token expiration"
+    }
+    
+    IPFSNode {
+        string hash FK
+        string ipfs_cid "IPFS Content Identifier"
+        string[] peer_list "Available peers"
+        boolean pinned "Local pinning status"
+    }
+```
+
+**Core Attributes:**
+- `content_hash`: SHA-256 cryptographic hash serving as primary key, integrity verification, and IPFS-compatible content identifier
+- `content`: Dynamic BLOB storage for any content type (text, binary, media, component definitions)
+- `g_time`: Global timestamp for temporal ordering and versioning across distributed networks
+
+**Computable Functions:**
+- `content_type()`: Dynamically determines MIME type from content analysis
+- `metadata()`: Extracts structured information from content as needed
+- `to_astro_component()`: Converts MCard content to Astro component definition
+- `to_static_asset()`: Renders MCard content as static HTML/CSS/JS
+- `to_ipfs_cid()`: Generates IPFS-compatible Content Identifier for distributed storage
+- `resolve_peers()`: Discovers peers hosting the same content through DHT
+
+### 2.2 Embedded Database with libP2P Integration
+
+PKC implements a **local-first architecture** using embedded databases enhanced with **libP2P networking** for distributed content discovery and synchronization:
+
+```mermaid
+%%{init: {"flowchart": {"htmlLabels": true}}}%%
+graph TB
+    subgraph "Local-First Storage Stack"
+        App[Astro Application]
+        API[MCard API Layer]
+        SQLite[(SQLite Database)]
+        FS[File System Cache]
+    end
+    
+    subgraph "Content Processing Pipeline"
+        Input[Raw Content Input]
+        Hash[Hash Generation]
+        Store[MCard Storage]
+        Index[Search Indexing]
+    end
+    
+    subgraph "Component Generation"
+        Static[Static HTML Generation]
+        Island[Interactive Island Creation]
+        Asset[Asset Optimization]
+    end
+    
+    subgraph "libP2P Network Integration"
+        P2PNode[libP2P Node]
+        IPFSGateway[IPFS Gateway]
+        DHTLookup[DHT Content Lookup]
+        PeerSync[Peer Synchronization]
+    end
+    
+    App --> API
+    API --> SQLite
+    API --> FS
+    
+    Input --> Hash
+    Hash --> Store
+    Store --> Index
+    Store --> SQLite
+    
+    SQLite --> Static
+    SQLite --> Island
+    SQLite --> Asset
+    
+    SQLite <--> P2PNode
+    P2PNode --> IPFSGateway
+    P2PNode --> DHTLookup
+    P2PNode --> PeerSync
+    
+    style SQLite fill:#e8f5e9,stroke:#4caf50
+    style App fill:#e3f2fd,stroke:#2196f3
+    style P2PNode fill:#f3e5f5,stroke:#9c27b0
+```
+
+**Local-First Features with Distributed Capabilities:**
+- **SQLite Embedded Database**: All MCard data stored locally for instant access
+- **IPFS-Compatible Indexing**: Hash-based lookup with IPFS Content Identifier (CID) support
+- **Offline-First Operation**: Full functionality without network connectivity
+- **Distributed Content Discovery**: Automatic content discovery through DHT when online
+- **Peer-to-Peer Synchronization**: Efficient sync with network peers through libP2P protocols
+- **Content Pinning**: Strategic local caching of frequently accessed content
+
+### 2.3 Astro Integration Patterns with Distributed Storage
+
+**Everything-as-MCard Pattern with Network Distribution:**
+1. **Content Creation**: All content (markdown, images, data) stored as MCards with IPFS CIDs
+2. **Component Definition**: Astro component templates stored as MCards, discoverable via DHT
+3. **Configuration**: Build settings and routing rules stored as MCards, synchronized across nodes
+4. **Assets**: Static files and media stored as MCards with distributed caching optimization
+
+**Hash-Based Composition with Network Resilience:**
+```typescript
+// Example: MCard to Astro Component mapping with P2P support
+interface MCardToAstroMapping {
+  mcard_hash: string;           // Local hash
+  ipfs_cid?: string;           // IPFS Content Identifier
+  component_path: string;
+  props: Record<string, any>;
+  hydration_strategy: 'load' | 'idle' | 'visible' | 'media';
+  
+  // Network availability
+  network_availability: {
+    local_available: boolean;
+    peers_available: string[];   // List of peer IDs hosting this content
+    last_seen: Date;
+  };
+}
+
+// Astro component with network-aware content resolution
+const BlogPost = ({ mcard_hash }: { mcard_hash: string }) => {
+  const content = await MCard.resolveWithNetwork(mcard_hash, {
+    prefer_local: true,
+    fallback_to_peers: true,
+    timeout_ms: 5000
+  });
+  return <article>{content.render()}</article>;
+};
+```
+
+### 2.4 Upgradable Pattern Implementation with Distributed Versioning
+
+**Network-Aware Version Management:**
+- MCard hashes provide immutable references to specific content versions across the network
+- Component upgrades create new MCards that are automatically distributed to interested peers
+- DHT-based version discovery enables automatic updates when new versions are available
+- Gradual migration through hash-based version resolution with network consensus
+
+**Distributed Smart Contract-Inspired Upgrades:**
+- **Proxy Pattern**: PCards act as proxies to current MCard versions, with network-wide version resolution
+- **Registry Pattern**: Distributed registry maps component names to current MCard hashes across peers
+- **Migration Scripts**: Automated tools for updating hash references across the distributed network
+- **Consensus Mechanisms**: Network-wide agreement on canonical versions through DHT consensus
+
+### 2.5 Content Distribution and Caching Strategy
+
+**IPFS-Based Content Distribution:**
+```typescript
+interface ContentDistributionStrategy {
+  // Local storage preferences
+  local_storage: {
+    pin_frequently_accessed: boolean;
+    cache_size_limit: number;     // MB
+    eviction_policy: 'lru' | 'lfu' | 'ttl';
+  };
+  
+  // Network distribution
+  network_distribution: {
+    auto_announce: boolean;       // Announce new content to DHT
+    replication_factor: number;   // Desired number of peer copies
+    preferred_peers: string[];    // Preferred peer IDs for content
+  };
+  
+  // Synchronization behavior
+  sync_behavior: {
+    sync_on_startup: boolean;
+    periodic_sync_interval: number; // seconds
+    conflict_resolution: 'timestamp' | 'hash' | 'manual';
+  };
+}
+```
+
+This enhanced MCard architecture ensures that:
+- **Content is universally addressable** through IPFS-compatible hashing
+- **Local-first operation** maintains performance and offline capability
+- **Distributed discovery** enables content sharing across network participants
+- **Automatic synchronization** keeps content up-to-date across peers
+- **Network resilience** provides multiple sources for content availability
+
+## 3. PCard: Astro Component Composition Engine
+
+**PCard** serves as the **composition mechanism** that transforms MCard atomic storage into interactive Astro Components and Hydrated HTML JSX components. PCards orchestrate the Islands Architecture by defining which components should be hydrated, when they should load, and how they compose together through hash-based references.
+
+### 3.1 Hash-Based Component Architecture
+
+```mermaid
+%%{init: {"flowchart": {"htmlLabels": true, "curve": "basis"}}}%%
+graph TB
+    subgraph "PCard Composition Layer"
+        PCard[PCard Controller]
+        ComponentDef[Component Definition MCard]
+        PropsMCard[Props & State MCard]
+        StyleMCard[Styling MCard]
+    end
+    
+    subgraph "Astro Component Generation"
+        AstroComp[Generated Astro Component]
+        StaticHTML[Static HTML Output]
+        HydratedJS[Hydrated JavaScript]
+        ScopedCSS[Scoped CSS]
+    end
+    
+    subgraph "Islands Architecture"
+        StaticIsland[Static Content Island]
+        InteractiveIsland[Interactive Component Island]
+        LazyIsland[Lazy-Loaded Island]
+    end
+    
+    PCard --> ComponentDef
+    PCard --> PropsMCard
+    PCard --> StyleMCard
+    
+    ComponentDef --> AstroComp
+    PropsMCard --> HydratedJS
+    StyleMCard --> ScopedCSS
+    
+    AstroComp --> StaticHTML
+    
+    StaticHTML --> StaticIsland
+    HydratedJS --> InteractiveIsland
+    ScopedCSS --> LazyIsland
+    
+    style PCard fill:#e3f2fd,stroke:#2196f3
+    style AstroComp fill:#f3e5f5,stroke:#9c27b0
+    style InteractiveIsland fill:#e8f5e9,stroke:#4caf50
+```
+
+### 3.2 Component Composition Patterns
+
+**Hash-Based Component References:**
+```typescript
+interface PCardComponentSpec {
+  // Core identification
+  pcard_hash: string;
+  component_type: 'astro' | 'react' | 'vue' | 'svelte' | 'solid';
+  
+  // MCard references (immutable)
+  template_mcard: string;    // Component template hash
+  props_mcard: string;       // Default props hash
+  style_mcard: string;       // Styling hash
+  logic_mcard: string;       // Behavior/interaction hash
+  
+  // Astro Islands configuration
+  hydration: {
+    strategy: 'load' | 'idle' | 'visible' | 'media';
+    condition?: string;      // Media query or custom condition
+    priority: number;        // Loading priority
+  };
+  
+  // Composition rules
+  children?: PCardComponentSpec[];
+  slots?: Record<string, string>; // Slot name -> MCard hash
+}
+```
+
+**Upgradable Component Pattern:**
+```typescript
+// Registry pattern for component evolution
+interface ComponentRegistry {
+  [componentName: string]: {
+    current_version: string;    // Current PCard hash
+    versions: {
+      [version: string]: {
+        pcard_hash: string;
+        compatibility: string[];
+        migration_script?: string;
+      };
+    };
+  };
+}
+
+// Smart proxy for component resolution
+class PCardProxy {
+  static async resolve(componentName: string, version?: string): Promise<PCardComponentSpec> {
+    const registry = await ComponentRegistry.load();
+    const targetVersion = version || registry[componentName].current_version;
+    return MCard.resolve(registry[componentName].versions[targetVersion].pcard_hash);
+  }
+}
+```
+
+### 3.3 Astro Islands Integration
+
+**Static Generation with Selective Hydration:**
+
+```mermaid
+%%{init: {"flowchart": {"htmlLabels": true}}}%%
+graph LR
+    subgraph "Build Time"
+        MCards[(MCard Storage)]
+        PCardEngine[PCard Composition Engine]
+        AstroBuilder[Astro Build System]
+    end
+    
+    subgraph "Runtime Islands"
+        StaticHTML[Pre-rendered HTML]
+        HydrationScript[Island Hydration Scripts]
+        InteractiveComponent[Client-Side Components]
+    end
+    
+    subgraph "User Interaction"
+        PageLoad[Page Load]
+        UserAction[User Interaction]
+        DynamicLoad[Dynamic Component Loading]
+    end
+    
+    MCards --> PCardEngine
+    PCardEngine --> AstroBuilder
+    AstroBuilder --> StaticHTML
+    AstroBuilder --> HydrationScript
+    
+    PageLoad --> StaticHTML
+    UserAction --> HydrationScript
+    HydrationScript --> InteractiveComponent
+    InteractiveComponent --> DynamicLoad
+    DynamicLoad --> MCards
+    
+    style StaticHTML fill:#f9f9f9,stroke:#333
+    style InteractiveComponent fill:#e3f2fd,stroke:#2196f3
+    style MCards fill:#fff3e0,stroke:#ff9800
+```
+
+### 3.4 Local-First Component Development
+
+**Embedded Development Environment:**
+- **Component Hot Reloading**: Changes to MCards trigger automatic PCard recomposition
+- **Local Component Registry**: All components stored and versioned locally
+- **Offline Development**: Full development capability without network connectivity
+- **Incremental Builds**: Only changed components are recompiled
+
+**Hash-Based Caching:**
+```typescript
+interface ComponentCache {
+  // Component compilation cache
+  compiled_components: Map<string, CompiledComponent>;
+  
+  // Dependency tracking
+  dependencies: Map<string, string[]>; // PCard hash -> MCard hashes
+  
+  // Invalidation strategy
+  invalidate(mcard_hash: string): void {
+    // Find all PCards that depend on this MCard
+    const affected_pcards = this.findDependentPCards(mcard_hash);
+    affected_pcards.forEach(pcard => this.compiled_components.delete(pcard));
+  }
+}
+```
+
+### 3.5 Security and Authentication Integration
+
+**VCard Authentication Islands:**
+PCards can integrate with VCard security boundaries to create authenticated component islands:
+
+```typescript
+interface AuthenticatedPCard extends PCardComponentSpec {
+  // Security requirements
+  auth_requirements: {
+    jwt_required: boolean;
+    permissions: string[];
+    vcard_hash: string;        // Reference to auth VCard
+  };
+  
+  // Conditional rendering based on auth state
+  fallback_component?: string; // Unauthenticated fallback PCard hash
+  
+  // Security-aware hydration
+  secure_hydration: {
+    encrypt_props: boolean;
+    secure_transport: boolean;
+    csrf_protection: boolean;
+  };
+}
+```
+
+This architecture ensures that:
+- **Components are truly modular** through hash-based immutable references
+- **Islands hydrate efficiently** based on user interaction patterns
+- **Security boundaries are enforced** at the component level
+- **Development remains local-first** with embedded tooling and caching
+
+## 4. VCard: Formal Security Boundary Implementation
+
+**VCard** implements **formal security boundaries** within PKC's Astro Islands Architecture, providing authentication and authorization through hash-based signatures and JWT tokens. VCards create secure authentication islands that protect sensitive components and data while maintaining the local-first, upgradable architecture patterns.
+
+### 4.1 Security Islands Architecture
+
+```mermaid
+%%{init: {"flowchart": {"htmlLabels": true, "curve": "basis"}}}%%
+graph TB
+    subgraph "Authentication Islands"
+        AuthIsland[VCard Auth Island]
+        JWTValidator[JWT Token Validator]
+        HashVerifier[Hash Signature Verifier]
+        PermissionGate[Permission Gateway]
+    end
+    
+    subgraph "Security Token Storage"
+        JWTMCard[JWT Token MCard]
+        SignatureMCard[Hash Signature MCard]
+        PermissionMCard[Permission Rules MCard]
+        SessionMCard[Session State MCard]
+    end
+    
+    subgraph "Protected Components"
+        SecurePCard[Authenticated PCard]
+        PrivateContent[Protected MCard Content]
+        AdminInterface[Admin Component Island]
+    end
+    
+    AuthIsland --> JWTValidator
+    AuthIsland --> HashVerifier
+    AuthIsland --> PermissionGate
+    
+    JWTValidator --> JWTMCard
+    HashVerifier --> SignatureMCard
+    PermissionGate --> PermissionMCard
+    
+    PermissionGate --> SecurePCard
+    PermissionGate --> PrivateContent
+    PermissionGate --> AdminInterface
+    
+    style AuthIsland fill:#e8f5e9,stroke:#4caf50
+    style SecurePCard fill:#e3f2fd,stroke:#2196f3
+    style JWTMCard fill:#fff3e0,stroke:#ff9800
+```
+
+### 4.2 JWT-Based Authentication Pattern
+
+**Local-First JWT Management:**
+```typescript
+interface VCardAuthSpec {
+  // Core identification
+  vcard_hash: string;
+  auth_type: 'jwt' | 'signature' | 'session' | 'api_key';
+  
+  // JWT Configuration
+  jwt_config: {
+    issuer: string;
+    audience: string;
+    secret_mcard: string;      // Secret stored as MCard
+    expiration: number;        // Token lifetime in seconds
+    refresh_strategy: 'sliding' | 'absolute' | 'none';
+  };
+  
+  // Hash-based signature verification
+  signature_config: {
+    algorithm: 'SHA-256' | 'SHA-512' | 'BLAKE3';
+    public_key_mcard: string;  // Public key stored as MCard
+    signature_mcard: string;   // Signature stored as MCard
+  };
+  
+  // Permission mapping
+  permissions: {
+    [resource: string]: {
+      mcard_patterns: string[];  // MCard hash patterns
+      pcard_patterns: string[];  // PCard hash patterns
+      actions: ('read' | 'write' | 'delete' | 'execute')[];
+    };
+  };
+}
+```
+
+**Embedded Authentication Database:**
+```typescript
+interface AuthenticationStore {
+  // Local JWT storage
+  active_tokens: Map<string, {
+    jwt: string;
+    expires_at: Date;
+    permissions: string[];
+    user_hash: string;         // User identity MCard hash
+  }>;
+  
+  // Session management
+  sessions: Map<string, {
+    session_id: string;
+    vcard_hash: string;        // Auth VCard reference
+    created_at: Date;
+    last_accessed: Date;
+    is_valid: boolean;
+  }>;
+  
+  // Permission cache
+  permission_cache: Map<string, {
+    user_hash: string;
+    resource_hash: string;
+    allowed_actions: string[];
+    cached_at: Date;
+  }>;
+}
+```
+
+### 4.3 Hash-Based Security Verification
+
+**Content Integrity and Authentication:**
+```typescript
+class VCardSecurityEngine {
+  // Verify content integrity using hash signatures
+  static async verifyContentIntegrity(
+    mcard_hash: string,
+    signature_vcard: string
+  ): Promise<boolean> {
+    const content = await MCard.resolve(mcard_hash);
+    const signature_spec = await VCard.resolve(signature_vcard);
+    
+    const computed_hash = await this.computeHash(content.content);
+    const expected_hash = signature_spec.signature_config.signature_mcard;
+    
+    return computed_hash === expected_hash;
+  }
+  
+  // JWT validation with local verification
+  static async validateJWT(
+    token: string,
+    vcard_hash: string
+  ): Promise<AuthResult> {
+    const auth_spec = await VCard.resolve(vcard_hash);
+    const secret = await MCard.resolve(auth_spec.jwt_config.secret_mcard);
+    
+    try {
+      const payload = jwt.verify(token, secret.content);
+      return { valid: true, payload, permissions: payload.permissions };
+    } catch (error) {
+      return { valid: false, error: error.message };
+    }
+  }
+  
+  // Permission-based component access control
+  static async checkComponentAccess(
+    user_hash: string,
+    pcard_hash: string,
+    action: string
+  ): Promise<boolean> {
+    const user_permissions = await this.getUserPermissions(user_hash);
+    const component_requirements = await this.getComponentRequirements(pcard_hash);
+    
+    return this.evaluatePermissions(user_permissions, component_requirements, action);
+  }
+}
+```
+
+### 4.4 Secure Component Islands
+
+**Authentication-Aware Component Rendering:**
+```typescript
+interface SecureIslandConfig {
+  // Component security requirements
+  auth_required: boolean;
+  min_permission_level: 'read' | 'write' | 'admin';
+  allowed_roles: string[];
+  
+  // Fallback behavior for unauthenticated users
+  fallback_strategy: 'redirect' | 'hide' | 'show_login' | 'show_placeholder';
+  fallback_component?: string;  // PCard hash for fallback
+  
+  // Security-aware hydration
+  hydration_security: {
+    encrypt_props: boolean;
+    secure_transport_only: boolean;
+    csrf_protection: boolean;
+  };
+}
+
+// Astro component with VCard security integration
+const SecureComponent = ({ 
+  pcard_hash, 
+  vcard_hash, 
+  user_token 
+}: SecureComponentProps) => {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [hasPermission, setHasPermission] = useState(false);
+  
+  useEffect(() => {
+    VCardSecurityEngine.validateJWT(user_token, vcard_hash)
+      .then(result => {
+        setIsAuthenticated(result.valid);
+        if (result.valid) {
+          return VCardSecurityEngine.checkComponentAccess(
+            result.payload.sub, 
+            pcard_hash, 
+            'read'
+          );
+        }
+        return false;
+      })
+      .then(setHasPermission);
+  }, [user_token, vcard_hash, pcard_hash]);
+  
+  if (!isAuthenticated || !hasPermission) {
+    return <FallbackComponent />;
+  }
+  
+  return <PCardRenderer hash={pcard_hash} />;
+};
+```
+
+### 4.5 Upgradable Security Patterns
+
+**Security Configuration Evolution:**
+```typescript
+interface SecurityUpgradePattern {
+  // Version-compatible security policies
+  security_versions: {
+    [version: string]: {
+      vcard_hash: string;
+      compatibility_matrix: string[];
+      migration_required: boolean;
+      backward_compatible: boolean;
+    };
+  };
+  
+  // Gradual security migration
+  migration_strategy: {
+    rollout_percentage: number;
+    canary_users: string[];     // User MCard hashes
+    rollback_trigger: string;   // Conditions for automatic rollback
+  };
+  
+  // Security audit trail
+  audit_log: {
+    change_hash: string;        // MCard hash of security change
+    applied_at: Date;
+    applied_by: string;         // User MCard hash
+    previous_version: string;   // Previous VCard hash
+    validation_results: string; // Validation MCard hash
+  }[];
+}
+```
+
+**Local-First Security with Global Integration:**
+- **Embedded Security Database**: All authentication data stored locally in SQLite
+- **Offline Authentication**: JWT validation works without network connectivity
+- **Sync Security Policies**: Security configurations sync with remote systems through APIs
+- **Upgradable Auth Patterns**: Security policies evolve using smart contract-inspired patterns
+
+This architecture ensures that:
+- **Security boundaries are formally defined** through hash-based verification
+- **Authentication works offline** with local JWT validation
+- **Permissions are granular** down to individual MCard and PCard access
+- **Security policies are upgradable** without breaking existing functionality
+
+## 5. Progressive Web App Implementation
+
+PKC is implemented as a Progressive Web App (PWA) to ensure accessibility across devices and network conditions.
+
+### 5.1 PWA Architecture
+
+```mermaid
+%%{init: {"flowchart": {"htmlLabels": true}}}%%
+graph TB
+    subgraph "Client Layer"
+        SW[Service Worker]
+        Cache[Cache Storage]
+        IDB[IndexedDB]
+        UI[User Interface]
+    end
+    
+    subgraph "Application Layer"
+        App[PKC Application]
+        MCard[MCard Engine]
+        PCard[PCard Renderer]
+        VCard[VCard Manager]
+    end
+    
+    subgraph "Infrastructure Layer"
+        API[API Gateway]
+        DB[Database]
+        Storage[File Storage]
+        Network[P2P Network]
+    end
+    
+    SW --> Cache
+    SW --> IDB
+    UI --> App
+    App --> MCard
+    App --> PCard
+    App --> VCard
+    
+    App --> API
+    API --> DB
+    API --> Storage
+    API --> Network
+    
+    style SW fill:#e3f2fd,stroke:#2196f3
+    style App fill:#f3e5f5,stroke:#9c27b0
+```
+
+### 5.2 Offline-First Implementation
+
+**Service Worker Strategy**
+- Intelligent caching of MCard content
+- Background synchronization when connectivity returns
+- Progressive loading based on network conditions
+
+**Local Storage Architecture**
+- IndexedDB for structured data storage
+- Cache API for static assets
+- Conflict-free replication for distributed scenarios
+
+**Sync Mechanisms**
+- Event-driven synchronization
+- Merkle tree-based conflict resolution
+- Bandwidth-aware data transfer
+
+## 6. Docker Deployment Architecture
+
+PKC is designed for containerized deployment to ensure consistent operation across different environments.
+
+### 6.1 Container Architecture
+
+```mermaid
+%%{init: {"flowchart": {"htmlLabels": true}}}%%
+graph TB
+    subgraph "PKC Container Stack"
+        Web[Web Server Container]
+        App[PKC Application Container]
+        DB[Database Container]
+        Cache[Redis Cache Container]
+        Storage[File Storage Container]
+    end
+    
+    subgraph "External Services"
+        IPFS[IPFS Node]
+        Vector[Vector Database]
+        AI[AI Services]
+    end
+    
+    Web --> App
+    App --> DB
+    App --> Cache
+    App --> Storage
+    
+    App -.-> IPFS
+    App -.-> Vector
+    App -.-> AI
+    
+    style Web fill:#e3f2fd,stroke:#2196f3
+    style App fill:#f3e5f5,stroke:#9c27b0
+    style DB fill:#e8f5e9,stroke:#4caf50
+```
+
+### 6.2 Deployment Configurations
+
+**Development Environment**
+- Single container with embedded database
+- Hot reloading for rapid development
+- Debug tools and logging
+
+**Production Environment**
+- Multi-container orchestration
+- Load balancing and auto-scaling
+- Monitoring and health checks
+
+**Edge Deployment**
+- Lightweight containers for resource-constrained environments
+- Adaptive quality based on available resources
+- Peer-to-peer networking capabilities
+
+## 7. Integration with Modern AI Systems
+
+PKC is designed to work seamlessly with contemporary AI architectures while maintaining user privacy and data sovereignty.
+
+### 7.1 AI Integration Architecture
+
+```mermaid
+%%{init: {"flowchart": {"htmlLabels": true}}}%%
+graph LR
+    subgraph "PKC Core"
+        M[MCard Storage]
+        P[PCard Processing]
+        V[VCard Validation]
+    end
+    
+    subgraph "AI Layer"
+        LLM[Large Language Models]
+        VDB[Vector Databases]
+        ML[ML Pipelines]
+    end
+    
+    subgraph "Privacy Layer"
+        FE[Federated Learning]
+        DP[Differential Privacy]
+        ZK[Zero-Knowledge Proofs]
+    end
+    
+    M --> VDB
+    P --> LLM
+    V --> ML
+    
+    VDB --> FE
+    LLM --> DP
+    ML --> ZK
+    
+    style M fill:#fff3e0,stroke:#ff9800
+    style P fill:#e3f2fd,stroke:#2196f3
+    style V fill:#e8f5e9,stroke:#4caf50
+```
+
+### 7.2 AI-Enhanced Features
+
+**Semantic Search and Discovery**
+- Vector embeddings for content similarity
+- Hybrid search combining BM25 and semantic similarity
+- Personalized recommendation systems
+
+**Automated Knowledge Organization**
+- AI-assisted tagging and categorization
+- Automatic relationship discovery
+- Content summarization and extraction
+
+**Conversational Interfaces**
+- Natural language interaction with knowledge base
+- AI-powered query understanding
+- Context-aware response generation
+
+## 8. Community Learning Implementation
+
+PKC serves as the infrastructure for community-scale learning initiatives through the Extreme Learning Process (XLP).
+
+### 8.1 Learning Coordination Architecture
+
+```mermaid
+%%{init: {"flowchart": {"htmlLabels": true, "curve": "basis"}}}%%
+graph TB
+    subgraph "Individual Learning"
+        Personal[Personal PKC Instance]
+        Portfolio[Learning Portfolio]
+        Progress[Progress Tracking]
+    end
+    
+    subgraph "Group Learning"
+        Collaborative[Collaborative Workspaces]
+        Peer[Peer Review Systems]
+        Discussion[Discussion Forums]
+    end
+    
+    subgraph "Organizational Learning"
+        Enterprise[Enterprise PKC]
+        Knowledge[Knowledge Graphs]
+        Analytics[Learning Analytics]
+    end
+    
+    Personal --> Collaborative
+    Collaborative --> Enterprise
+    Portfolio --> Knowledge
+    Progress --> Analytics
+    
+    style Personal fill:#e3f2fd,stroke:#2196f3
+    style Collaborative fill:#f3e5f5,stroke:#9c27b0
+    style Enterprise fill:#e8f5e9,stroke:#4caf50
+```
+
+### 8.2 XLP Integration Features
+
+**Four-Stage Learning Process Support**
+- Early Success: Rapid prototyping and validation tools
+- Fail Early Fail Safe: Version control and rollback mechanisms
+- Convergence: Collaborative refinement and consensus building
+- Demonstration: Portfolio generation and assessment tools
+
+**Evidence-Based Learning**
+- Immutable learning records through MCard storage
+- Verifiable credentials and achievements
+- Transparent assessment and feedback mechanisms
+
+**Resource-Aware Adaptation**
+- Dynamic content delivery based on available bandwidth
+- Adaptive UI complexity based on device capabilities
+- Intelligent caching and prefetching strategies
+
+## 9. Security and Privacy Implementation
+
+PKC implements comprehensive security measures while maintaining user privacy and data sovereignty.
+
+### 9.1 Security Architecture
+
+```mermaid
+%%{init: {"flowchart": {"htmlLabels": true}}}%%
+graph TB
+    subgraph "Identity Layer"
+        DID[Decentralized Identity]
+        Keys[Cryptographic Keys]
+        Auth[Authentication]
+    end
+    
+    subgraph "Data Layer"
+        Encryption[End-to-End Encryption]
+        Hashing[Content Hashing]
+        Integrity[Integrity Verification]
+    end
+    
+    subgraph "Network Layer"
+        TLS[TLS/HTTPS]
+        P2P[P2P Encryption]
+        Firewall[Access Controls]
+    end
+    
+    DID --> Auth
+    Keys --> Encryption
+    Auth --> TLS
+    Hashing --> Integrity
+    
+    style DID fill:#e3f2fd,stroke:#2196f3
+    style Encryption fill:#f3e5f5,stroke:#9c27b0
+    style TLS fill:#e8f5e9,stroke:#4caf50
+```
+
+### 9.2 Privacy Features
+
+**Self-Sovereign Data Control**
+- Users maintain full control over their data
+- Granular permissions for data sharing
+- Revocable access controls
+
+**Privacy-Preserving Analytics**
+- Differential privacy for usage statistics
+- Federated learning for model training
+- Zero-knowledge proofs for verification
+
+**Secure Multi-Party Computation**
+- Collaborative analysis without data sharing
+- Privacy-preserving consensus mechanisms
+- Encrypted computation protocols
+
+## 10. Development and Deployment Guide
+
+### 10.1 Development Environment Setup
+
+**Prerequisites**
 - Docker 20.10+
+- Node.js 18+
+- Python 3.9+
 
-### Installation
+**Quick Start**
 ```bash
-docker pull pkc/core:latest
-docker-compose up -d
+# Clone repository
+git clone https://github.com/xlp0/PKC.git
+cd PKC
+
+# Start development environment
+docker-compose -f docker-compose.dev.yml up -d
+
+# Install dependencies
+npm install
+pip install -r requirements.txt
+
+# Start development server
+npm run dev
 ```
 
-### Basic Usage
-1. Initialize your knowledge base
-2. Create and link knowledge units
-3. Set up synchronization preferences
+### 10.2 Production Deployment
 
-## Community & Support
-- [Documentation](https://pkc.pub/docs)
-- [GitHub Issues](https://github.com/xlp0/PKC/issues)
-- Community Forum
+**Container Orchestration**
+- Kubernetes manifests for scalable deployment
+- Helm charts for configuration management
+- Monitoring and logging integration
 
-## Roadmap
-- [ ] Enhanced mobile support
-- [ ] Advanced visualization tools
-- [ ] Plugin marketplace
+**Infrastructure Requirements**
+- Minimum: 2 CPU cores, 4GB RAM, 20GB storage
+- Recommended: 4 CPU cores, 8GB RAM, 100GB storage
+- Network: HTTPS support, WebSocket capabilities
 
-## License
-Open Source (MIT License)
+### 10.3 Configuration Management
 
-## About
-PKC is developed by a global community of researchers, developers, and knowledge workers committed to creating ethical, user-controlled knowledge management solutions.
+**Environment Variables**
+- Database connection strings
+- API keys for external services
+- Feature flags for progressive rollout
 
-## Technical Deep Dive
+**Configuration Files**
+- YAML-based configuration system
+- Environment-specific overrides
+- Runtime configuration updates
 
-### 1. Unified Fractal Arithmetic Engine
+## 11. Future Roadmap
 
-PKC's core innovation is its Unified Fractal Arithmetic Engine, directly inspired by the GASing methodology's place value system. This engine enables scale-adaptive knowledge processing through three integrated mathematical frameworks:
+### 11.1 Short-Term Goals (3-6 months)
+- Enhanced mobile PWA experience
+- Improved AI integration capabilities
+- Advanced search and discovery features
 
-#### 1.1 Three-Sorted Algebraic Framework
-- Content-hash-time triples for version-controlled knowledge, similar to GASing's digit-place-value triples
-- Ensures logical correctness and computational integrity through position-sensitive knowledge representation
-- Enables continuous refinement through versioning, treating knowledge evolution as a series of discrete, auditable steps
+### 11.2 Medium-Term Goals (6-12 months)
+- Cross-chain interoperability for VCards
+- Advanced privacy-preserving features
+- Enterprise-scale deployment options
 
-#### 1.2 Tensorized Automaton
-- Implements universal function approximation using principles from GASing's digit-wise processing
-- Resource-parameterized state spaces that adapt to available computational resources
-- Scale-adaptive computation strategies inspired by GASing's multi-scale numerical processing
-- Continuous model refinement through patterns of addition and transformation
+### 11.3 Long-Term Vision (1-2 years)
+- Quantum-resistant cryptographic implementations
+- Advanced AI-human collaboration interfaces
+- Global knowledge network federation
 
-#### 1.3 GASing Methodology Integration
-- **Digit-Wise Knowledge Processing**: Breaks down complex knowledge structures into composable, atomic units
-- **Place Value Knowledge Organization**: Organizes information in hierarchical, positional systems where context determines significance
-- **Dynamic Computation-Lookup Trade-offs**: Balances real-time computation with pre-computed pattern recognition
-- **Uniform Tensor-Based Representation**: Represents all knowledge in consistent numerical structures
-- **Adaptive Precision Management**: Adjusts detail level based on context and available resources
-- **Context-Sensitive Function Approximation**: Tailors knowledge processing to specific usage scenarios
+## Conclusion
 
-### 2. Implementation Architecture
+PKC represents a new paradigm in knowledge management that combines the rigor of formal mathematics with the practicality of modern web technologies. Through its triadic architecture of MCard, PCard, and VCard, PKC provides a comprehensive platform for individuals and communities to create, share, and value knowledge while maintaining full sovereignty over their data.
 
-#### 2.1 Core Components
-- **Decentralized Identifiers (DIDs)**: Self-sovereign identity management
-- **Verifiable Credentials**: Standards-compliant attestations
-- **Zero-Knowledge Proofs**: Privacy-preserving verification
-- **Layer 2 Solutions**: Scalable, low-cost operations
+The implementation as a Progressive Web App with Docker deployment ensures that PKC can operate across diverse environments and scale from personal use to community-wide initiatives. By integrating with modern AI systems while preserving privacy and data sovereignty, PKC enables the next generation of human-AI collaboration in knowledge work and learning.
 
-#### 2.2 Computational Boundaries
-- Knowledge Light Cones with SBTs
-- Scale-free cognitive processing
-- Self-organizing knowledge graphs
-- Bioelectric-blockchain inspired coordination
-
-#### 2.3 Performance Scaling
-- **Personal Scale**: Individual knowledge fragments with privacy preservation
-- **Project Scale**: Collaborative spaces with shared contexts
-- **Public Scale**: Global networks with distributed computation
-
-### 3. Educational Integration with XLP
-
-PKC serves as the essential IT infrastructure to facilitate coordination among learning agents and agencies in the [[Literature/PKM/Tools/Open Source/Extreme Learning Process|Extreme Learning Process]] (XLP). This integration creates a technical foundation for XLP's student-centered approach:
-
-#### 3.1 Supporting XLP's Four-Stage Learning Process
-- **Early Success**: PKC's immediate feedback mechanisms and local execution support rapid prototyping of learning activities
-- **Fail Early Fail Safe**: Content-addressable storage preserves all learning attempts, creating safe spaces for experimentation
-- **Convergence**: Knowledge graph connections and bidirectional linking support the synthesis of ideas across domains
-- **Demonstration**: Verifiable credentials and selective disclosure enable secure sharing of learning achievements
-
-#### 3.2 Implementing XLP's Three-Tiered Content Structure
-PKC's architecture aligns with XLP's content organization approach:
-- **Design Thinking**: Abstract Specification dimension in CLM supports creative exploration (Grammar in Trivium)
-- **Computational Thinking**: Concrete Implementation dimension enables formal expression (Logic in Trivium)
-- **Systems Thinking**: Balanced Expectations dimension facilitates holistic evaluation (Rhetoric in Trivium)
-
-#### 3.3 Adaptive Learning Paths
-- Dynamic content adjustment based on learner progress through vector-based universal functions
-- Granular knowledge unit tracking via content-addressable MCard storage
-- Personalized learning experiences through local model fine-tuning
-
-### 4. Advanced Features
-
-#### 4.1 Entropy Management
-- Dynamic resource allocation
-- Information density optimization
-- Performance tuning based on task complexity
-
-#### 4.2 Unified Configuration
-- Seamless system upgrades
-- Cross-platform compatibility
-- User-customizable workflows
-
-### 5. Deployment Scenarios
-
-PKC's scale-free architecture supports diverse deployment models:
-
-- **Individual Use**: Personal knowledge management
-- **Team Collaboration**: Shared knowledge spaces
-- **Institutional Deployment**: Organization-wide knowledge infrastructure
-- **Public Knowledge Networks**: Open collaboration platforms
-
-## Getting Started (Expanded)
-
-### Prerequisites
-- Docker 20.10+
-- 4GB RAM minimum (8GB recommended)
-- 10GB free storage
-
-### Quick Start Guide
-1. **Installation**
-   ```bash
-   # Pull the latest PKC image
-   docker pull pkc/core:latest
-   
-   # Start the PKC stack
-   docker-compose up -d
-   ```
-
-2. **Initial Configuration**
-   - Access the web interface at `http://localhost:3000`
-   - Complete the setup wizard
-   - Import or create your first knowledge base
-
-3. **Basic Workflow**
-   - Create and link knowledge units (MCards)
-   - Set up synchronization preferences
-   - Configure backup and versioning
-
-### Advanced Configuration
-- Custom storage backends
-- Network configuration
-- Security settings
-- Integration with existing systems
-
-## Community & Support (Expanded)
-
-### Resources
-- [Official Documentation](https://pkc.pub/docs)
-- [API Reference](https://pkc.pub/api)
-- [Tutorial Videos](https://pkc.pub/videos)
-
-### Getting Help
-- [GitHub Issues](https://github.com/xlp0/PKC/issues)
-- Community Forum
-- Email Support: support@pkc.pub
-
-### Contributing
-PKC is an open-source project. We welcome contributions through:
-- Code contributions
-- Documentation improvements
-- Bug reports
-- Feature requests
-
-## Roadmap (Detailed)
-
-### Short-term (Next 6 months)
-- [ ] Enhanced mobile experience
-- [ ] Advanced visualization tools
-- [ ] Plugin marketplace
-- [ ] Improved collaboration features
-
-### Mid-term (6-12 months)
-- [ ] AI-assisted knowledge organization
-- [ ] Advanced search capabilities
-- [ ] Enhanced security features
-
-### Long-term (1+ years)
-- [ ] Decentralized knowledge federation
-- [ ] Advanced machine learning integration
-- [ ] Cross-platform synchronization
-
-## Technical Architecture: GASing-Inspired Knowledge Organization
-
-PKC's architecture is fundamentally inspired by the GASing methodology's place value system approach, where digit-wise representation provides a powerful model for knowledge organization. Just as GASing treats numerical values as compositions of digit-wise modules with clear boundaries and interfaces, PKC organizes knowledge into modular, self-similar units that can be efficiently processed, combined, and transformed at multiple scales.
-
-### Place Value System as Knowledge Architecture
-
-- **Digit-Wise Knowledge Representation**: Knowledge is organized into discrete, atomic units (like digits in a number) that maintain their meaning across contexts while gaining additional significance through their position and relationships
-- **Carry/Borrow as Knowledge Propagation**: Changes in one knowledge unit can trigger cascading updates to connected units, similar to how carry operations propagate through digit positions in arithmetic
-- **Positional Significance**: The "place" of knowledge within the larger structure determines its scope and influence, creating a natural hierarchy without rigid constraints
-- **Base-Independent Processing**: Knowledge can be represented at different levels of granularity (bases) depending on context and available cognitive or computational resources
-
-### 1. Unified Fractal Arithmetic Engine
-
-PKC's core innovation is its Unified Fractal Arithmetic Engine, directly inspired by the GASing methodology's place value system. This engine enables scale-adaptive knowledge processing through three integrated mathematical frameworks:
-
-#### 1.1 Three-Sorted Algebraic Framework
-- Content-hash-time triples for version-controlled knowledge, similar to GASing's digit-place-value triples
-- Ensures logical correctness and computational integrity through position-sensitive knowledge representation
-- Enables continuous refinement through versioning, treating knowledge evolution as a series of discrete, auditable steps
-
-#### 1.2 Tensorized Automaton
-- Implements universal function approximation using principles from GASing's digit-wise processing
-- Resource-parameterized state spaces that adapt to available computational resources
-- Scale-adaptive computation strategies inspired by GASing's multi-scale numerical processing
-- Continuous model refinement through patterns of addition and transformation
-
-#### 1.3 GASing Methodology Integration
-- **Digit-Wise Knowledge Processing**: Breaks down complex knowledge structures into composable, atomic units
-- **Place Value Knowledge Organization**: Organizes information in hierarchical, positional systems where context determines significance
-- **Dynamic Computation-Lookup Trade-offs**: Balances real-time computation with pre-computed pattern recognition
-- **Uniform Tensor-Based Representation**: Represents all knowledge in consistent numerical structures
-- **Adaptive Precision Management**: Adjusts detail level based on context and available resources
-- **Context-Sensitive Function Approximation**: Tailors knowledge processing to specific usage scenarios
-
-### 2. Cognitive Boundaries and Knowledge Light Cones
-
-Inspired by Michael Levin's work on *The Computational Boundary of a Self*, PKC implements computational analogs of biological cognitive boundaries:
-
-- **Knowledge Light Cones with SBTs**: Defines computational boundaries for each PKC instance
-- **Scale-Free Cognition**: Maintains consistent processing patterns across different scales
-- **Self-Organizing Knowledge Graphs**: Version-controlled units that maintain coherence and access control
-
-### 3. Implementation Architecture
-
-#### 3.1 Core Components
-- **Decentralized Identifiers (DIDs)**: Self-sovereign identity management
-- **Verifiable Credentials**: Standards-compliant attestations
-- **Zero-Knowledge Proofs**: Privacy-preserving verification
-- **[[Layer 2]] Solutions**: Scalable, low-cost operations
-
-#### 3.2 Performance Scaling
-- **Personal Scale**: Individual knowledge fragments with privacy preservation
-- **Project Scale**: Collaborative spaces with shared contexts
-- **Public Scale**: Global networks with distributed computation
-
-## License & Legal
-
-### Open Source
-PKC is released under the MIT License, allowing for both personal and commercial use.
-
-### Data Privacy
-- End-to-end encryption
-- Local-first architecture
-- GDPR compliant
-
-### Trademarks
-PKC and the PKC logo are trademarks of the PKC Project.
-
-## Advanced Implementation Details
-
-### 1. Inference MLOps & Evidence Management
-
-PKC implements a streamlined MLOps pipeline to make advanced inference technologies accessible to individuals and communities:
-
-1. **Personal Model Registry**: Local repository of fine-tuned models adapted to personal evidence collections
-2. **Simplified CI/CD for Inference**: Automated workflows for testing and deploying inference pipelines
-3. **Cost-Optimized LLM Integration**: Efficient API and deployment patterns for accessing LLM capabilities at reduced costs
-4. **Local Evidence Fine-Tuning**: Tools for adapting general models to personal contexts using local evidence
-5. **Collaborative Inference**: Community-based model improvement while maintaining evidence sovereignty
-
-### 2. Account Abstraction & Identity
-
-PKC's identity management system is built on:
-
-1. **Decentralized Identifiers (DIDs)**: Self-sovereign identifiers for PKC instances and users
-2. **Verifiable Credentials**: Standards-compliant attestations of identity and permissions
-3. **Zero-Knowledge Proofs**: For privacy-preserving verification of access rights
-4. **Layer 2 Solutions**: For scalable, low-cost operations
-
-### 2. Semantic Zooming & Context Adaptation
-
-PKC's architecture enables "semantic zooming" capabilities that are fundamental to context-adaptive computation:
-
-- **Dynamic Precision Adjustment**: Automatically adjusts computational precision based on available resources
-- **Context-Aware Processing**: Optimizes knowledge representation for specific use cases
-- **Resource-Efficient Retrieval**: Balances computation and lookup operations based on local resource availability
-
-### 3. Evidence-Based Inference & Learning
-
-PKC implements a sophisticated approach to evidence manipulation and inference that bridges human reasoning and computational statistics:
-
-- **Automated Evidence Processing**: Mechanically processes locally stored evidence to derive insights through statistical inference
-- **Version-Controlled Evidence Base**: Every piece of evidence is stored with complete version history, enabling transparent inference audit trails
-- **Statistical Learning Structures**: Content is automatically processed into vector embeddings and knowledge graphs for efficient statistical analysis
-- **GASing-Aligned Arithmetic Operations**: Leverages fundamental arithmetic operations as the basis for all inference and reasoning processes
-- **Learning Feedback Loops**: User interactions continuously refine inference models through explicit feedback mechanisms
-- **Content-Addressable Evidence**: Ensures data integrity through cryptographic hashing while enabling efficient retrieval for inference
-- **Temporal Inference Graphs**: Maintains explicit versioning of both evidence and derived insights
-- **Computational Evidence Units**: Treats evidence as executable resources that can be verified, combined and transformed through arithmetic operations
-
-- **Fractal State Management**: Self-similar state containers that maintain consistency across scales, as detailed in [[Fractal Dimension]]
-
-- **Entropy-Aware Processing**: Dynamic resource allocation based on information density and [[semantic zooming]] requirements
-
-- **Bidirectional Transformation**: Seamless conversion between natural language and executable code within the [[MCard]] framework
-
-- **Context Preservation**: Maintaining conversation history and state across sessions using fractal addressing
-
-  
-
-### Implementation Features
-
-  
-
-**Fractal Knowledge Representation:**
-
-  
-
-PKC's knowledge graph implements fractal patterns for efficient storage and retrieval:
-
-  
-
-- **Self-Similar Structures**: Knowledge fragments that mirror patterns at different scales
-
-- **Entropy-Based Indexing**: Optimized search and retrieval using information density
-
-- **Adaptive Resolution**: Dynamic detail levels based on context and requirements
-
-  
-
-PKC serves as the data and computation layer for [[Conversational Programming]] environments, providing:
-
-  
-
-- **Fractal State Management**: Self-similar state containers that maintain consistency across conversational turns
-
-- **Entropy-Aware Processing**: Dynamic resource allocation based on the information density of the conversation
-
-- **Bidirectional Transformation**: Seamless conversion between natural language and executable code
-
-- **Context Preservation**: Maintaining conversation history and state across sessions
-
-  
-
-## Technical Architecture
-
-  
-
-### Self-Sovereign Data Architecture
-
-  
-
-PKC's distributed architecture ensures true data sovereignty while enabling secure collaboration:
-
-  
-
-- **Local-First Operation**: Full functionality without external dependencies
-
-- **Federated Identity**: [[Self-Sovereign Identity]] using [[DID]] standards
-
-- **Content-Addressable Storage**: Immutable, verifiable knowledge artifacts
-
-- **Zero-Knowledge Collaboration**: Secure sharing without compromising privacy
-
-  
-
-### Technical Implementation Stack
-
-PKC's implementation centers around creating machine-learnable, versioned knowledge representations through a sophisticated technical stack:
-
-### Core Components
-- **Knowledge Graph Engine**: Maintains semantic relationships between versioned knowledge units
-- **Vector Embedding Service**: Automatically generates and updates numerical representations of content
-- **Version Control System**: Tracks all changes with cryptographic integrity
-- **Learning Feedback Loop**: Continuously improves representations based on usage patterns
-
-PKC combines the [[Cubical Logic Model]] with distributed systems and machine learning technologies to create a living knowledge ecosystem:
-
-  
-
-**Infrastructure Layer:**
-
-- **Containerization**: [[Docker]] and [[Kubernetes]] for isolated, reproducible environments that maintain [[Experimental-Operational Symmetry]]
-
-- **Decentralized Web**: [[OPFS]], [[IPFS]], [[Decentralized Web Nodes]], and [[Peer-to-Peer]] protocols for distributed storage with content-addressable semantics
-
-- **Entropy-Optimized Database**: Content-addressable storage with [[Fractal Indexing]] that aligns with CLM's three-dimensional structure
-
-  
-
-**Application Layer:**
-
-- **Conversational AI**: Deep integration with [[LLM]]s that understand and operate within the CLM framework
-
-- **Unified Configuration Management**: Centralized governance ensuring consistency, security, and coherence across all PKC instances
-
-  
-
-### Cubical Logic Model Integration
-
-  
-
-This architecture enables **fractal scaling**, where the system maintains consistent behavior across all levels of operation. The CLM's three dimensions provide a unified framework for managing the complexity:
-
-  
-
-1. **Abstract Specification**: Natural language intents and requirements
-
-2. **Concrete Implementation**: Executable code and data transformations  
-
-3. **Balanced Expectations**: Validation, testing, and feedback mechanisms
-
-  
-
-The system's [[Entropy and Fractal|entropy management]] ensures optimal resource allocation by dynamically adjusting computational resources based on the information density and complexity of the current task, as defined by the CLM's Balanced Expectations.
-
-  
-
-This approach allows for convenient and rapid deployment of knowledge, even in regions and societies with limited existing infrastructure. By facilitating effective learning and knowledge acquisition, PKC reduces time to recovery in the event of disasters or infrastructure failures, thereby ensuring the preservation and accessibility of valuable knowledge assets.
-
-  
-
-See [[Cubical Logic Model]].
-
-![[CubicalLogicModel.png]]
-
-  
-
-![[Logic Model for PKC#The Logic Model]]
-
-  
-
-## Functional Requirements
-
-  
-
-[[PKC]] must fulfill the following requirements:
-
-  
-
-1. Provide the means to enable [[Personalized Data Sovereignty]] in terms of enabling data collectors and owners to share selected data content without the intrusion of privacy and breach of ownership boundaries.
-
-  
-
-2. Adopt scalable [[Identity|identity provision]] technologies, such as [[DID]] and [[Open Source GIS]] APIs to associate data content correctness with the data provider's using [[Physical Meaning of Data]] and [[Social Meaning of Data|Social Meaning of Data]].
-
-  
-
-3. Enable personalized data refinement, storage, retrieval, presentation, backup, and transaction with adequate data security measures.
-
-  
-
-4. Adopt and adapt to existing data formats and media presentation capabilities using Open Source tools and Open Source data content
-
-  
-
-5. Provide systematic usage instructions and continuous content knowledge refinement process using open source tools such as [[AI]]/[[LLM|Large Language Models]], and [[CICD]].
-
-  
-
-6. Adopt a [[Reproducible]] data storage and manipulation platform using Open Source platforms, such as [[NixOS]], [[Docker]], and [[Kubernetes]].
-
-  
-
-7. Provide a highly available [[System of Record]] ([[SoR]]) to guarantee the integrity and accessibility of data assets under all circumstances, ensuring data sovereignty for individuals and organizations regardless of their economic status or resource availability.
-
-  
-
-## Unified Configuration Management Strategy
-
-  
-
-The implementation of a [[Unified Configuration Management]] ([[UCM]]) strategy is critical in organizing data assets and computational resources in a way that supports these complex decisions. The proliferation of generative AI, which allows for more effective and context-sensitive knowledge management, has contributed significantly to the shift toward a **unified** approach in [[configuration management]]. See [[Why Unified Configuration Management Matters]].
-
-  
-
-PKC actively practices the principle of [[Unified Configuration Management]] to fully harness the potential of data and computing resource management in the [[Generative AI]] era. This deliberate approach underscores PKC's dedication to creating a seamless, efficient, and secure framework for data management, aligning with the advanced requirements of contemporary AI-driven environments.
-
-  
-
-### Key Benefits
-
-  
-
-1. **Centralized Governance:** PKC recognizes the complexity and diversity of data management needs across various domains and scales. A Unified Configuration Management system serves as a centralized mechanism to govern configurations, ensuring consistency, security, and coherence across all instances of PKC. This centralized governance model simplifies the management of data assets, making it easier for users to maintain the integrity and sovereignty of their data.
-
-2. **Enhanced Security and Compliance:** By implementing a Unified Configuration Management framework, PKC strengthens its security-first moto. This framework ensures that all PKC instances adhere to the highest security standards, safeguarding data sovereignty and enhancing the overall security posture. It also facilitates compliance with regulatory requirements by providing a standardized method for configuring and managing security policies.
-
-3. **Operational Efficiency:** The approach streamlines operations by enabling the efficient deployment and management of PKC instances across different environments. It reduces the complexity involved in configuring and updating PKC, thereby lowering operational costs and improving system reliability.
-
-4. **Sustainable Scalability:** As PKC aims to be scale-free, the [[Unified Configuration Management]] approach ensures that scalability does not compromise the system's integrity or performance. It allows for seamless expansion or reduction based on the community's size or the individual's needs, without sacrificing the local-first principle or security commitments.
-
-5. **Interoperability and Flexibility:** This approach fosters interoperability between different PKC instances and external systems. It enables a flexible and adaptable infrastructure that can evolve with technological advancements and user requirements. By maintaining a unified configuration standard, PKC ensures that its platform remains at the forefront of technological innovation, catering to a broad spectrum of knowledge domains and user needs.
-
-  
-
-In essence, PKC's adoption of a [[Unified Configuration Management]] approach is grounded in the requirements of making knowledge management [[Upgradability|upgradable]]. It aims to provide a robust, secure, and user-friendly platform that not only respects the data sovereignty of individuals and small organizations but also sets a new standard in data management and collaboration.
-
-  
-
-## Architecture Diagrams
-
-  
-
-### Overall System Architecture
-
-  
-
-A matrix-based approach to visualize the overall architecture of [[PKC]] is shown as follows:
-
-  
-
-![[SoG_with_SDN.png]]
-
-[Go to the interactive Canvas](SoG_with_SDN.canvas)
-
-  
-
-### The Architecture Diagram of PKC
-
-  
-
-![[PKC_Architecture.excalidraw|800]]
-
-[Go to Excalidraw](PKC_Architecture.excalidraw)
-
-  
-
-This diagram represents the different components and functionalities of PKC, including data sovereignty, identity provision, data management, adaptation, usage instructions, and reproducibility. Each component is represented as a subgraph with its corresponding elements.
-
-  
-
-### Process Diagram for PKC
-
-  
-
-Certainly! Here is a process diagram using Mermaid syntax that illustrates how PKC processes data:
-
-  
-
-![[PKC_workflow.excalidraw|800]]
-
-[Go to Excalidraw version of this diagram](PKC_workflow.excalidraw)
-
-  
-
-This process diagram outlines the sequential steps involved in the data processing within PKC. It starts with data collection, followed by data validation and cleaning. The processed data is then stored, encrypted, and backed up. When needed, the data is retrieved, decrypted, and managed through organization, indexing, version control, and metadata application. The processed and managed data is presented through visualization, report generation, and data sharing. Finally, data transactions are facilitated through access control, data sharing, and collaboration.
-
-  
-
-## Related Technologies and Integration
-
-  
-
-PKC integrates with and builds upon:
-
-- **Storage Technologies**: Network Attached Storage (NAS), IPFS, Decentralized Web Nodes
-
-- **Security**: Blockchain, Smart Contracts, End-to-End Encryption
-
-- **Development**: Git, CI/CD, Docker, Kubernetes
-
-- **AI/ML**: Large Language Models, Conversational AI
-
-- **Identity**: DID, Self-Sovereign Identity
-
-- **Methodologies**: XLP (Extreme Learning Process), Science of Governance (SoG)
-
-- **Knowledge Management**: Zettlekasten Workflow, Personal Knowledge Management tools
-
-  
-
-## Future Directions
-
-  
-
-Ongoing research and development focuses on:
-
-  
-
-1. **Fractal Neural Networks**: Leveraging self-similar patterns in neural architectures
-
-2. **Entropy-Optimized Learning**: Adaptive models responding to information density  
-
-3. **Quantum-Resistant Cryptography**: Future-proofing self-sovereign identity
-
-4. **Decentralized Federated Learning**: Collaborative AI while preserving privacy
-
-  
-
-## Collective Knowledge Management Through PKC
-
-While PKC emphasizes personal data sovereignty and local-first principles, it also provides sophisticated infrastructure for collective knowledge management that respects individual boundaries and intellectual property. This capability is especially important in an era of increasingly powerful but potentially intrusive cloud services.
-
-### Collaborative Knowledge Work with Data Sovereignty
-
-1. **Community Knowledge Networks**: PKC enables communities to form knowledge networks where each individual maintains sovereignty over their contributions while participating in collective intelligence
-
-2. **Decentralized Verification**: Knowledge claims can be verified through distributed consensus mechanisms without requiring centralized authority or exposing private evidence
-
-3. **Federated Learning Patterns**: Communities can collectively improve models and inference capabilities while maintaining privacy of training data
-
-4. **Progressive Knowledge Containers**: Shared knowledge evolves through structured, versioned collaboration rather than static content repositories
-
-5. **Self-Sovereign Identity Integration**: Cryptographic verification of contribution authorship and selective disclosure of credentials without surrendering privacy
-
-### Interface with Conversational Programming through Cubical Logic Model
-
-PKC provides the essential infrastructure layer for implementing [[Conversational programming|Conversational Programming]] in practice, bridging formal theory with practical implementation through the [[Cubical Logic Model]] (CLM):
-
-1. **Natural Language Interface with Formal Foundations**: PKC implements the three-dimensional CLM framework where:
-   - **Abstract Specification** dimension supports natural language expression of user intent
-   - **Concrete Implementation** dimension manages executable code and data transformations
-   - **Balanced Expectations** dimension handles verification and correctness guarantees
-
-2. **Speech Act Theory in Practice**: PKC's implementation of the CLM-BDD-MCard framework creates concrete mechanisms for the linguistic theory concepts in Conversational Programming:
-   - Storing and processing locutionary acts (what is said) as MCard content
-   - Mapping illocutionary acts (what is meant) through vector-based universal functions
-   - Tracking perlocutionary acts (what is achieved) through the verification layer
-
-3. **Bidirectional Lens Implementation**: The theoretical lenses described in Conversational Programming are implemented in PKC as:
-   - Get operations that transform user intents to formal specifications
-   - Put operations that update implementations based on refined specifications
-   - Round-trip consistency guarantees through cryptographic validation
-
-4. **Privacy-Preserving Verification**: PKC enables the formal verification needs of Conversational Programming while preserving user privacy through:
-   - Local execution of verification steps
-   - Selective disclosure of verification evidence
-   - Zero-knowledge proofs for validation without revealing implementation details
-
-This interface between PKC and Conversational Programming creates a powerful symbiotic relationship: Conversational Programming provides the theoretical foundations and formal guarantees for natural language interfaces, while PKC provides the practical infrastructure that implements these theories while protecting user privacy and data sovereignty.
-
-## Conclusion: From Infrastructure to Learning Ecosystem
-
-PKC represents a fundamental shift from passive knowledge storage to active, community-based learning infrastructure that operates locally while leveraging advanced computational techniques. As the technical foundation for [[Literature/PKM/Tools/Open Source/Extreme Learning Process|Extreme Learning Process]] (XLP), PKC creates an architecture where learning becomes transparent, verifiable, and community-driven while preserving individual data sovereignty.
-
-### Key Innovations Supporting XLP and Community Learning
-
-1. **Technical Infrastructure for Learning Coordination**: PKC provides the essential IT infrastructure that facilitates coordination among learning agents and agencies in the XLP framework, enabling multi-scale learning activities that span from individual to community levels
-
-2. **Democratized Learning Technology**: By bringing modern computational capabilities to educational settings through streamlined infrastructure, PKC reduces costs and technical barriers while increasing relevance through local context adaptation
-
-3. **Implementation of XLP's Four-Stage Process**: The system's architecture directly supports XLP's learning stages (Early Success, Fail Early Fail Safe, Convergence, and Demonstration) through its version control, content-addressable storage, and verification mechanisms
-
-4. **Learning Evidence Processing**: Knowledge is processed in modular, self-contained units that maintain their integrity while participating in larger learning structures, enabling transparent verification of each educational achievement
-
-5. **Version-Controlled Learning**: Both evidence and derived insights evolve through discrete, traceable steps, creating auditable learning trails that can be verified through fundamental operations aligned with XLP's emphasis on reflection
-
-6. **Resource-Aware Learning**: The system dynamically adjusts learning resources and content precision based on available infrastructure, following GASing's principles of adaptive computation and lookup trade-offs
-
-7. **Community MLOps for Education**: By adapting software development workflow patterns to community learning deployment, PKC enables continuous improvement of educational capabilities without surrendering data sovereignty
-
-This approach transforms education into evidence-based computation that becomes more personalized and relevant with use. By treating learning as a form of evidence-processing grounded in local communities—where knowledge patterns combine and transform according to well-defined rules—PKC provides learners and educational communities with powerful computational capabilities previously available only to large organizations.
-
-At its core, PKC demonstrates that when the principles of XLP, GASing, and CLM are combined in a unified infrastructure, they create a powerful instrument for augmenting human learning, supporting collaborative knowledge building, and enabling machine intelligence to serve as a true extension of community knowledge rather than a replacement for human judgment.
-
-Unlike traditional educational technology or learning management systems, PKC functions as a comprehensive learning infrastructure through its ability to self-adapt to proper performance requirements across different educational contexts with scale-specific configurations. By implementing this approach, PKC enables individuals and learning communities to maintain control over their knowledge assets while dynamically optimizing how that knowledge is processed and applied.
-
-The platform's integration with modern software development practices (CI/CD), machine learning operations (MLOps), and self-administered workflows demonstrates its potential to transform not just how we manage knowledge, but how computational capabilities support community learning. Through its local-first, version-controlled approach to representing learned content, PKC ensures that the benefits of advanced AI function approximation remain accessible to all learning communities, regardless of economic status or technical expertise, while continuously refining its capabilities through interaction with evolving knowledge repositories.
+As the foundational infrastructure for the Extreme Learning Process, PKC transforms how we think about education, research, and knowledge creation, making advanced computational capabilities accessible to all while ensuring that the benefits of AI serve to augment rather than replace human intelligence and creativity.
 
 ---
-# References
-```dataview 
-Table title as Title, authors as Authors
-where contains(subject, "PKC") or contains(subject, "Personal Knowledge Container") or contains(subject, "Conversational Programming")
-sort title, authors, modified
-```
+
+## References
+
+### Core Architecture Documents
+- [[MVP Cards for PKC]] - Triadic foundation and architectural principles
+- [[MCard]] - Data plane implementation specification
+- [[PCard]] - Control plane and UI component architecture
+- [[VCard]] - Application plane and value exchange mechanisms
+- [[PCard Architecture]] - Polynomial functor computational framework
+
+### Related Concepts
+- [[Extreme Learning Process]] - Community learning methodology
+- [[Cubical Logic Model]] - Formal programming interface
+- [[Progressive Web Apps]] - Modern web application architecture
+- [[Self-Sovereign Identity]] - Decentralized identity management
+- [[Polynomial Functors]] - Mathematical foundation for composition
+
+### Implementation Resources
+- [PKC GitHub Repository](https://github.com/xlp0/PKC)
+- [PKC Documentation Site](https://pkc.pub)
+- [Docker Hub Images](https://hub.docker.com/r/pkc/core)
