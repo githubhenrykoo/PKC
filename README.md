@@ -68,7 +68,7 @@ graph TB
 
 ```bash
 # Clone the repository
-git clone https://github.com/xlp0/PKC.git
+git clone https://github.com/githubhenrykoo/PKC.git
 cd PKC
 
 # Install dependencies
@@ -161,11 +161,11 @@ PKC/
 
 ## 📖 Documentation
 
-- **[PKC.md](./docs/PKC.md)** - Complete implementation guide and architecture overview
-- **[MCard.md](./docs/MCard.md)** - Universal atomic storage specification
-- **[PCard.md](./docs/PCard.md)** - Component composition engine details
-- **[VCard.md](./docs/VCard.md)** - Security and value exchange layer
-- **[MVP Cards for PKC.md](./docs/MVP%20Cards%20for%20PKC.md)** - MVP implementation strategy
+- **[PKC.md](./Docs/PKC.md)** - Complete implementation guide and architecture overview
+- **[MCard.md](./Docs/MCard.md)** - Universal atomic storage specification
+- **[PCard.md](./Docs/PCard.md)** - Component composition engine details
+- **[VCard.md](./Docs/VCard.md)** - Security and value exchange layer
+- **[MVP Cards for PKC.md](./Docs/MVP%20Cards%20for%20PKC.md)** - MVP implementation strategy
 
 ## 🌐 Deployment
 
