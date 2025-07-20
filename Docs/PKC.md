@@ -197,7 +197,7 @@ graph TB
     
     subgraph "Data Plane: MCard Atomic Storage"
         M[MCard: Universal Content Storage]
-        M1[Embedded Database (SQLite)]
+        M1["Embedded Database (SQLite)"]
         M2[IPFS-Compatible Content Addressing]
         M3[Local-First Data Layer]
         M --> M1
@@ -207,7 +207,7 @@ graph TB
     
     subgraph "Networking Foundation: libP2P Layer"
         N[libP2P Modular Networking]
-        N1[Distributed Hash Table (DHT)]
+        N1["Distributed Hash Table (DHT)"]
         N2[IPFS Content Distribution]
         N3[Peer Discovery & Routing]
         N4[Transport Layer Security]
