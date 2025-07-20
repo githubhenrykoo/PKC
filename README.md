@@ -130,7 +130,7 @@ PKC/
 │   │   ├── vcard/          # VCard security layer
 │   │   └── networking/     # libP2P integration
 │   └── styles/             # Global styles
-├── docs/                   # Documentation
+├── Docs/                   # Documentation
 │   ├── PKC.md             # Complete implementation guide
 │   ├── MCard.md           # MCard specification
 │   ├── PCard.md           # PCard specification
