@@ -81,6 +81,11 @@ PKC implements a sophisticated **triadic architecture** where every component wo
 - **Pattern Recognition Engine**: Automatic optimization and edge case discovery
 - **Collaborative Intelligence**: Multi-user contributions to function knowledge
 - **Polynomial Structure**: Mathematical rigor through functor algebra
+- **Universal Execution Layer**: REPL-like wrapper supporting diverse execution providers including:
+  - Traditional functions
+  - LLM inference engines
+  - MCP tool providers
+  - External APIs and distributed computing resources
 
 ### 🔐 VCard: Security & Collaboration Layer
 **The Application Plane** - Secure boundaries for collaborative knowledge sharing:
@@ -297,3 +302,5 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 npm install
 npm run dev
 # Begin conversing with your code at http://localhost:3000
+
+```
