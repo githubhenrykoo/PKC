@@ -24,9 +24,9 @@ This triadic structure creates a complete computational stack where:
 - **PCard** enables compositional knowledge transformation
 - **VCard** facilitates value exchange and economic coordination
 
-## 1. MCard: The Atomic Knowledge Foundation
+## 1. MCard: The Atomic Knowledge Foundation and Data Substrate
 
-**MCard** ([[Monadology|Monadic]] Card) serves as the fundamental, atomic, and immutable knowledge unit that forms the backbone of the entire PKC system. It implements the **Data Plane** of the architecture.
+**MCard** ([[Monadology|Monadic]] Card) serves as the fundamental, atomic, and immutable knowledge unit that forms the backbone of the entire PKC system. It implements the **Data Plane** of the architecture, providing the universal data substrate upon which all PKC operations are built.
 
 ### 1.1 Core Structure and Properties
 
@@ -49,7 +49,33 @@ MCard represents the **linear case** of polynomial functors, functioning as a li
 - **Atomic Compositionality**: MCards serve as indivisible building blocks that maintain their **semantic integrity** across compositions
 - **Cryptographic Verification**: Tamper-proof integrity through hash validation, establishing **trust in physical representation**
 
-### 1.3 Key Capabilities
+### 1.3 Web Presentation and Performance Optimization
+
+MCard content can be efficiently presented through the web using embedded database technologies:
+
+- **Local-First Caching**: Embedded SQLite database instances store and index MCards locally for immediate access
+- **Response Time Optimization**: Intelligent caching strategies prioritize frequently accessed MCards
+- **Transportation Efficiency**: Differential synchronization minimizes data transfer across the network
+- **Content Delivery Acceleration**: Edge caching of MCards based on access patterns and geographic distribution
+- **Progressive Loading**: MCards load in priority order based on viewport visibility and user interaction patterns
+
+```typescript
+interface MCacheConfig {
+  storage_quota: number;      // Maximum local storage size in MB
+  cache_strategy: 'lru' | 'lfu' | 'ttl' | 'prioritized';
+  prefetch_patterns: {
+    on_page_load: boolean;    // Prefetch linked MCards on page load
+    on_hover: boolean;        // Prefetch on UI element hover
+    predictive: boolean;      // Use ML to predict next needed MCards
+  };
+  expiration_policy: {
+    max_age_ms: number;       // Maximum cache age
+    check_updates: boolean;   // Periodically check for updates
+  };
+}
+```
+
+### 1.4 Key Capabilities
 
 1. **Conflict-Free Replicated Data Types (CRDTs)**
    - Implements state-based [[CRDT]] (G-Set) for eventual consistency
@@ -67,7 +93,7 @@ MCard represents the **linear case** of polynomial functors, functioning as a li
    - **Measurability**: Quantitative similarity measures via vector operations
    - **Irreducibility**: Smallest indivisible unit of knowledge
 
-### 1.4 Role in the Cubical Logic Model (CLM)
+### 1.5 Role in the Cubical Logic Model (CLM)
 
 MCard serves as the storage substrate for [[Cubical Logic Model]]'s three-dimensional representation:
 - Each [[Cubical Logic Model]] ([[CLM]]) dimension ([[Abstract Specification]], [[Concrete Implementation]], [[Balanced Expectations]]) is stored as a separate MCard
