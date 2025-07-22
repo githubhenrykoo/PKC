@@ -9,13 +9,21 @@ authors: ChatGPT
 
 ## Overview
 
-The PCard architecture introduces a computational framework specifically designed to enable **Conversational Programming** and systematic knowledge accumulation of well-cataloged PCard functions. Unlike traditional function composition systems, PCard creates an interactive testing environment similar to Conversational Programming or Vibe Coding, where users continuously explore and expand the behavior space of functions under test through incremental test case accumulation.
+## Overview
 
-At its core, PCard transforms function development from a one-time activity into an **ongoing conversation with the code**, where each interaction builds upon previous knowledge while maintaining mathematical rigor through polynomial functor structures. This conversational approach is powered by three mutually orthogonal components that work in concert:
+The PCard architecture introduces a computational framework specifically designed to enable **Conversational Programming** with mathematical rigor. It systematically accumulates knowledge through formal validation, storing all content as hash-indexed MCard references to maintain immutability and cryptographic verification. 
+
+Unlike traditional function composition systems, PCard creates an interactive testing environment similar to Conversational Programming or Vibe Coding, where users continuously explore and expand the behavior space of functions through incremental test case accumulation. This approach transforms function development from a one-time activity into an **ongoing conversation with the code**, where each interaction builds upon previous knowledge while maintaining mathematical rigor through polynomial functor structures.
+
+This conversational approach is powered by three mutually orthogonal components that work in concert:
 
 1. **AbstractSpecification (Social Identity)**: Captures the human-readable description of function behavior, enabling rapid social understanding and design intent communication
+
 2. **ConcreteImplementation (Physical Execution)**: The actual source code and execution runtime, represented as polynomial functors that can be dynamically explored and tested
-3. **BalancedExpectations (Interactive Validation Repository)**: A hash-indexed filtering and searching mechanism that accumulates test cases and execution records through conversational exploration sessions
+
+3. **BalancedExpectations (Interactive Validation Repository)**: A hash-indexed content filtering and search mechanism that relates test cases and execution records to specific functions while allowing conversational exploration sessions to incrementally accumulate knowledge about these functions
+
+This triadic cross-referencing with hash values provides a compact, yet flexible representation of knowledge that relates human languages, algorithmic behavior, and real-world execution history as sources of validation to construct a body of knowledge in a data-driven **Continuation**. The term Continuation is operationally supported by both CI/CD practices and the mathematical logical concept of continuation as "what to do next," creating a unified framework for progressive knowledge accumulation and validation.
 
 ### Conversational Programming Foundation
 
