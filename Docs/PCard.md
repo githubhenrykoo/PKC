@@ -70,25 +70,38 @@ interface PCard {
 }
 ```
 
-### 1.2 Polynomial Retrieval Syntax
 
-The hash-based retrieval syntax follows a polynomial structure that enables validation data accumulation:
+### 1.2 Polynomial Retrieval Syntax: Information-Theoretic Knowledge Assessment
+
+The hash-based retrieval syntax follows a polynomial structure that enables validation data accumulation while providing information-theoretic measures for knowledge quality assessment:
 
 $$
-ValidationData(PCardHash) = \sum (ValidationItem_i \times RetrievalKey^i)
+CorrectnessAssessment(X) = \sum (TestCase_i \times X^{TestValue_i})
+$$
+
+This polynomial can be interpreted as a **probability distribution over computational pathways**, where each term represents a pathway with associated likelihood. This enables cross entropy measurement between different knowledge states:
+
+$$
+H(P_{expected}, P_{actual}) = -\sum P_{expected}(pathway_i) \log P_{actual}(pathway_i)
 $$
 
 Where:
-- **PCardHash**: The unique identifier for this validation repository
-- **$ValidationItem_i$**: Individual test cases, proofs, or execution records
-- **$RetrievalKey^i$**: The hash-based indexing mechanism
+- **$X$**: The unique identifier (PCard hash value) for the function under investigation
+- **$TestCase_i$**: Individual test cases representing expected computational outcomes with probability $P_{expected}(pathway_i)$
+- **$TestValue_i$**: The hash-based indexing mechanism capturing actual execution frequencies as $P_{actual}(pathway_i)$
 - **$\sum$**: Accumulation operator that adds new validation data without creating new PCard instances
 
+**Information-Theoretic Interpretation:**
+- **Cross Entropy**: Measures misalignment between specification intent and implementation reality
+- **KL Divergence**: $D_{KL}(P_{old} || P_{new}) = \sum P_{old}(pathway_i) \log \frac{P_{old}(pathway_i)}{P_{new}(pathway_i)}$ quantifies knowledge evolution over testing sessions
+- **Mutual Information**: Captures dependencies between test cases and execution outcomes
+
 This structure enables:
-1. **Instance Preservation**: New validation data accumulates under existing PCard hashes
-2. **Knowledge Reuse**: Multiple validation efforts reference the same PCard instance
-3. **Confusion Avoidance**: No proliferation of nearly identical PCard instances
-4. **Syntactic Stability**: Mathematical form remains consistent across validation additions
+1. **Instance Preservation**: New validation data accumulates under existing PCard hashes while maintaining information-theoretic coherence
+2. **Knowledge Quality Metrics**: Cross entropy provides quantitative measures of specification-implementation alignment
+3. **Learning Progress Assessment**: KL divergence tracks information gain across conversational programming sessions
+4. **Uncertainty Quantification**: Entropy measures remaining uncertainty about function behavior
+5. **Syntactic Stability**: Mathematical form remains consistent across validation additions while enabling probabilistic reasoning
 
 ## 2. Curry-Howard-Lambek Implementation Through Hash-Based Accumulation
 
