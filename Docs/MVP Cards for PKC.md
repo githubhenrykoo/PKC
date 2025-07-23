@@ -7,7 +7,9 @@ authors: Ben Koo, ChatGPT
 
 # MVP Cards: The Triadic Foundation of PKC Architecture
 
-The MVP Cards framework introduces a formal system that elevates the [[Personal Knowledge Container]] (PKC) as a software product into a scale-free [[Progressive Knowledge Container]] operating system, establishing a unified framework where data gains both social and physical meaning through computational trinitarianism. This triadic architecture implements a rigorous mathematical structure based on polynomial functors and content-addressable storage, creating three complementary card types that form a complete computational ecosystem for knowledge representation, manipulation, and exchange across personal, social, and physical dimensions.
+The MVP Cards framework introduces a formal system that elevates the [[Personal Knowledge Container]] (PKC) as a software product into a scale-free [[Progressive Knowledge Container]] operating system, establishing a unified framework where data gains both social and physical meaning through computational trinitarianism. This triadic architecture is designed as a **technology-agnostic guide** that is intentionally not bound to any particular technology, enabling it to accommodate any hardware and software technology solutions. By functioning as a **functionally pure operating system**, the MVP Cards framework can continuously evolve beyond any known lifecycle of specific technologies or products, ensuring long-term sustainability and adaptability.
+
+The system implements a rigorous mathematical structure based on polynomial functors and content-addressable storage, creating three complementary card types that form a complete computational ecosystem for knowledge representation, manipulation, and exchange across personal, social, and physical dimensions.
 
 ## Overview: The Three-Plane Architecture
 
