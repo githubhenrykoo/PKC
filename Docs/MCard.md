@@ -572,7 +572,7 @@ The immediate focus is on developing a "standalone_app" with the following objec
 1. **Core Features**:
    - Pagination support for efficient data handling
    - Rich file system integration capabilities
-   - Windsurf-driven development acceleration
+   - Conversational Programming-based development acceleration
 
 2. **Testing and Development**:
    - Streamlined testing process for database operations
