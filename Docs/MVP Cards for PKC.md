@@ -92,6 +92,11 @@ interface MCacheConfig {
    - **Composability**: Deterministic composition through cryptographic hashes
    - **Measurability**: Quantitative similarity measures via vector operations
    - **Irreducibility**: Smallest indivisible unit of knowledge
+   - **Reproducibility**: Following Eelco Dolstra's purely functional deployment model ^[Dolstra, E. "The Purely Functional Software Deployment Model." PhD Thesis, Utrecht University, 2006.], MCard ensures:
+     - **Deterministic Builds**: Content-addressable storage guarantees bit-for-bit reproducible knowledge structures
+     - **Immutable Dependencies**: Hash-based references prevent dependency conflicts and version drift
+     - **Atomic Operations**: Knowledge state changes are atomic and rollback-safe, similar to NixOS system configurations
+     - **Functional Configuration**: Knowledge structures expressed as pure functions enable declarative specifications and compositional reasoning
 
 ### 1.5 Role in the Cubical Logic Model (CLM)
 
