@@ -13,9 +13,9 @@ tags:
 authors: Ben Koo
 subject: MCard, HyperCard, Content-Addressable Storage, Hash-based Namespace, Ricardian Contract, Bookkeeping, deduplication, duplication, collision, atomic, atom, Token, event, message, data container, rewrite system, NSM, namespace management
 ---
-### **MCard: Linear Polynomial Functors for GASing Learning and Universal Data Substrate**
+### **MCard: Monadic Card for GASing Learning and Universal Data Substrate**
 
-**MCard** serves as the fundamental linear data structure in the **GASing Learning System**, implementing the principles of **[[Vector representation of Knowledge]]** within the **[[Progressive Knowledge Container]]** ([[PKC]]) framework. As a linear polynomial functor, MCard represents the simplest non-trivial case of polynomial functors - an exhaustive list of triplets - making it the atomic building block for more complex structures.
+**MCard** serves as the monadic (foundational) linear data structure in the **GASing Learning System**, implementing the principles of **[[Vector representation of Knowledge]]** within the **[[Progressive Knowledge Container]]** ([[PKC]]) framework. As a "linear" polynomial functor, MCard represents the simplest case of polynomial functors - an exhaustive list of triplets - making it the atomic building block for more complex structures.
 
 This linear structure is specifically designed to bridge database technologies with tensor-based computation, enabling efficient storage, retrieval, and processing of structured knowledge while maintaining the mathematical properties required for the GASing Learning System.
 
