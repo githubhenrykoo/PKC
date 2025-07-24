@@ -91,6 +91,7 @@ This allows mathematicians to categorize and understand the "shape" and "structu
 
 ## References
 
-- Chris Heunen lectures on Polynomial Functors
+- David Spivak lectures on Polynomial Functors
+- Chris Heunen lectures on Sheaf representation of monoidal categories
 - GASing Arithmetic Method paper
 - Sheaf Representation theory
