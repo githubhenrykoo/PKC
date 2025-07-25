@@ -1,0 +1,271 @@
+---
+import '../styles/global.css';
+import { cn } from '@/lib/utils';
+
+interface Props {
+  title?: string;
+}
+
+const { title = 'PKC Dashboard' } = Astro.props;
+---
+
+<html lang="en" class="h-full">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#4f46e5">
+    <meta name="description" content="PKC Interactive Dashboard">
+    
+    <!-- PWA Meta Tags -->
+    <meta name="application-name" content="PKC">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="PKC">
+    <meta name="format-detection" content="telephone=no">
+    <meta name="mobile-web-app-capable" content="yes">
+    
+    <title>{title}</title>
+    
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  </head>
+  <body class="h-full bg-background font-sans antialiased">
+    <div class="relative flex min-h-screen flex-col">
+      <!-- Header Bar -->
+      <header class="sticky top-0 z-40 border-b bg-background">
+        <div class="container flex h-16 items-center justify-between py-4">
+          <div class="flex items-center gap-2">
+            <h1 class="text-xl font-bold text-primary">PKC</h1>
+          </div>
+          <div class="flex items-center gap-4">
+            <button id="theme-toggle" class="inline-flex h-9 w-9 items-center justify-center rounded-md border border-input bg-background hover:bg-accent hover:text-accent-foreground">
+              <i class="fas fa-moon"></i>
+              <span class="sr-only">Toggle theme</span>
+            </button>
+            <button class="inline-flex h-9 w-9 items-center justify-center rounded-md border border-input bg-background hover:bg-accent hover:text-accent-foreground">
+              <i class="fas fa-bell"></i>
+              <span class="sr-only">Notifications</span>
+            </button>
+            <div class="relative">
+              <img src="https://via.placeholder.com/40" alt="User Avatar" class="h-8 w-8 rounded-full">
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <div class="flex-1 items-start md:grid md:grid-cols-[220px_minmax(0,1fr)] md:gap-6 lg:grid-cols-[240px_minmax(0,1fr)] lg:gap-10">
+        <!-- Sidebar -->
+        <aside class="fixed top-14 z-30 -ml-2 hidden h-[calc(100vh-3.5rem)] w-full shrink-0 border-r md:sticky md:block">
+          <div class="h-full py-6 pl-8 pr-6 lg:py-8">
+            <nav class="grid items-start gap-2">
+              <a href="/dashboard" class="group flex items-center rounded-md px-3 py-2 text-sm font-medium bg-accent text-accent-foreground">
+                <i class="fas fa-home mr-2 h-4 w-4"></i>
+                <span>Dashboard</span>
+              </a>
+              <a href="/dashboard/files" class="group flex items-center rounded-md px-3 py-2 text-sm font-medium hover:bg-accent hover:text-accent-foreground">
+                <i class="fas fa-file mr-2 h-4 w-4"></i>
+                <span>Files</span>
+              </a>
+              <a href="/dashboard/cards" class="group flex items-center rounded-md px-3 py-2 text-sm font-medium hover:bg-accent hover:text-accent-foreground">
+                <i class="fas fa-credit-card mr-2 h-4 w-4"></i>
+                <span>Cards</span>
+              </a>
+              <a href="/dashboard/settings" class="group flex items-center rounded-md px-3 py-2 text-sm font-medium hover:bg-accent hover:text-accent-foreground">
+                <i class="fas fa-cog mr-2 h-4 w-4"></i>
+                <span>Settings</span>
+              </a>
+            </nav>
+          </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="container flex w-full flex-1 flex-col overflow-hidden py-8">
+          <slot />
+        </main>
+      </div>
+    </div>
+
+    <script>
+      // Theme toggle functionality
+      document.addEventListener('DOMContentLoaded', () => {
+        const themeToggle = document.getElementById('theme-toggle');
+        if (!themeToggle) return;
+
+        themeToggle.addEventListener('click', () => {
+          const isDarkMode = document.documentElement.classList.toggle('dark-theme');
+          themeToggle.innerHTML = isDarkMode 
+            ? '<i class="fas fa-sun"></i>' 
+            : '<i class="fas fa-moon"></i>';
+        });
+      });
+    </script>
+  </body>
+</html>
+
+<style>
+  :root {
+    --header-height: 64px;
+    --sidebar-width: 240px;
+    --color-primary: #4f46e5;
+    --color-secondary: #6b7280;
+    --color-background: #f9fafb;
+    --color-header-bg: #ffffff;
+    --color-sidebar-bg: #ffffff;
+    --color-text: #111827;
+    --color-text-light: #6b7280;
+    --color-border: #e5e7eb;
+    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  }
+
+  .dark-theme {
+    --color-primary: #6366f1;
+    --color-background: #1f2937;
+    --color-header-bg: #111827;
+    --color-sidebar-bg: #111827;
+    --color-text: #f9fafb;
+    --color-text-light: #d1d5db;
+    --color-border: #374151;
+  }
+
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background-color: var(--color-background);
+    color: var(--color-text);
+    line-height: 1.5;
+  }
+
+  .dashboard-container {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .header-bar {
+    height: var(--header-height);
+    background-color: var(--color-header-bg);
+    border-bottom: 1px solid var(--color-border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 1.5rem;
+    box-shadow: var(--shadow-sm);
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 10;
+  }
+
+  .header-logo h1 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--color-primary);
+  }
+
+  .header-actions {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+  }
+
+  .icon-button {
+    background: transparent;
+    border: none;
+    color: var(--color-text-light);
+    font-size: 1rem;
+    cursor: pointer;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.2s;
+  }
+
+  .icon-button:hover {
+    background-color: rgba(0, 0, 0, 0.05);
+  }
+
+  .dark-theme .icon-button:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+  }
+
+  .user-profile .avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    object-fit: cover;
+  }
+
+  .main-container {
+    display: flex;
+    margin-top: var(--header-height);
+    min-height: calc(100vh - var(--header-height));
+  }
+
+  .sidebar {
+    width: var(--sidebar-width);
+    background-color: var(--color-sidebar-bg);
+    border-right: 1px solid var(--color-border);
+    padding: 1.5rem 0;
+    overflow-y: auto;
+    position: fixed;
+    left: 0;
+    top: var(--header-height);
+    bottom: 0;
+  }
+
+  .nav-item {
+    list-style-type: none;
+  }
+
+  .nav-link {
+    display: flex;
+    align-items: center;
+    padding: 0.75rem 1.5rem;
+    color: var(--color-text-light);
+    text-decoration: none;
+    transition: background-color 0.2s;
+    gap: 0.75rem;
+  }
+
+  .nav-link:hover, .nav-link.active {
+    background-color: rgba(79, 70, 229, 0.1);
+    color: var(--color-primary);
+  }
+
+  .nav-link i {
+    width: 24px;
+  }
+
+  .content {
+    flex: 1;
+    padding: 1.5rem;
+    margin-left: var(--sidebar-width);
+  }
+
+  @media (max-width: 768px) {
+    .sidebar {
+      position: fixed;
+      transform: translateX(-100%);
+      transition: transform 0.3s ease-in-out;
+      z-index: 5;
+    }
+
+    .sidebar.active {
+      transform: translateX(0);
+    }
+
+    .content {
+      margin-left: 0;
+    }
+  }
+</style>
