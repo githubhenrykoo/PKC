@@ -18,6 +18,7 @@ export function MCardBrowser() {
   const [contentType, setContentType] = useState<string>('');
   const [isDragging, setIsDragging] = useState(false);
   const [uploadStatus, setUploadStatus] = useState<{ success: boolean; message: string } | null>(null);
+  // Create ref for file input
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const mCardService = new MCardService();
@@ -236,14 +237,24 @@ export function MCardBrowser() {
   };
 
   return (
-    <ResizablePanelGroup 
-      direction="horizontal" 
-      className="h-full w-full"
-      onLayout={(sizes) => {
-        // Optional: Save sizes to localStorage or state if needed
-        console.log('Layout changed:', sizes);
-      }}
-    >
+    <>
+      {/* Hidden file input for uploads */}
+      <input
+        type="file"
+        ref={fileInputRef}
+        className="hidden"
+        accept=".pdf,.txt,.md,.json,.jpg,.jpeg,.png,.gif"
+        onChange={handleFileInputChange}
+      />
+      
+      <ResizablePanelGroup 
+        direction="horizontal" 
+        className="h-full w-full"
+        onLayout={(sizes) => {
+          // Optional: Save sizes to localStorage or state if needed
+          console.log('Layout changed:', sizes);
+        }}
+      >
       {/* Left Panel - MCard List */}
       <ResizablePanel defaultSize={33} minSize={25} maxSize={50} className="h-full">
         <div className="h-full overflow-hidden">
@@ -290,5 +301,6 @@ export function MCardBrowser() {
         </div>
       </ResizablePanel>
     </ResizablePanelGroup>
+    </>
   );
 }
