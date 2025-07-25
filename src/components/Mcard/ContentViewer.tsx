@@ -32,7 +32,7 @@ export function ContentViewer({
 }: ContentViewerProps) {
   return (
     <div 
-      className={`h-full flex flex-col ${isDragging ? 'ring-2 ring-primary' : ''}`}
+      className={`h-full w-full flex flex-col overflow-hidden ${isDragging ? 'ring-2 ring-primary' : ''}`}
       onDragEnter={onDragEnter}
       onDragOver={onDragOver}
       onDragLeave={onDragLeave}
@@ -62,8 +62,8 @@ export function ContentViewer({
       </div>
     
       <div className="flex-1 overflow-hidden">
-        <ScrollArea className="h-full">
-          <div className="p-4">
+        <ScrollArea className="h-full w-full max-h-[calc(100vh-12rem)]" type="always">
+          <div className="p-4 w-full">
             {loading && <div className="text-center py-8">Loading content...</div>}
           
             {!loading && !selectedCard && (
@@ -74,11 +74,14 @@ export function ContentViewer({
           
             {!loading && selectedCard && contentPreview && (
               contentType.startsWith('text/') ? (
-                <pre className="whitespace-pre-wrap bg-muted p-4 rounded-md overflow-x-auto">
+                <pre className="whitespace-pre-wrap bg-muted p-4 rounded-md overflow-auto w-full max-h-[calc(100vh-16rem)]">
                   {contentPreview}
                 </pre>
               ) : (
-                <div dangerouslySetInnerHTML={{ __html: contentPreview as string }} />
+                <div 
+                  className="w-full overflow-auto max-h-[calc(100vh-16rem)]"
+                  dangerouslySetInnerHTML={{ __html: contentPreview as string }} 
+                />
               )
             )}
           </div>
