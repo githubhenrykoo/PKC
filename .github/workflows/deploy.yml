@@ -43,9 +43,9 @@ jobs:
           context: .
           push: true
           platforms: linux/amd64,linux/arm64
-          tags: henry768/PKC:latest
-          cache-from: type=registry,ref=henry768/PKC:buildcache
-          cache-to: type=registry,ref=henry768/PKC:buildcache,mode=max
+          tags: henry768/pkc:latest
+          cache-from: type=registry,ref=henry768/pkc:buildcache
+          cache-to: type=registry,ref=henry768/pkc:buildcache,mode=max
           build-args: |
             ROLLUP_SKIP_NODEJS=true
             npm_config_platform=linux
