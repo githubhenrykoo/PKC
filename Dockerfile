@@ -3,6 +3,12 @@ FROM node:20-alpine AS build
 
 WORKDIR /app
 
+# Install Python and build dependencies required for canvas
+RUN apk add --no-cache python3 make g++ pkgconfig cairo-dev jpeg-dev pango-dev giflib-dev
+
+# Set Python path for node-gyp
+ENV PYTHON=/usr/bin/python3
+
 # Copy package files and install dependencies
 COPY package*.json ./
 RUN npm ci
