@@ -1,0 +1,23 @@
+version: '3.8'
+
+services:
+  pkc-app:
+    image: henry768/pkc:latest  # Uses pre-built image from DockerHub
+    container_name: pkc-app
+    restart: unless-stopped
+    ports:
+      - "4321:4321"
+    environment:
+      - NODE_ENV=production
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:4321"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    volumes:
+      - pkc_data:/usr/share/nginx/html/data
+
+volumes:
+  pkc_data:
+    name: pkc_data

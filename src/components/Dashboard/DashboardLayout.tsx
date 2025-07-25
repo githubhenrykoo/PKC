@@ -3,6 +3,7 @@ import { TopBar } from './TopBar';
 import { Sidebar } from './Sidebar';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { MCardBrowser } from "@/components/Mcard/MCardBrowser";
+import { ThemeProvider } from "@/context/ThemeContext";
 
 // Define the client directive props for Astro compatibility
 interface DashboardLayoutProps {
@@ -15,6 +16,7 @@ interface DashboardLayoutProps {
 
 export function DashboardLayout({ title = "PKC Dashboard" }: DashboardLayoutProps) {
   return (
+    <ThemeProvider>
     <div className="relative flex min-h-screen flex-col">
       <TopBar title="PKC" />
 
@@ -37,5 +39,6 @@ export function DashboardLayout({ title = "PKC Dashboard" }: DashboardLayoutProp
         </main>
       </div>
     </div>
+  </ThemeProvider>
   );
 }

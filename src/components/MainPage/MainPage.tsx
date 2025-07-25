@@ -1,6 +1,5 @@
 import React from 'react';
 import { Panel } from '@/components/Panel/Panel';
-import { ThemeToggle } from '@/components/ui/theme-toggle';
 import { StatusMessageToaster } from '@/components/ui/status-message';
 
 export interface MainPageProps {
@@ -14,7 +13,6 @@ export interface MainPageProps {
 export function MainPage({}: MainPageProps) {
   return (
     <>
-      <ThemeToggle />
       <StatusMessageToaster />
 
       <div className="container mx-auto max-w-6xl px-4 py-8 md:py-16 flex flex-col items-center justify-center min-h-screen">

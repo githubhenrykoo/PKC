@@ -280,12 +280,16 @@ export function MCardBrowser() {
               <TabsTrigger 
                 value={SearchType.CONTENT}
                 onClick={() => setSearchType(SearchType.CONTENT)}
+                className="focus:outline-none focus-visible:ring-1 focus-visible:ring-primary" 
+                data-prevent-theme-change="true"
               >
                 Content Search
               </TabsTrigger>
               <TabsTrigger 
                 value={SearchType.HASH}
                 onClick={() => setSearchType(SearchType.HASH)}
+                className="focus:outline-none focus-visible:ring-1 focus-visible:ring-primary"
+                data-prevent-theme-change="true"
               >
                 Hash Search
               </TabsTrigger>
@@ -296,7 +300,8 @@ export function MCardBrowser() {
                   placeholder="Search card content..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="flex-1"
+                  className="flex-1 focus:outline-none focus-visible:ring-1 focus-visible:ring-primary"
+                  data-prevent-theme-change="true"
                 />
                 <Button type="submit" size="sm">Search</Button>
               </form>
@@ -307,7 +312,8 @@ export function MCardBrowser() {
                   placeholder="Enter partial hash..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="flex-1"
+                  className="flex-1 focus:outline-none focus-visible:ring-1 focus-visible:ring-primary"
+                  data-prevent-theme-change="true"
                 />
                 <Button type="submit" size="sm">Find</Button>
               </form>

@@ -2,30 +2,15 @@ import * as React from "react";
 import { Button } from "@/components/ui/button";
 import { SunIcon, MoonIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useTheme } from "@/context/ThemeContext";
 
 interface ThemeToggleProps {
   className?: string;
 }
 
 export function ThemeToggle({ className }: ThemeToggleProps) {
-  const [isDarkMode, setIsDarkMode] = React.useState(false);
-
-  // Initialize theme from localStorage or system preference on component mount
-  React.useEffect(() => {
-    const savedTheme = localStorage.getItem("theme");
-    const isDark = savedTheme === "dark" || 
-      (!savedTheme && window.matchMedia("(prefers-color-scheme: dark)").matches);
-    
-    setIsDarkMode(isDark);
-    document.documentElement.classList.toggle("dark-theme", isDark);
-  }, []);
-
-  const toggleTheme = () => {
-    const newDarkMode = !isDarkMode;
-    setIsDarkMode(newDarkMode);
-    document.documentElement.classList.toggle("dark-theme", newDarkMode);
-    localStorage.setItem("theme", newDarkMode ? "dark" : "light");
-  };
+  const { theme, toggleTheme } = useTheme();
+  const isDarkMode = theme === 'dark';
 
   return (
     <Button
