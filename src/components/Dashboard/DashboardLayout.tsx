@@ -32,16 +32,6 @@ export function DashboardLayout({ title = "PKC Dashboard" }: DashboardLayoutProp
             <div className="grid gap-6">
               {/* MCard Browser Component */}
               <MCardBrowser />
-              
-              {/* Recent Activity Card */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>Recent Activity</CardTitle>
-                </CardHeader>
-                <CardContent className="pt-0 min-h-[100px] flex items-center justify-center">
-                  <p className="text-muted-foreground italic">No recent activity to display</p>
-                </CardContent>
-              </Card>
             </div>
           </div>
         </main>

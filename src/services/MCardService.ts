@@ -78,6 +78,18 @@ export class MCardService {
     return this._post('/card', formData);
   }
   
+  // Upload file
+  async uploadFile(file: File, metadata: Record<string, any> = {}): Promise<MCardItem> {
+    const formData = new FormData();
+    formData.append('file', file);
+    
+    if (Object.keys(metadata).length > 0) {
+      formData.append('metadata', JSON.stringify(metadata));
+    }
+    
+    return this._post('/files', formData);
+  }
+  
   // Helper methods
   private async _fetch(path: string, options: RequestInit = {}): Promise<Response> {
     try {
