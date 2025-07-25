@@ -69,7 +69,10 @@ export default defineConfig({
           ]
         },
         workbox: {
-          globPatterns: ['**/*.{js,css,html,ico,png,jpg,jpeg,svg}'],
+          // Be more specific about what to cache to prevent errors
+          globPatterns: ['**/*.{js,css,html}', 'favicon.ico', 'icons/*.{png,svg}', 'images/*.{png,jpg,jpeg,svg}', 'pwa-*.{png}', 'apple-touch-icon.png', 'robots.txt'],
+          skipWaiting: true,
+          clientsClaim: true,
           runtimeCaching: [
             {
               urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
