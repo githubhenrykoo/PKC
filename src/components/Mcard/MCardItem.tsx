@@ -36,9 +36,9 @@ export function MCardItem({ card, onViewContent }: MCardItemProps) {
       </CardContent>
       <CardFooter className="pt-2">
         <Button 
-          variant="outline" 
+          variant="secondary" 
           size="sm" 
-          className="w-full"
+          className="w-full border border-gray-400"
           onClick={() => onViewContent && onViewContent(card.hash)}
         >
           View Content
