@@ -1,6 +1,7 @@
 // @ts-check
 import { defineConfig } from 'astro/config';
 import react from '@astrojs/react';
+import tailwind from '@astrojs/tailwind';
 import { VitePWA } from 'vite-plugin-pwa';
 
 // https://astro.build/config
@@ -16,59 +17,16 @@ export default defineConfig({
   },
   integrations: [
     react(),
+    tailwind(),
   ],
   vite: {
-    plugins: [
-      VitePWA({
-        registerType: 'autoUpdate',
-        includeAssets: ['favicon.ico', 'icons/*.png'],
-        manifest: {
-          name: 'PKC Interactive Experience',
-          short_name: 'PKC',
-          description: 'Interactive Experience Application',
-          theme_color: '#4f46e5',
-          icons: [
-            {
-              src: '/icons/icon-192x192.png',
-              sizes: '192x192',
-              type: 'image/png',
-              purpose: 'any maskable'
-            },
-            {
-              src: '/icons/icon-512x512.png',
-              sizes: '512x512',
-              type: 'image/png'
-            }
-          ]
-        },
-        workbox: {
-          globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
-          runtimeCaching: [
-            {
-              urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
-              handler: 'CacheFirst',
-              options: {
-                cacheName: 'google-fonts-cache',
-                expiration: {
-                  maxEntries: 10,
-                  maxAgeSeconds: 60 * 60 * 24 * 365 // 1 year
-                },
-                cacheableResponse: {
-                  statuses: [0, 200]
-                }
-              }
-            }
-          ]
-        }
-      })
-    ],
     server: {
       host: '0.0.0.0',
       port: 4321,
       strictPort: true,
       hmr: {
-        host: 'ales.pkc.pub',
-        protocol: 'ws',
+        // Use localhost instead of ales.pkc.pub for local development
+        clientPort: 4321,
         port: 4321
       },
       allowedHosts: [
@@ -82,13 +40,14 @@ export default defineConfig({
         allow: ['..']
       }
     },
+    // @ts-ignore
     plugins: [
-      // @ts-ignore - Workaround for TypeScript error with VitePWA
+      // @ts-expect-error: Type incompatibility between VitePWA and Vite plugins
       VitePWA({
         registerType: 'autoUpdate',
-        includeAssets: ['favicon.ico', 'robots.txt', 'apple-touch-icon.png'],
+        includeAssets: ['favicon.ico', 'icons/*.png', 'robots.txt', 'apple-touch-icon.png'],
         manifest: {
-          name: 'PKC',
+          name: 'PKC Interactive Experience',
           short_name: 'PKC',
           description: 'PKC Interactive Experience',
           theme_color: '#4f46e5',
@@ -96,13 +55,13 @@ export default defineConfig({
           display: 'standalone',
           icons: [
             {
-              src: '/pwa-192x192.png',
+              src: '/icons/icon-192x192.png',
               sizes: '192x192',
               type: 'image/png',
               purpose: 'any maskable'
             },
             {
-              src: '/pwa-512x512.png',
+              src: '/icons/icon-512x512.png',
               sizes: '512x512',
               type: 'image/png',
               purpose: 'any maskable'
@@ -119,7 +78,7 @@ export default defineConfig({
                 cacheName: 'google-fonts-cache',
                 expiration: {
                   maxEntries: 10,
-                  maxAgeSeconds: 60 * 60 * 24 * 365 // <== 365 days
+                  maxAgeSeconds: 60 * 60 * 24 * 365 // 1 year
                 },
                 cacheableResponse: {
                   statuses: [0, 200]
@@ -133,7 +92,7 @@ export default defineConfig({
                 cacheName: 'cdn-cache',
                 expiration: {
                   maxEntries: 10,
-                  maxAgeSeconds: 60 * 60 * 24 * 7 // <== 7 days
+                  maxAgeSeconds: 60 * 60 * 24 * 7 // 7 days
                 },
                 cacheableResponse: {
                   statuses: [0, 200]
