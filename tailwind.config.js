@@ -1,5 +1,5 @@
 /** @type {import('tailwindcss').Config} */
-export default {
+module.exports = {
   darkMode: ["class"],
   content: ["./src/**/*.{astro,html,js,jsx,md,mdx,svelte,ts,tsx,vue}"],
   theme: {
@@ -68,9 +68,7 @@ export default {
     },
   },
   plugins: [
-    // Import plugins in a way compatible with ES modules
-    await import('@tailwindcss/typography').then(module => module.default),
-    await import('@tailwindcss/forms').then(module => module.default),
-    await import('tw-animate-css').then(module => module.default),
+    require("@tailwindcss/typography"),
+    require("@tailwindcss/forms")
   ],
 }
