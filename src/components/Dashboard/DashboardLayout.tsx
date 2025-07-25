@@ -1,9 +1,9 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { TopBar } from './TopBar';
 import { Sidebar } from './Sidebar';
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { MCardBrowser } from "@/components/Mcard/MCardBrowser";
+import { Panels, type PanelType } from './Panels';
 import { ThemeProvider } from "@/context/ThemeContext";
+import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
 
 // Define the client directive props for Astro compatibility
 interface DashboardLayoutProps {
@@ -15,28 +15,34 @@ interface DashboardLayoutProps {
 }
 
 export function DashboardLayout({ title = "PKC Dashboard" }: DashboardLayoutProps) {
+  const [activePanel, setActivePanel] = useState<PanelType>('mcard');
+
+  const handlePanelChange = (panel: PanelType) => {
+    setActivePanel(panel);
+  };
+
   return (
     <ThemeProvider>
     <div className="relative flex min-h-screen flex-col">
       <TopBar title="PKC" />
 
-      <div className="flex-1 items-start md:grid md:grid-cols-[220px_minmax(0,1fr)] md:gap-6 lg:grid-cols-[240px_minmax(0,1fr)] lg:gap-10">
-        <Sidebar />
-
-        {/* Main Content */}
-        <main className="container flex w-full flex-1 flex-col overflow-hidden py-8">
-          <div className="space-y-6">
-            <div>
-              <h1 className="text-3xl font-bold tracking-tight">{title}</h1>
-              <p className="text-muted-foreground">View and manage your MCard content</p>
-            </div>
-            
-            <div className="grid gap-6">
-              {/* MCard Browser Component */}
-              <MCardBrowser />
-            </div>
-          </div>
-        </main>
+      <div className="flex-1">
+        <ResizablePanelGroup direction="horizontal" className="min-h-[calc(100vh-4rem)]">
+          {/* Sidebar */}
+          <ResizablePanel defaultSize={20} minSize={15} maxSize={30}>
+            <Sidebar 
+              activePanel={activePanel} 
+              onPanelChange={handlePanelChange} 
+            />
+          </ResizablePanel>
+          
+          <ResizableHandle withHandle />
+          
+          {/* Main Content */}
+          <ResizablePanel defaultSize={80}>
+            <Panels activePanel={activePanel} />
+          </ResizablePanel>
+        </ResizablePanelGroup>
       </div>
     </div>
   </ThemeProvider>

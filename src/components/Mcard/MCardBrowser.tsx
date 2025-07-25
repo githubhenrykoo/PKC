@@ -1,18 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { MCardService, type MCardItem } from "@/services/MCardService";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Badge } from "@/components/ui/badge";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Separator } from "@/components/ui/separator";
-import { Upload, Plus } from "lucide-react";
-
-enum SearchType {
-  CONTENT = 'content',
-  HASH = 'hash',
-}
+import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
+import { CardList, SearchType } from "./CardList";
+import { ContentViewer } from "./ContentViewer";
 
 export function MCardBrowser() {
   const [cards, setCards] = useState<MCardItem[]>([]);
@@ -244,195 +234,48 @@ export function MCardBrowser() {
   };
 
   return (
-    <div className="flex h-[80vh] gap-4">
-      {/* Left Panel - Navigation/File List */}
-      <div className="w-1/3 flex flex-col border rounded-lg shadow-sm">
-        <div className="p-4 bg-card border-b">
-          <div className="flex justify-between items-center">
-            <div>
-              <h2 className="text-lg font-medium">MCard Browser</h2>
-              <div className="text-sm text-muted-foreground mt-1">
-                {totalCards} cards in database
-              </div>
-            </div>
-            <Button 
-              onClick={handleOpenFileDialog}
-              variant="secondary"
-              size="sm"
-              className="flex items-center gap-1 border border-gray-400"
-            >
-              <Upload size={14} />
-              <span>Upload</span>
-            </Button>
-          </div>
-          
-          {/* Hidden file input */}
-          <input
-            type="file"
-            ref={fileInputRef}
-            onChange={handleFileInputChange}
-            className="hidden"
-            accept=".pdf,.txt,.md,.json,.jpg,.jpeg,.png,.gif"
-          />
-          
-          <Tabs defaultValue={SearchType.CONTENT} className="mt-4">
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger 
-                value={SearchType.CONTENT}
-                onClick={() => setSearchType(SearchType.CONTENT)}
-                className="focus:outline-none focus-visible:ring-1 focus-visible:ring-primary" 
-                data-prevent-theme-change="true"
-              >
-                Content Search
-              </TabsTrigger>
-              <TabsTrigger 
-                value={SearchType.HASH}
-                onClick={() => setSearchType(SearchType.HASH)}
-                className="focus:outline-none focus-visible:ring-1 focus-visible:ring-primary"
-                data-prevent-theme-change="true"
-              >
-                Hash Search
-              </TabsTrigger>
-            </TabsList>
-            <TabsContent value={SearchType.CONTENT} className="mt-2">
-              <form onSubmit={handleSearch} className="flex space-x-2">
-                <Input
-                  placeholder="Search card content..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="flex-1 focus:outline-none focus-visible:ring-1 focus-visible:ring-primary"
-                  data-prevent-theme-change="true"
-                />
-                <Button type="submit" size="sm">Search</Button>
-              </form>
-            </TabsContent>
-            <TabsContent value={SearchType.HASH} className="mt-2">
-              <form onSubmit={handleSearch} className="flex space-x-2">
-                <Input
-                  placeholder="Enter partial hash..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="flex-1 focus:outline-none focus-visible:ring-1 focus-visible:ring-primary"
-                  data-prevent-theme-change="true"
-                />
-                <Button type="submit" size="sm">Find</Button>
-              </form>
-            </TabsContent>
-          </Tabs>
-        </div>
-        
-        <div className="flex-1 overflow-hidden">
-          <ScrollArea className="h-full">
-            {loading && <div className="p-4 text-center">Loading...</div>}
-            
-            {error && (
-              <div className="p-4 text-center text-red-500">{error}</div>
-            )}
-            
-            {!loading && !error && cards.length === 0 && (
-              <div className="p-4 text-center text-muted-foreground">
-                No cards found. {searchQuery ? 'Try a different search term.' : ''}
-              </div>
-            )}
-            
-            <div className="p-2">
-              {cards.map((card) => (
-                <div 
-                  key={card.hash} 
-                  className={`p-2 mb-1 rounded-md cursor-pointer hover:bg-accent transition-colors ${selectedCard?.hash === card.hash ? 'bg-accent/50' : ''}`}
-                  onClick={() => handleSelectCard(card)}
-                >
-                  <div className="flex justify-between items-center">
-                    <Badge variant="outline" className="mb-1">{card.hash.substring(0, 5)}</Badge>
-                    <Badge className="text-xs">{card.content_type}</Badge>
-                  </div>
-                  <div className="text-xs text-muted-foreground mt-1">
-                    Created: {formatTimestamp(card.g_time)}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </ScrollArea>
-        </div>
-        
-        <div className="p-3 border-t flex justify-between items-center">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setPage((p) => Math.max(1, p - 1))}
-            disabled={page === 1 || loading}
-          >
-            Previous
-          </Button>
-          <div className="text-sm text-muted-foreground">
-            Page {page} of {totalPages}
-          </div>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setPage((p) => p + 1)}
-            disabled={page >= totalPages || loading}
-          >
-            Next
-          </Button>
-        </div>
-      </div>
-      
+    <ResizablePanelGroup direction="horizontal" className="h-full w-full rounded-lg border">
+      {/* Left Panel - MCard List */}
+      <ResizablePanel defaultSize={33} minSize={25}>
+        <CardList 
+          cards={cards}
+          loading={loading}
+          error={error}
+          page={page}
+          totalPages={totalPages}
+          totalCards={totalCards}
+          searchQuery={searchQuery}
+          searchType={searchType}
+          selectedCard={selectedCard}
+          handleSelectCard={handleSelectCard}
+          handleSearch={handleSearch}
+          setSearchQuery={setSearchQuery}
+          setSearchType={setSearchType}
+          setPage={setPage}
+          handleOpenFileDialog={handleOpenFileDialog}
+          handleFileInputChange={handleFileInputChange}
+          formatTimestamp={formatTimestamp}
+        />
+      </ResizablePanel>
+    
+      <ResizableHandle withHandle />
+    
       {/* Right Panel - Content Display */}
-      <div 
-        className={`flex-1 border rounded-lg shadow-sm flex flex-col ${isDragging ? 'ring-2 ring-primary' : ''}`}
-        onDragEnter={handleDragEnter}
-        onDragOver={handleDragOver}
-        onDragLeave={handleDragLeave}
-        onDrop={handleDrop}
-      >
-        <div className="p-4 bg-card border-b">
-          <h2 className="text-lg font-medium">
-            {selectedCard ? `Content: ${selectedCard.hash.substring(0, 8)}...` : 'Content Viewer'}
-          </h2>
-          {selectedCard && (
-            <div className="flex justify-between items-center mt-1">
-              <div className="text-sm text-muted-foreground">
-                Type: {contentType}
-              </div>
-              <div className="text-sm text-muted-foreground">
-                Created: {formatTimestamp(selectedCard.g_time)}
-              </div>
-            </div>
-          )}
-          
-          {/* Upload status message */}
-          {uploadStatus && (
-            <div className={`mt-2 p-2 text-sm rounded ${uploadStatus.success ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-              {uploadStatus.message}
-            </div>
-          )}
-        </div>
-        
-        <div className="flex-1 overflow-hidden">
-          <ScrollArea className="h-full">
-            <div className="p-4">
-              {loading && <div className="text-center py-8">Loading content...</div>}
-              
-              {!loading && !selectedCard && (
-                <div className="text-center py-16 text-muted-foreground">
-                  <p>Select a card from the left panel to view its content</p>
-                </div>
-              )}
-              
-              {!loading && selectedCard && contentPreview && (
-                contentType.startsWith('text/') ? (
-                  <pre className="whitespace-pre-wrap bg-muted p-4 rounded-md overflow-x-auto">
-                    {contentPreview}
-                  </pre>
-                ) : (
-                  <div dangerouslySetInnerHTML={{ __html: contentPreview }} />
-                )
-              )}
-            </div>
-          </ScrollArea>
-        </div>
-      </div>
-    </div>
+      <ResizablePanel defaultSize={67} minSize={30}>
+        <ContentViewer 
+          selectedCard={selectedCard}
+          contentPreview={contentPreview}
+          contentType={contentType}
+          loading={loading}
+          formatTimestamp={formatTimestamp}
+          uploadStatus={uploadStatus}
+          isDragging={isDragging}
+          onDragEnter={handleDragEnter}
+          onDragOver={handleDragOver}
+          onDragLeave={handleDragLeave}
+          onDrop={handleDrop}
+        />
+      </ResizablePanel>
+    </ResizablePanelGroup>
   );
 }
