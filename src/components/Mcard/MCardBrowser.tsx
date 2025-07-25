@@ -84,19 +84,23 @@ export function MCardBrowser() {
       if (content instanceof Blob) {
         if (cardContentType.startsWith('image/')) {
           const url = URL.createObjectURL(content);
-          setContentPreview(`<img src="${url}" alt="Image preview" class="max-w-full h-auto" />`);
+          setContentPreview(`<div class="flex items-center justify-center w-full h-full overflow-auto">
+            <img src="${url}" alt="Image preview" class="max-w-full object-contain" />
+          </div>`);
         } else if (cardContentType.startsWith('text/')) {
           const text = await content.text();
           setContentPreview(text);
         } else if (cardContentType === 'application/pdf') {
           const url = URL.createObjectURL(content);
-          setContentPreview(`<div class="w-full h-[500px]">
-            <iframe 
-              src="${url}" 
-              class="w-full h-full border-0" 
-              title="PDF Preview"
-            ></iframe>
-            <div class="mt-2 text-right">
+          setContentPreview(`<div class="w-full h-full flex flex-col">
+            <div class="flex-1 min-h-0">
+              <iframe 
+                src="${url}" 
+                class="w-full h-full border-0" 
+                title="PDF Preview"
+              ></iframe>
+            </div>
+            <div class="mt-2 text-right flex-shrink-0">
               <a 
                 href="${url}" 
                 download="${card.hash}.pdf"
@@ -234,47 +238,58 @@ export function MCardBrowser() {
   };
 
   return (
-    <ResizablePanelGroup direction="horizontal" className="h-full w-full rounded-lg border">
+    <ResizablePanelGroup 
+      direction="horizontal" 
+      className="h-full w-full"
+      onLayout={(sizes) => {
+        // Optional: Save sizes to localStorage or state if needed
+        console.log('Layout changed:', sizes);
+      }}
+    >
       {/* Left Panel - MCard List */}
-      <ResizablePanel defaultSize={33} minSize={25}>
-        <CardList 
-          cards={cards}
-          loading={loading}
-          error={error}
-          page={page}
-          totalPages={totalPages}
-          totalCards={totalCards}
-          searchQuery={searchQuery}
-          searchType={searchType}
-          selectedCard={selectedCard}
-          handleSelectCard={handleSelectCard}
-          handleSearch={handleSearch}
-          setSearchQuery={setSearchQuery}
-          setSearchType={setSearchType}
-          setPage={setPage}
-          handleOpenFileDialog={handleOpenFileDialog}
-          handleFileInputChange={handleFileInputChange}
-          formatTimestamp={formatTimestamp}
-        />
+      <ResizablePanel defaultSize={33} minSize={25} maxSize={50} className="h-full">
+        <div className="h-full overflow-hidden">
+          <CardList 
+            cards={cards}
+            loading={loading}
+            error={error}
+            page={page}
+            totalPages={totalPages}
+            totalCards={totalCards}
+            searchQuery={searchQuery}
+            searchType={searchType}
+            selectedCard={selectedCard}
+            handleSelectCard={handleSelectCard}
+            handleSearch={handleSearch}
+            setSearchQuery={setSearchQuery}
+            setSearchType={setSearchType}
+            setPage={setPage}
+            handleOpenFileDialog={handleOpenFileDialog}
+            handleFileInputChange={handleFileInputChange}
+            formatTimestamp={formatTimestamp}
+          />
+        </div>
       </ResizablePanel>
     
       <ResizableHandle withHandle />
     
       {/* Right Panel - Content Display */}
-      <ResizablePanel defaultSize={67} minSize={30}>
-        <ContentViewer 
-          selectedCard={selectedCard}
-          contentPreview={contentPreview}
-          contentType={contentType}
-          loading={loading}
-          formatTimestamp={formatTimestamp}
-          uploadStatus={uploadStatus}
-          isDragging={isDragging}
-          onDragEnter={handleDragEnter}
-          onDragOver={handleDragOver}
-          onDragLeave={handleDragLeave}
-          onDrop={handleDrop}
-        />
+      <ResizablePanel defaultSize={67} minSize={50} className="h-full">
+        <div className="h-full overflow-hidden">
+          <ContentViewer 
+            selectedCard={selectedCard}
+            contentPreview={contentPreview}
+            contentType={contentType}
+            loading={loading}
+            formatTimestamp={formatTimestamp}
+            uploadStatus={uploadStatus}
+            isDragging={isDragging}
+            onDragEnter={handleDragEnter}
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
+          />
+        </div>
       </ResizablePanel>
     </ResizablePanelGroup>
   );
