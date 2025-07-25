@@ -25,15 +25,15 @@ By treating all computational processes as **token flows through Petri Net trans
 
 **MVP Card Triad Integration with Petri Net Tokens:**
 Crucially, **tokens in Petri Net are represented as MCard** in the MVP Card triad, creating a unified architecture where:
-- **MCard (Data Plane)**: Serves as the **Petri Net tokens** containing immutable, content-addressable data
-- **PCard (Control Plane)**: Defines the **Petri Net transitions** and conservation rules for token flow
-- **VCard (Application Plane)**: Manages the **token value exchange** and economic coordination
+- **MCard (Data Plane)**: Serves as the **Petri Net tokens** containing immutable, content-addressable data and functions as the unified data namespace where each MCard is a tokenized data asset with an explicit hash identity
+- **PCard (Control Plane)**: Defines the **Petri Net transitions** and conservation rules for token flow, operating exclusively on these explicitly hash-identified tokens for enhanced validation through formalized properties
+- **VCard (Application Plane)**: Manages the **token value exchange** and economic coordination, leveraging the cryptographic verifiability of these uniquely hash-identified tokens
 
 Unlike traditional architectures that require complex state management and function composition frameworks, PCard leverages **MCard-based token computation** where:
 
-- **MCard Tokens represent atomic units of computation** (test cases, execution records, validation data) that flow through polynomial morphisms as immutable, content-addressable Petri Net tokens
-- **PCard Transitions represent computational transformations** (function execution, validation checks, knowledge accumulation) that preserve categorical structure while orchestrating MCard token flows
-- **Token Places represent MCard repositories** (content-addressable storage, validation repositories, knowledge bases) that maintain equivalent classes of computationally testable functions through immutable MCard tokens
+- **MCard Tokens represent atomic units of computation** (test cases, execution records, validation data) that flow through polynomial morphisms as immutable, content-addressable Petri Net tokens, forming a unified data namespace of explicitly hash-identified tokenized assets
+- **PCard Transitions represent computational transformations** (function execution, validation checks, knowledge accumulation) that preserve categorical structure while orchestrating MCard token flows, working exclusively with these systematically identifiable tokens
+- **Token Places represent MCard repositories** (content-addressable storage, validation repositories, knowledge bases) that maintain equivalent classes of computationally testable functions through immutable MCard tokens, ensuring all computation occurs with formally validated, uniquely identified assets
 
 This **PocketFlow-inspired approach** transforms function development from complex imperative programming into **declarative MCard token flow specification** while preserving the categorical foundations of Polynomial Functors. Each PCard becomes a **Petri Net specification** that defines how **MCard tokens** (computational units) flow through transitions (processing steps) according to **polynomial morphism rules**, creating an **ongoing conversation with the code** where each **MCard token interaction** builds upon previous knowledge while maintaining mathematical rigor through **token conservation principles** and **categorical equivalence**.
 

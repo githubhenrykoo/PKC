@@ -20,7 +20,9 @@ tags:
 
 ## Executive Summary
 
-PCard represents the **P** in [MVP Cards' Triadic Architecture](./MVP%20Cards%20for%20PKC.md), where **P** originally stands for **[[Polynomial Representation of Categorical Structures|Polynomial Functor]]**. Remarkably, the evolution toward **PocketFlow** and **Petri Net theory** maintains this **P** designation while fundamentally transforming the implementation approach. PCard now serves as the **Control Plane** that implements **token-based process orchestration** inspired by **PocketFlow** and **Petri Net theory**, leveraging the mathematical rigor of **Polynomial Functors** through **token conservation networks**. This approach **fundamentally reduces implementation complexity** by replacing traditional polynomial algebra and contract upgradability patterns with **token conservation laws** that automatically ensure correctness without complex validation frameworks.
+PCard (`P` for Polynomial Functor) establishes a mathematical foundation for Conversational Programming through the composition of computationally testable functions. Drawing inspiration from PocketFlow's minimalist Graph + Shared Store abstraction, it replaces traditional imperative programming with token-based process orchestration that emphasizes conservation laws over state management.
+
+Founded on the mathematical structure of polynomial functors from Category Theory, PCard enables systematic knowledge accumulation across multiple repositories while maintaining compositional integrity. It operates as the "Control Plane" within the MVP Card triad, transforming between physically meaningful data (MCard) and socially meaningful value representations (VCard). Crucially, PCard exclusively operates on MCard tokens, which function as a unified data namespace where each MCard is a tokenized data asset with an explicit hash identity, enabling formal validation through well-defined mathematical properties.
 
 As a specialized case of MCard, PCard follows **token conservation principles** while leveraging a **conservation-based retrieval syntax** that allows newly added test case tokens to flow into the same PCard conservation network through hash-based token identification, creating an **upgradeable token repository** that eliminates the complexity of managing multiple similar PCard instances.
 
@@ -40,7 +42,7 @@ As the compositional engine of PKC, PCard implements **token-based process orche
 
 2. **Concrete Implementation (Physical Execution Token Network)**: Source code tokens, runtime tokens, and operational condition tokens required to physically execute the program through **Petri Net transitions**. The conservation-based approach allows different execution environment tokens and runtime condition tokens to flow into the same PCard conservation network through **token conservation laws**, enabling implementation upgrades while maintaining contract compatibility through **conservation invariants**.
 
-3. **Balanced Expectations (Token Conservation-Based Filtering Repository)**: This dimension provides a **token conservation filtering and searching mechanism** that enables efficient discovery of relevant test case tokens and execution record tokens through **conservation-based token flow**. This mechanism leverages **PocketFlow principles** and token conservation, allowing accumulation of more test case tokens and execution result tokens over time while maintaining **conservation laws** without changing the PCard's core conservation structure.
+3. **Balanced Expectations (Token Conservation-Based Filtering Repository)**: This dimension provides a **token conservation filtering and searching mechanism** that enables efficient discovery of relevant test case tokens and execution record tokens through **conservation-based token flow**. This mechanism leverages **PocketFlow principles**—specifically its Node-Flow architecture and shared state communication patterns—to implement token conservation. Like PocketFlow's clear separation between node operations (prep→exec→post) and data flow, PCard's token conservation enables accumulation of more test case tokens and execution result tokens over time while maintaining **conservation laws** without changing the PCard's core conservation structure.
 
 **Implementation Simplification Through Token Conservation:**
 - **Eliminates complex dimension management**: Token conservation naturally coordinates all three dimensions
@@ -63,7 +65,7 @@ This **conservation-based stability** enables safe upgrades, backward compatibil
 The **P** in PCard represents a remarkable convergence of three mathematical frameworks that all begin with **P**:
 
 1. **Polynomial Functor**: The original mathematical foundation providing compositional structure and type-theoretic reasoning
-2. **PocketFlow**: The implementation strategy that transforms complex polynomial operations into simple token flows
+2. **PocketFlow**: The implementation strategy that transforms complex polynomial operations into simple token flows through its minimalist Graph + Shared Store architecture, enabling Node-based task handling connected through Flow transitions—directly mirroring how PCard orchestrates token conservation networks
 3. **Petri Net**: The execution model that ensures token conservation laws and provides formal verification
 
 This **triple-P convergence** achieves:
@@ -146,7 +148,7 @@ interface PCard {
 
 ### 1.2 Token Conservation-Based Retrieval Syntax: PocketFlow Knowledge Assessment
 
-The **conservation-based retrieval syntax** follows a **Petri Net token flow structure** that enables validation data accumulation while providing **conservation-theoretic measures** for knowledge quality assessment:
+The **conservation-based retrieval syntax** follows a **Petri Net token flow structure** that enables validation data accumulation while providing **conservation-theoretic measures** for knowledge quality assessment. This approach directly implements PocketFlow's core abstractions—where Node, Flow, and Shared Store combine to create expressive yet lightweight computational pathways—applied to the domain of validation data management:
 
 $$
 \text{TokenFlow}(P) = \sum_{t \in T} \text{InputTokens}_t \xrightarrow{\text{conservation}} \text{OutputTokens}_t

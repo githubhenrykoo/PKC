@@ -17,18 +17,18 @@ Inspired by [[Software-Defined Networking]] ([[SDN]]) principles in [[operating 
 
 | Plane | Component | Core Function | Meaning Dimension | Mathematical Foundation |
 |-------|-----------|---------------|-------------------|------------------------|
-| **Data Plane** | [[MCard]] | Atomic knowledge storage | **Physically Meaningful**: Grounded in concrete, verifiable data with cryptographic integrity | Linear Polynomial Functors |
+| **Data Plane** | [[MCard]] | Atomic knowledge storage and unified data namespace | **Physically Meaningful**: Grounded in concrete, verifiable data with cryptographic integrity | Linear Polynomial Functors |
 | **Control Plane** | [[PCard]] | Recursive composition | **Mediating Meaning**: Transforms between physical and social meaning through composition | Recursive Polynomial Functors |
 | **Application Plane** | [[VCard]] | Value representation | **Socially Meaningful**: Embeds cultural, economic, and contextual value systems | Modularized Value Systems |
 
 This triadic structure creates a complete computational stack where:
-- **MCard** provides the immutable, content-addressable foundation
+- **MCard** provides the immutable, content-addressable foundation and unified data namespace for tokenized assets
 - **PCard** enables compositional knowledge transformation
 - **VCard** facilitates value exchange and economic coordination
 
 ## 1. MCard: The Atomic Knowledge Foundation and Data Substrate
 
-**MCard** ([[Monadology|Monadic]] Card) serves as the fundamental, atomic, and immutable knowledge unit that forms the backbone of the entire PKC system. It implements the **Data Plane** of the architecture, providing the universal data substrate upon which all PKC operations are built.
+**MCard** ([[Monadology|Monadic]] Card) serves as the fundamental, atomic, and immutable knowledge unit that forms the backbone of the entire PKC system. It implements the **Data Plane** of the architecture, providing the universal data substrate upon which all PKC operations are built. As the unified data namespace, each MCard represents a tokenized data asset with a unique hash identity, providing a systematic mechanism for identifying and computing with these tokens. This explicit hash-based identity system enables PCard and VCard to operate exclusively with well-defined, cryptographically verifiable tokens, enhancing validation capabilities through formalized properties.
 
 ### 1.1 Core Structure and Properties
 
@@ -46,7 +46,7 @@ interface MCard {
 
 MCard represents the **linear case** of polynomial functors, functioning as a list of triplets that form the base case for all knowledge representation in PKC. This linear structure enables:
 
-- **Content-Addressable Identity**: Each MCard is uniquely identified by its cryptographic hash, creating a **physically meaningful** reference system
+- **Content-Addressable Identity**: Each MCard is uniquely identified by its cryptographic hash, creating a **physically meaningful** reference system where every asset functions as a computable token with an explicit identity
 - **Immutable Storage**: Content cannot be altered without generating a new hash, ensuring **temporal consistency** of physical meaning
 - **Atomic Compositionality**: MCards serve as indivisible building blocks that maintain their **semantic integrity** across compositions
 - **Cryptographic Verification**: Tamper-proof integrity through hash validation, establishing **trust in physical representation**
@@ -528,9 +528,9 @@ By presenting MVP Cards as a **user-friendly vocabulary**, we share with the wor
 
 The triadic structure of MCard-PCard-VCard transcends traditional computational boundaries by providing:
 
-- **Universal Data Representation**: Immutable, content-addressable storage that works across all media types and computational contexts
-- **Compositional Expressiveness**: Polynomial functor-based transformations that maintain mathematical rigor while enabling intuitive interaction
-- **Economic Coordination**: Value-carrying mechanisms that align individual contributions with collective intelligence
+- **Universal Data Representation**: Immutable, content-addressable storage that works across all media types and computational contexts, where each MCard serves as a tokenized data asset with explicit hash identity
+- **Compositional Expressiveness**: Polynomial functor-based transformations that operate exclusively on these tokenized MCard assets, maintaining mathematical rigor while enabling intuitive interaction
+- **Economic Coordination**: Value-carrying mechanisms that leverage the unified token system to align individual contributions with collective intelligence, with validation enhanced through formalized properties of these tokenized assets
 
 This comprehensive approach enables the creation of knowledge systems that seamlessly integrate human creativity with computational power, supporting everything from personal knowledge management to large-scale distributed systems. The MVP Cards framework serves as both a **theoretical foundation** and a **practical vocabulary** for building the next generation of knowledge-intensive applications.
 
