@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { cn } from "@/lib/utils";
 
 interface SidebarProps {
@@ -12,6 +12,7 @@ interface NavLinkProps {
   active?: boolean;
 }
 
+// Make sure active has a definite false default to match server rendering
 function NavLink({ href, icon, children, active = false }: NavLinkProps) {
   return (
     <a 
@@ -30,8 +31,13 @@ function NavLink({ href, icon, children, active = false }: NavLinkProps) {
 }
 
 export function Sidebar({ className }: SidebarProps) {
-  // Get current path to determine active link
-  const path = typeof window !== 'undefined' ? window.location.pathname : '';
+  // Initial state matches what server would render - no active state
+  const [path, setPath] = useState('');
+  
+  // Update path after component mounts on client side only
+  useEffect(() => {
+    setPath(window.location.pathname);
+  }, []);
   
   return (
     <aside className={cn(

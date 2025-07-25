@@ -45,7 +45,7 @@ export default defineConfig({
       // @ts-expect-error: Type incompatibility between VitePWA and Vite plugins
       VitePWA({
         registerType: 'autoUpdate',
-        includeAssets: ['favicon.ico', 'icons/*.png', 'robots.txt', 'apple-touch-icon.png'],
+        includeAssets: ['favicon.ico', 'icons/*.png', 'images/*.png', 'pwa-192x192.png', 'pwa-512x512.png', 'robots.txt', 'apple-touch-icon.png'],
         manifest: {
           name: 'PKC Interactive Experience',
           short_name: 'PKC',
@@ -55,13 +55,13 @@ export default defineConfig({
           display: 'standalone',
           icons: [
             {
-              src: '/icons/icon-192x192.png',
+              src: '/pwa-192x192.png',
               sizes: '192x192',
               type: 'image/png',
               purpose: 'any maskable'
             },
             {
-              src: '/icons/icon-512x512.png',
+              src: '/pwa-512x512.png',
               sizes: '512x512',
               type: 'image/png',
               purpose: 'any maskable'
