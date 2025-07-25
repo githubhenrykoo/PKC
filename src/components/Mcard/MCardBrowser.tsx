@@ -92,15 +92,13 @@ export function MCardBrowser() {
           setContentPreview(text);
         } else if (cardContentType === 'application/pdf') {
           const url = URL.createObjectURL(content);
-          setContentPreview(`<div class="w-full h-full flex flex-col">
-            <div class="flex-1 min-h-0">
-              <iframe 
-                src="${url}" 
-                class="w-full h-full border-0" 
-                title="PDF Preview"
-              ></iframe>
-            </div>
-            <div class="mt-2 text-right flex-shrink-0">
+          setContentPreview(`
+            <iframe 
+              src="${url}" 
+              style="width: 100%; height: 100%; min-height: 600px; border: none;"
+              title="PDF Preview"
+            ></iframe>
+            <div style="position: absolute; bottom: 10px; right: 10px;">
               <a 
                 href="${url}" 
                 download="${card.hash}.pdf"
@@ -109,7 +107,7 @@ export function MCardBrowser() {
                 Download PDF
               </a>
             </div>
-          </div>`);
+          `);
         } else {
           setContentPreview(`<div class="p-4 bg-muted rounded-md">
             <p>Binary content (${cardContentType})</p>

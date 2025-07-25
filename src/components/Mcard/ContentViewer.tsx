@@ -77,6 +77,13 @@ export function ContentViewer({
                 <pre className="whitespace-pre-wrap bg-muted p-4 rounded-md overflow-auto w-full max-h-[calc(100vh-16rem)]">
                   {contentPreview}
                 </pre>
+              ) : contentType === 'application/pdf' ? (
+                <div className="w-full h-full relative" style={{ height: 'calc(100vh - 180px)' }}>
+                  <div 
+                    className="absolute inset-0"
+                    dangerouslySetInnerHTML={{ __html: contentPreview as string }} 
+                  />
+                </div>
               ) : (
                 <div 
                   className="w-full overflow-auto max-h-[calc(100vh-16rem)]"
