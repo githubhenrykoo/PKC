@@ -93,9 +93,41 @@ export class MCardService {
   // Helper methods
   private async _fetch(path: string, options: RequestInit = {}): Promise<Response> {
     try {
-      const response = await fetch(`${this.baseUrl}${path}`, options);
+      const requestUrl = `${this.baseUrl}${path}`;
+      console.log(`API Request: ${options.method || 'GET'} ${requestUrl}`);
+      
+      if (options.body instanceof FormData) {
+        console.log('FormData entries:');
+        // Log FormData entries for debugging
+        for (const pair of (options.body as FormData).entries()) {
+          if (pair[0] === 'file') {
+            const file = pair[1] as File;
+            console.log(`- ${pair[0]}: File(${file.name}, ${file.type}, ${file.size} bytes)`);
+          } else {
+            console.log(`- ${pair[0]}: ${pair[1]}`);
+          }
+        }
+      }
+      
+      const response = await fetch(requestUrl, options);
+      
+      console.log(`API Response: ${response.status} ${response.statusText}`);
+      
       if (!response.ok) {
-        throw new Error(`API error (${response.status}): ${response.statusText}`);
+        // Try to get more error details from the response
+        let errorDetails = '';
+        try {
+          const errorJson = await response.clone().json();
+          errorDetails = JSON.stringify(errorJson);
+        } catch (e) {
+          try {
+            errorDetails = await response.clone().text();
+          } catch (e2) {
+            errorDetails = 'Could not extract error details';
+          }
+        }
+        
+        throw new Error(`API error (${response.status}): ${response.statusText}\nDetails: ${errorDetails}`);
       }
       return response;
     } catch (error) {

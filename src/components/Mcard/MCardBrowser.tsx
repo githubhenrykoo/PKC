@@ -98,6 +98,24 @@ export function MCardBrowser() {
         } else if (cardContentType.startsWith('text/')) {
           const text = await content.text();
           setContentPreview(text);
+        } else if (cardContentType === 'application/pdf') {
+          const url = URL.createObjectURL(content);
+          setContentPreview(`<div class="w-full h-[500px]">
+            <iframe 
+              src="${url}" 
+              class="w-full h-full border-0" 
+              title="PDF Preview"
+            ></iframe>
+            <div class="mt-2 text-right">
+              <a 
+                href="${url}" 
+                download="${card.hash}.pdf"
+                class="inline-block bg-primary text-primary-foreground px-3 py-1 rounded-md"
+              >
+                Download PDF
+              </a>
+            </div>
+          </div>`);
         } else {
           setContentPreview(`<div class="p-4 bg-muted rounded-md">
             <p>Binary content (${cardContentType})</p>
@@ -127,22 +145,44 @@ export function MCardBrowser() {
     
     try {
       const file = files[0]; // Just handle one file for now
-      const metadata = { filename: file.name };
-      
-      const response = await mCardService.uploadFile(file, metadata);
-      
-      setUploadStatus({
-        success: true,
-        message: `File uploaded successfully! Hash: ${response.hash}`
+      console.log('File to upload:', { 
+        name: file.name, 
+        type: file.type, 
+        size: file.size,
+        lastModified: new Date(file.lastModified).toISOString()
       });
       
-      // Refresh the card list
-      fetchCards();
+      const metadata = { filename: file.name };
+      console.log('Uploading with metadata:', metadata);
+      
+      // Wrap in try-catch to get more detailed error info
+      try {
+        const response = await mCardService.uploadFile(file, metadata);
+        console.log('Upload response:', response);
+        
+        setUploadStatus({
+          success: true,
+          message: `File uploaded successfully! Hash: ${response.hash}`
+        });
+        
+        // Refresh the card list
+        fetchCards();
+      } catch (apiError) {
+        console.error('API error details:', apiError);
+        throw apiError; // Re-throw for outer catch
+      }
     } catch (err) {
       console.error('Error uploading file:', err);
+      let errorMsg = 'Failed to upload file. Please try again.';
+      
+      // Get more specific error message if available
+      if (err instanceof Error) {
+        errorMsg = `Upload failed: ${err.message}`;
+      }
+      
       setUploadStatus({
         success: false,
-        message: 'Failed to upload file. Please try again.'
+        message: errorMsg
       });
     } finally {
       setLoading(false);
@@ -232,6 +272,7 @@ export function MCardBrowser() {
             ref={fileInputRef}
             onChange={handleFileInputChange}
             className="hidden"
+            accept=".pdf,.txt,.md,.json,.jpg,.jpeg,.png,.gif"
           />
           
           <Tabs defaultValue={SearchType.CONTENT} className="mt-4">
