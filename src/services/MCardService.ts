@@ -26,8 +26,10 @@ export interface MCardCountResponse {
 export class MCardService {
   private baseUrl: string;
 
-  constructor(baseUrl = 'http://localhost:49384/v1') {
-    this.baseUrl = baseUrl;
+  constructor(baseUrl?: string) {
+    // Use environment variable if available or fallback to provided baseUrl or dev server
+    this.baseUrl = baseUrl || import.meta.env.PUBLIC_MCARD_API_URL || 'http://localhost:49384/v1';
+    console.log('MCardService initialized with baseUrl:', this.baseUrl);
   }
 
   // List all cards with pagination
