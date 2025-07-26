@@ -515,7 +515,7 @@ let deferredPrompt: BeforeInstallPromptEvent | null = null;
             }
             
             // State
-            let countdownInterval: number;
+            let countdownInterval: ReturnType<typeof setInterval>;
             let timeLeft = 10;
             let isDarkMode = false;
             
@@ -601,19 +601,13 @@ let deferredPrompt: BeforeInstallPromptEvent | null = null;
                 });
                 
                 // Disable button after click
-                pushButton.removeEventListener('click', buttonClickAnimation);
+                pushButton.disabled = true;
                 pushButton.style.cursor = 'default';
                 
-                // Stop countdown
-                if (countdownInterval) clearInterval(countdownInterval);
-                
-                // Show success message
-                showStatus('Action completed successfully!', 'success');
-                
                 // Update button text
-                const buttonText = pushButton.querySelector('span:last-child');
+                const buttonText = pushButton.querySelector('.button-text');
                 if (buttonText) {
-                    buttonText.textContent = 'Pushed!';
+                    buttonText.textContent = 'Redirecting...';
                 }
                 
                 console.log('Button pushed!');
@@ -622,16 +616,24 @@ let deferredPrompt: BeforeInstallPromptEvent | null = null;
             // Event listeners
             // Update button click handler to include redirect
             const handleButtonClick = (e: MouseEvent) => {
+                // Stop countdown immediately
+                if (countdownInterval) {
+                    clearInterval(countdownInterval);
+                }
+                
+                // Run click animation
                 buttonClickAnimation(e);
-                clearInterval(countdownInterval);
                 
                 // Button press animation using CSS
                 pushButton.classList.add('button-press');
                 
+                // Show success message
+                showStatus('Redirecting to dashboard...', 'success');
+                
                 // Redirect after animation completes
                 setTimeout(() => {
                     window.location.href = '/dashboard';
-                }, 300);
+                }, 800);
             };
             
             // Event listeners
@@ -662,25 +664,37 @@ let deferredPrompt: BeforeInstallPromptEvent | null = null;
             }
             
             // Start the countdown
-            countdownInterval = setInterval(() => {
-                timeLeft--;
-                
-                if (timeLeft <= 0) {
-                    clearInterval(countdownInterval);
+            const startCountdown = () => {
+                countdownInterval = setInterval(() => {
+                    timeLeft--;
                     
-                    // Final animation before redirect
-                    countdownElement.classList.add('fade-out-final');
-                    showStatus('Redirecting to Page...', 'info');
-                    
-                    // Redirect after animation completes
-                    setTimeout(() => {
-                        window.location.href = '/dashboard';
-                    }, 500);
-                } else {
-                    const newText = timeLeft.toString();
-                    animateCountdown(newText);
-                }
-            }, 1000);
+                    if (timeLeft <= 0) {
+                        clearInterval(countdownInterval);
+                        
+                        // Final animation before redirect
+                        countdownElement.classList.add('fade-out-final');
+                        showStatus('Time\'s up! Redirecting to dashboard...', 'success');
+                        
+                        // Disable button
+                        pushButton.disabled = true;
+                        const buttonText = pushButton.querySelector('.button-text');
+                        if (buttonText) {
+                            buttonText.textContent = 'Redirecting...';
+                        }
+                        
+                        // Redirect after animation completes
+                        setTimeout(() => {
+                            window.location.href = '/dashboard';
+                        }, 800);
+                    } else {
+                        const newText = timeLeft.toString();
+                        animateCountdown(newText);
+                    }
+                }, 1000);
+            };
+            
+            // Start countdown
+            startCountdown();
             
             // Initial call to avoid delay
             if (countdownNumber) {
