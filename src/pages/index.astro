@@ -480,10 +480,10 @@ let deferredPrompt: BeforeInstallPromptEvent | null = null;
         }
     </style>
     <!-- Load anime.js at the end of body -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
-    <script>
-      // Register service worker for PWA
-      if ('serviceWorker' in navigator) {
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" onerror="handleAnimeError()"></script>
+    <script is:inline>
+      // Register service worker for PWA - only run in browser
+      if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
         window.addEventListener('load', () => {
           navigator.serviceWorker.register('/sw.js').then(registration => {
             console.log('ServiceWorker registration successful with scope: ', registration.scope);
@@ -492,20 +492,61 @@ let deferredPrompt: BeforeInstallPromptEvent | null = null;
           });
         });
       }
-        // Declare anime.js type for TypeScript
-        declare const anime: any;
+      
+      // Handle anime.js loading error - only run in browser
+      function handleAnimeError() {
+        if (typeof window === 'undefined') return;
+        console.warn('anime.js CDN failed, loading fallback');
+        const script = document.createElement('script');
+        script.src = 'https://unpkg.com/animejs@3.2.1/lib/anime.min.js';
+        script.onerror = () => {
+          console.error('All anime.js sources failed, using CSS fallbacks');
+          window.anime = createAnimeFallback();
+        };
+        document.head.appendChild(script);
+      }
+      
+      // Create a simple fallback for anime.js
+      function createAnimeFallback() {
+        return {
+          timeline: () => ({
+            add: () => ({}),
+            play: () => {},
+            reverse: () => {}
+          }),
+          default: () => ({
+            complete: () => {}
+          })
+        };
+      }
         
-        // Check if anime.js is loaded
-        if (typeof anime === 'undefined') {
-            console.error('anime.js failed to load');
-            // Optionally load a fallback or show an error message
+        // anime.js will be available globally when loaded
+        
+        // Wait for anime.js to load or use fallback - only run in browser
+        function waitForAnime(callback) {
+          if (typeof window === 'undefined') return;
+          if (typeof anime !== 'undefined') {
+            callback();
+          } else {
+            setTimeout(() => waitForAnime(callback), 100);
+          }
         }
         
-        document.addEventListener('DOMContentLoaded', () => {
+        // Only run in browser
+        if (typeof window !== 'undefined') {
+            document.addEventListener('DOMContentLoaded', () => {
+                // Wait for anime.js to be available before initializing animations
+                waitForAnime(() => {
+                    initializeApp();
+                });
+            });
+        }
+        
+        function initializeApp() {
             // DOM Elements
-            const pushButton = document.getElementById('pushButton') as HTMLButtonElement | null;
-            const countdownElement = document.getElementById('countdown') as HTMLElement | null;
-            const countdownNumber = document.querySelector('.countdown-number') as HTMLElement | null;
+            const pushButton = document.getElementById('pushButton');
+            const countdownElement = document.getElementById('countdown');
+            const countdownNumber = document.querySelector('.countdown-number');
             const statusMessage = document.getElementById('statusMessage');
             const themeToggle = document.getElementById('themeToggle');
             
@@ -515,7 +556,7 @@ let deferredPrompt: BeforeInstallPromptEvent | null = null;
             }
             
             // State
-            let countdownInterval: ReturnType<typeof setInterval>;
+            let countdownInterval;
             let timeLeft = 10;
             let isDarkMode = false;
             
@@ -529,7 +570,7 @@ let deferredPrompt: BeforeInstallPromptEvent | null = null;
             });
             
             // Show status message
-            const showStatus = (message: string, type = 'success') => {
+            const showStatus = (message, type = 'success') => {
                 if (!statusMessage) return;
                 
                 const content = statusMessage.querySelector('.status-content');
@@ -567,7 +608,7 @@ let deferredPrompt: BeforeInstallPromptEvent | null = null;
                 });
             
             // Button click animation
-            const buttonClickAnimation = (e: MouseEvent) => {
+            const buttonClickAnimation = (e) => {
                 if (!(e.target instanceof HTMLElement)) return;
                 
                 // Create ripple effect
@@ -615,7 +656,7 @@ let deferredPrompt: BeforeInstallPromptEvent | null = null;
             
             // Event listeners
             // Update button click handler to include redirect
-            const handleButtonClick = (e: MouseEvent) => {
+            const handleButtonClick = (e) => {
                 // Stop countdown immediately
                 if (countdownInterval) {
                     clearInterval(countdownInterval);
@@ -642,7 +683,7 @@ let deferredPrompt: BeforeInstallPromptEvent | null = null;
             pushButton.addEventListener('click', handleButtonClick);
             
             // Animation function for countdown text using CSS classes
-            function animateCountdown(newText: string) {
+            function animateCountdown(newText) {
                 if (!countdownElement) return;
                 
                 // Add fade-out class
@@ -727,7 +768,7 @@ let deferredPrompt: BeforeInstallPromptEvent | null = null;
                 }
             `;
             document.head.appendChild(style);
-        });
+        }
     </script>
 </body>
 </html>
