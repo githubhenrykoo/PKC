@@ -109,95 +109,66 @@ MCard serves as the storage substrate for [[Cubical Logic Model]]'s three-dimens
 
 ## 2. PCard: The Conversational Programming Engine
 
-**PCard** ([[Polynomial]] Card) serves as the **Control Plane** that enables **Conversational Programming** with mathematical rigor. It systematically accumulates knowledge through formal validation, storing all content as hash-indexed MCard references to maintain immutability and cryptographic verification. Unlike traditional function composition systems, PCard creates an interactive testing environment similar to Conversational Programming or Vibe Coding, where users continuously explore and expand the behavior space of functions through incremental test case accumulation.
+**PCard** ([[Polynomial]] Card) serves as the **Control Plane** that enables **Conversational Programming** with mathematical rigor based on [[Polynomial Representation of Categorical Structures|Polynomial Functors]]. It systematically accumulates knowledge through formal validation, storing all content as hash-indexed [[MCard]] references to maintain immutability and cryptographic verification.
+
+Unlike traditional function composition systems, [[PCard]] creates an interactive testing environment where users continuously explore and expand the behavior space of functions through incremental test case accumulation. The detailed implementation architecture is covered in [[PCard Architecture]].
 
 ### 2.1 Core Architecture: Interactive Testing Through Polynomial Functors
 
-PCard transforms function development from a one-time activity into an **ongoing conversation with the code**, where each interaction builds upon previous knowledge while maintaining mathematical rigor through polynomial functor structures. This conversational approach is powered by three mutually orthogonal components that work in concert:
+[[PCard]] transforms function development from a one-time activity into an **ongoing conversation with the code**, where each interaction builds upon previous knowledge while maintaining mathematical rigor through [[Polynomial Representation of Categorical Structures|polynomial functor structures]].
 
-1. **AbstractSpecification (Social Identity)**: Captures the human-readable description of function behavior, enabling rapid social understanding and design intent communication
-2. **ConcreteImplementation (Physical Execution)**: The actual source code and execution runtime, represented as polynomial functors that can be dynamically explored and tested
-3. **BalancedExpectations (Interactive Validation Repository)**: A hash-indexed content filtering and search mechanism that relates test cases and execution records to specific functions while allowing conversational exploration sessions to incrementally accumulate knowledge
+This conversational approach is powered by three mutually orthogonal components that work in concert:
 
-```typescript
-interface PCard extends MCard { 
-  // Inherited all properties and data manipulation functionalities from MCard
-  
-  // Conversational Programming Features
-  abstractSpecHash: string;           // Social identity: human-readable function description
-  concreteImplHash: string;          // Physical execution: REPL-like interactive runtime
-  balancedExpectationsHash: string;  // Interactive validation repository
-  
-  // Interactive Testing Structure
-  validationRepository: {
-    polynomial: {
-      coefficients: string[];  // Test case MCard hashes (each test case is a coefficient)
-      exponents: number[];     // Execution counts (how many times each test case ran)
-    };
-    testCaseAccumulator: string[];     // Growing collection of test case hashes
-    executionAccumulator: string[];    // Complete execution history
-    explorationInsights: string[];     // Pattern recognition and optimization insights
-  };
-  
-  // Conversational Session Management
-  lastValidationUpdate: string;       // Timestamp of last testing session
-  explorationStrategies: string[];    // Available testing strategies
-  collaborativeContributions: {       // Multi-user testing contributions
-    contributors: string[];
-    testCasesPerContributor: Map<string, string[]>;
-    insightsPerContributor: Map<string, string[]>;
-  };
-}
-```
+1. **AbstractSpecification (Social Identity)**: Captures human-readable function behavior descriptions
+2. **ConcreteImplementation (Physical Execution)**: Actual source code and execution runtime as polynomial functors
+3. **BalancedExpectations (Interactive Validation Repository)**: Hash-indexed content filtering and search mechanism for test case accumulation
+
+The detailed implementation structure and token-based architecture are covered in [[PCard Architecture]].
 
 ### 2.2 Conversational Programming Foundation
 
-PCard's polynomial functor structure powers an interactive testing environment where:
+[[PCard]]'s [[Polynomial Representation of Categorical Structures|polynomial functor structure]] powers an interactive testing environment where:
 
-- **Interactive Exploration**: Users iteratively supply new test cases and input combinations to probe edge cases, boundary conditions, and performance characteristics
-- **Continuous Knowledge Capture**: Each test case and input combination is stored as an immutable MCard, with the PCard maintaining references to this growing body of validation data
-- **Structured Growth**: The polynomial's coefficients represent distinct test scenarios, while exponents capture variations in input values, creating a systematic way to organize and retrieve test cases
-- **Persistent Context**: The PCard serves as a stable reference point that accumulates knowledge over time, enabling conversational continuity across testing sessions
+- **Interactive Exploration**: Users iteratively supply new test cases and input combinations
+- **Continuous Knowledge Capture**: Each test case is stored as an immutable [[MCard]]
+- **Structured Growth**: Polynomial coefficients and exponents organize test scenarios systematically
+- **Persistent Context**: [[PCard]] serves as a stable reference point for knowledge accumulation
 
-This approach transforms testing from a one-time activity into an ongoing conversation with the code, annotated by a specific **PCard**. Each interaction builds upon previous knowledge while maintaining a clean separation between the function's interface (PCard) and its validation corpus (referenced MCards).
+This transforms testing from a one-time activity into an ongoing conversation with the code. The detailed token-based implementation is covered in [[PCard Architecture]].
 
 ### 2.3 Systematic Knowledge Accumulation
 
-The hash-based retrieval system ensures that all test data remains efficiently accessible and verifiable, even as the test suite grows in size and complexity through conversational exploration. The polynomial functor structure maintains **syntactic stability**, allowing new test cases and execution records to accumulate incrementally without requiring changes to the PCard's core structure or hash value.
+The hash-based retrieval system ensures efficient access to test data as it grows through conversational exploration. The [[Polynomial Representation of Categorical Structures|polynomial functor structure]] maintains **syntactic stability**, allowing incremental accumulation without structural changes.
 
-This creates a comprehensive knowledge accumulation system where:
+This creates a comprehensive knowledge accumulation system featuring:
 
-1. **Progressive Learning**: Each testing session builds upon previous knowledge, creating increasingly comprehensive understanding
-2. **Collaborative Intelligence**: Multiple users contribute test cases and insights, creating collective wisdom about function behavior  
-3. **Pattern Recognition**: The system identifies common patterns across test runs, enabling optimization and knowledge transfer
-4. **Cross-Function Learning**: Insights gained from one function can be applied to similar functions through pattern matching
-5. **Conversational Continuity**: Testing sessions maintain context across time, enabling long-term exploration strategies
+1. **Progressive Learning**: Each session builds upon previous knowledge
+2. **Collaborative Intelligence**: Multiple users contribute test cases and insights
+3. **Pattern Recognition**: Common patterns enable optimization and knowledge transfer
+4. **Cross-Function Learning**: Insights apply to similar functions through pattern matching
+5. **Conversational Continuity**: Sessions maintain context across time
 
-### 2.4 Integration with Astro Islands Architecture
+Detailed implementation mechanisms are covered in [[PCard Architecture]].
 
-PCard seamlessly integrates with modern web development through Astro Islands:
+### 2.4 Integration with Modern Web Architecture
 
-- **Component Generation**: Each PCard can generate interactive Astro components for web interfaces
-- **Selective Hydration**: Only components requiring interactivity are hydrated on the client
-- **Hash-Based Composition**: PCards compose through cryptographic hash references, ensuring integrity
-- **Performance Optimization**: Static generation with dynamic islands provides optimal loading performance
+[[PCard]] seamlessly integrates with modern web development frameworks:
+
+- **Component Generation**: Each [[PCard]] generates interactive web components
+- **Selective Hydration**: Only interactive components are hydrated on the client
+- **Hash-Based Composition**: [[PCard]]s compose through cryptographic hash references
+- **Performance Optimization**: Static generation with dynamic islands
+
+Detailed integration patterns are covered in [[PCard Architecture]].
 
 ### 2.5 Key Capabilities for Conversational Programming
 
-1. **Interactive Testing Manager**
-   - Create and execute test cases through conversational interfaces
-   - Real-time feedback on function behavior and performance
-   - Adaptive testing strategies based on previous results
+1. **Interactive Testing Manager**: Conversational interfaces for test case creation and execution
+2. **Knowledge Accumulation System**: Systematic collection with cross-session continuity
+3. **Pattern Recognition Engine**: Automatic identification of testing patterns and optimization opportunities
+4. **Information-Theoretic Analysis**: Cross-entropy and KL divergence measurements (detailed in [[Cross Entropy and PCard]])
 
-2. **Knowledge Accumulation System**
-   - Systematic collection of test cases, execution records, and insights
-   - Cross-session continuity for long-term exploration
-   - Collaborative testing with multiple contributors
-
-3. **Pattern Recognition Engine**
-   - Automatic identification of testing patterns and optimization opportunities
-   - Performance profiling and bottleneck detection
-   - Failure analysis and edge case discovery
+Implementation details for these capabilities are covered in [[PCard Architecture]].
 
 4. **Exploration Strategy Framework**
    - Boundary testing strategies for edge case discovery
@@ -534,26 +505,16 @@ The triadic structure of MCard-PCard-VCard transcends traditional computational 
 
 This comprehensive approach enables the creation of knowledge systems that seamlessly integrate human creativity with computational power, supporting everything from personal knowledge management to large-scale distributed systems. The MVP Cards framework serves as both a **theoretical foundation** and a **practical vocabulary** for building the next generation of knowledge-intensive applications.
 
-As we advance toward an increasingly connected world, the need for systems that can bridge human understanding and machine computation becomes paramount. The MVP Cards framework provides this bridge, creating new possibilities for how we create, share, and value knowledge in the age of ubiquitous computing and artificial intelligence.
-
 # References
 
-## Core Concepts
-- [[Agentic Trinitarianism]]
-- [[Miner-Trader-Coder Triad]]
-- [[Computational Trinitarianism]]
-- [[Curry-Howard-Lambek Isomorphism]]
+## Related Documentation
 
-## Related Documents
-```dataview 
-Table title as Title, authors as Authors
-where contains(subject, "MVP Cards") or 
-      contains(subject, "PKC") or
-      contains(subject, "MCard") or
-      contains(subject, "PCard") or
-      contains(subject, "VCard") or
-      contains(subject, "Miner") or
-      contains(subject, "Coder") or
+- [[Polynomial Representation of Categorical Structures]] - Mathematical foundations and theory
+- [[PCard Architecture]] - Implementation architecture and token-based systems
+- [[Cross Entropy and PCard]] - Information-theoretic applications
+- [[MCard]] - Atomic storage foundation
+- [[VCard]] - Value exchange layer
+- [[PKC]] - Overall system architectures
       contains(subject, "Trader")
 sort title, authors, modified
 ```
