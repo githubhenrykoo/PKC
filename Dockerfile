@@ -19,16 +19,27 @@ COPY . .
 # Build the application
 RUN npm run build
 
-# Runtime stage
-FROM nginx:alpine
+# Use Node.js for runtime stage instead of nginx
+FROM node:20-alpine
+
+WORKDIR /app
+
+# Copy package.json files
+COPY package*.json ./
+
+# Install production dependencies only
+RUN npm ci --production
 
 # Copy the built files from the build stage
-COPY --from=build /app/dist /usr/share/nginx/html
+COPY --from=build /app/dist ./dist
+COPY --from=build /app/node_modules ./node_modules
 
-# Copy custom nginx config if needed
-# COPY ./nginx.conf /etc/nginx/conf.d/default.conf
+# Set environment variable
+ENV HOST=0.0.0.0
+ENV PORT=4321
 
-# Expose port 80
-EXPOSE 80
+# Expose port 4321
+EXPOSE 4321
 
-CMD ["nginx", "-g", "daemon off;"]
+# Use Node.js to start the application
+CMD ["npm", "start"]

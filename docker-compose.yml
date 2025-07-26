@@ -16,9 +16,3 @@ services:
       timeout: 10s
       retries: 3
       start_period: 10s
-    volumes:
-      - pkc_data:/usr/share/nginx/html/data
-
-volumes:
-  pkc_data:
-    name: pkc_data
