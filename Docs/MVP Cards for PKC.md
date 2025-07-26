@@ -15,16 +15,16 @@ The system implements a rigorous mathematical structure based on polynomial func
 
 Inspired by [[Software-Defined Networking]] ([[SDN]]) principles in [[operating system]] literature, the PKC architecture organizes computational capabilities into three distinct but interconnected planes, each addressing different aspects of meaning and representation:
 
-| Plane | Component | Core Function | Meaning Dimension | Mathematical Foundation |
-|-------|-----------|---------------|-------------------|------------------------|
-| **Data Plane** | [[MCard]] | Atomic knowledge storage and unified data namespace | **Physically Meaningful**: Grounded in concrete, verifiable data with cryptographic integrity | Linear Polynomial Functors |
-| **Control Plane** | [[PCard]] | Recursive composition | **Mediating Meaning**: Transforms between physical and social meaning through composition | Recursive Polynomial Functors |
-| **Application Plane** | [[VCard]] | Value representation | **Socially Meaningful**: Embeds cultural, economic, and contextual value systems | Modularized Value Systems |
+| Plane | Component | Core Function | Meaning Dimension | Mathematical Foundation | Inheritance Structure |
+|-------|-----------|---------------|-------------------|------------------------|----------------------|
+| **Data Plane** | [[MCard]] | Atomic knowledge storage and unified data namespace | **Physically Meaningful**: Grounded in concrete, verifiable data with cryptographic integrity | Linear Polynomial Functors | Base class |
+| **Control Plane** | [[PCard]] | Recursive composition | **Mediating Meaning**: Transforms between physical and social meaning through composition | Recursive Polynomial Functors | Extends [[MCard]] |
+| **Application Plane** | [[VCard]] | Value representation and blockchain integration | **Socially Meaningful**: Embeds cultural, economic, and contextual value systems through DeFi protocols | Inherits polynomial format from [[PCard]] | Extends both [[PCard]] and [[MCard]] |
 
 This triadic structure creates a complete computational stack where:
-- **MCard** provides the immutable, content-addressable foundation and unified data namespace for tokenized assets
-- **PCard** enables compositional knowledge transformation
-- **VCard** facilitates value exchange and economic coordination
+- **[[MCard]]** provides the immutable, content-addressable foundation and unified data namespace for tokenized assets
+- **[[PCard]]** enables compositional knowledge transformation through polynomial functors
+- **[[VCard]]** facilitates value exchange and economic coordination by inheriting from both [[MCard]] (for storage) and [[PCard]] (for polynomial value assessment), enabling blockchain interoperability
 
 ## 1. MCard: The Atomic Knowledge Foundation and Data Substrate
 
@@ -245,7 +245,7 @@ Represents the **knowledge accumulation layer** that enables systematic explorat
 ### 3.1 Core Structure: Modular Value Systems
 
 ```typescript
-interface VCard extends PCard {
+interface VCard extends PCard, MCard {
   // Value-specific properties
   valueType: 'token' | 'right' | 'access' | 'reputation' | 'custom';
   owner: string;        // Current owner's cryptographic identity
@@ -513,8 +513,9 @@ This comprehensive approach enables the creation of knowledge systems that seaml
 - [[PCard Architecture]] - Implementation architecture and token-based systems
 - [[Cross Entropy and PCard]] - Information-theoretic applications
 - [[MCard]] - Atomic storage foundation
-- [[VCard]] - Value exchange layer
-- [[PKC]] - Overall system architectures
+- [[VCard]] - Value exchange layer with blockchain integration
+- [[VCard_Impl.md]] - Detailed implementation for dual inheritance and blockchain primitives
+- [[PKC]] - Overall system architecture
       contains(subject, "Trader")
 sort title, authors, modified
 ```
