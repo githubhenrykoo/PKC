@@ -15,11 +15,25 @@ The system implements a rigorous mathematical structure based on polynomial func
 
 Inspired by [[Software-Defined Networking]] ([[SDN]]) principles in [[operating system]] literature, the PKC architecture organizes computational capabilities into three distinct but interconnected planes, each addressing different aspects of meaning and representation:
 
-| Plane | Component | Core Function | Meaning Dimension | Mathematical Foundation | Polynomial Structure | Inheritance Structure | Global Identity |
-|-------|-----------|---------------|-------------------|------------------------|---------------------|----------------------|---------------|
-| **Data Plane** | [[MCard]] | Atomic knowledge storage and unified data namespace | **Physically Meaningful**: Grounded in concrete, verifiable data with cryptographic integrity | Linear Polynomial Functors | Base storage layer | Base class | Content hash |
-| **Control Plane** | [[PCard]] | Recursive composition and function identification | **Mediating Meaning**: Transforms between physical and social meaning through composition | $F(X) = \sum_i (A_i \times X^{B_i})$ - Single function | Single function with multiple test cases | Extends [[MCard]] | Function hash as global namespace identifier |
-| **Application Plane** | [[VCard]] | Boundary enforcement for value exchange through arithmetic logic | **Socially Meaningful**: Embeds cultural, economic, and contextual value systems with mathematically-assessable security guarantees | $F(X_j) = \sum_{ij} (A_i \times X_j^{B_i})$ - Multi-function | Multi-stage auth/authz functions composed with transaction functions | Extends both [[PCard]] and [[MCard]] | Multi-function composition hash |
+### Architectural Components and Meaning Dimensions
+
+The PKC architecture establishes a clear separation of concerns across three planes, where each component serves a specific role in the knowledge representation ecosystem. This layered approach ensures that data, functionality, and value are properly encapsulated while maintaining well-defined interfaces between layers.
+
+| Plane | Component | Core Function | Meaning Dimension |
+|-------|-----------|---------------|-------------------|
+| **Data Plane** | [[MCard]] | Atomic knowledge storage and unified data namespace | **Physically Meaningful**: Grounded in concrete, verifiable data with cryptographic integrity |
+| **Control Plane** | [[PCard]] | Recursive composition and function identification | **Mediating Meaning**: Transforms between physical and social meaning through composition |
+| **Application Plane** | [[VCard]] | Boundary enforcement for value exchange through arithmetic logic | **Socially Meaningful**: Embeds cultural, economic, and contextual value systems with mathematically-assessable security guarantees |
+
+### Mathematical Foundation and Implementation Details
+
+The MVP Card system is built on rigorous mathematical foundations that enable theoretical soundness and completeness. Each component implements specific polynomial structures and inheritance patterns that together create a comprehensive categorical framework for knowledge representation and manipulation.
+
+| Plane | Mathematical Foundation | Polynomial Structure | Inheritance Structure | Global Identity |
+|-------|------------------------|---------------------|----------------------|---------------|
+| **Data Plane** | Linear Polynomial Functors | Base storage layer | Base class | Content hash |
+| **Control Plane** | $F(X) = \sum_i (A_i \times X^{B_i})$ | Single function with multiple test cases | Extends [[MCard]] | Function hash as global namespace identifier |
+| **Application Plane** | $F(X_j) = \sum_{ij} (A_i \times X_j^{B_i})$ | Multi-stage auth/authz functions composed with transaction functions | Extends both [[PCard]] and [[MCard]] | Multi-function composition hash |
 
 This triadic structure creates a complete computational stack where:
 - **[[MCard]]** provides the immutable, content-addressable foundation and unified data namespace for tokenized assets
@@ -214,7 +228,6 @@ Represents the **computational implementation** of the function - the executable
 
 Represents the **knowledge accumulation layer** that enables systematic exploration and validation of function behavior:
 
-{{ ... }}
 **Conversational Programming Features:**
 - **Interactive Testing Manager**: Allows users to create and execute test cases through conversational interfaces
 - **Adaptive Exploration Strategies**: Testing approaches evolve based on previous results and observed patterns
@@ -264,9 +277,9 @@ VCard's boundary enforcement capabilities are deliberately grounded in arithmeti
 
 VCard uses polynomial expressions to compose security functions with explicit computational complexity guarantees:
 
-```
-F_security(X_j) = \Sigma_{ij} (AuthRole_i \times SecurityFunction_j^{PermissionLevel_i})
-```
+$$
+F_{security}(X_j) = \Sigma_{ij} (AuthRole_i \times X_j^{PermissionLevel_i})
+$$
 
 **Multi-Stage Authentication and Authorization in $X_j$**:
 The subscript $j$ in $X_j$ represents the critical insight that value transactions inherently require multiple sequential security stages:
