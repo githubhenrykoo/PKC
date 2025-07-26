@@ -29,12 +29,8 @@ export default defineConfig({
         clientPort: 4321,
         port: 4321
       },
-      allowedHosts: [
-        'ales.pkc.pub',
-        'localhost',
-        '0.0.0.0',
-        '127.0.0.1'
-      ],
+      // Allow all hosts for flexibility in deployment environments
+      allowedHosts: true,
       cors: true,
       fs: {
         allow: ['..']

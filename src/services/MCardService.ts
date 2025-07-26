@@ -1,6 +1,7 @@
 /**
  * MCardService - Handles all interactions with the MCard API
  */
+import { MCARD_API_URL } from '../config';
 export interface MCardItem {
   hash: string;
   content_type: string;
@@ -27,8 +28,8 @@ export class MCardService {
   private baseUrl: string;
 
   constructor(baseUrl?: string) {
-    // Use environment variable if available or fallback to provided baseUrl or dev server
-    this.baseUrl = baseUrl || import.meta.env.PUBLIC_MCARD_API_URL || 'http://localhost:49384/v1';
+    // Use provided baseUrl or the centralized config value
+    this.baseUrl = baseUrl || MCARD_API_URL;
     console.log('MCardService initialized with baseUrl:', this.baseUrl);
   }
 
