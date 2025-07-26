@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   pkc-app:
-    image: henry768/pkc:latest  # Uses pre-built image from DockerHub
+    image: henry768/pkc:latest  # Uses locally built image
     container_name: pkc-app
     restart: unless-stopped
     ports:
@@ -10,7 +10,7 @@ services:
     environment:
       - NODE_ENV=production
       - PUBLIC_MCARD_API_URL=https://devmcard.pkc.pub/v1
-    healthcheck:
+    healthcheck:  
       test: ["CMD", "wget", "-q", "--spider", "http://localhost:4321"]
       interval: 30s
       timeout: 10s
