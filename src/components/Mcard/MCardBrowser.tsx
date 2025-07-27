@@ -81,18 +81,31 @@ export function MCardBrowser() {
       // Get content
       const content = await mCardService.getCardContent(card.hash);
       
-      // Handle different content types
+      // Handle different content types - enhanced to support any content type
       if (content instanceof Blob) {
+        const url = URL.createObjectURL(content);
+        
         if (cardContentType.startsWith('image/')) {
-          const url = URL.createObjectURL(content);
           setContentPreview(`<div class="flex items-center justify-center w-full h-full overflow-auto">
             <img src="${url}" alt="Image preview" class="max-w-full object-contain" />
+            <div class="absolute top-2 right-2">
+              <a href="${url}" download="${card.hash}" class="inline-block bg-primary text-primary-foreground px-2 py-1 rounded text-sm">Download</a>
+            </div>
           </div>`);
-        } else if (cardContentType.startsWith('text/')) {
+        } else if (cardContentType.startsWith('text/') || 
+                   cardContentType.includes('json') || 
+                   cardContentType.includes('xml') || 
+                   cardContentType.includes('yaml') ||
+                   cardContentType.includes('csv')) {
           const text = await content.text();
-          setContentPreview(text);
+          setContentPreview(`<div class="p-4 h-full overflow-auto">
+            <div class="mb-2 flex justify-between items-center">
+              <span class="text-sm text-muted-foreground">Content Type: ${cardContentType}</span>
+              <a href="${url}" download="${card.hash}" class="inline-block bg-primary text-primary-foreground px-2 py-1 rounded text-sm">Download</a>
+            </div>
+            <pre class="whitespace-pre-wrap font-mono text-sm bg-muted p-3 rounded overflow-auto">${text.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</pre>
+          </div>`);
         } else if (cardContentType === 'application/pdf') {
-          const url = URL.createObjectURL(content);
           setContentPreview(`
             <iframe 
               src="${url}" 
@@ -109,18 +122,72 @@ export function MCardBrowser() {
               </a>
             </div>
           `);
+        } else if (cardContentType.startsWith('video/')) {
+          setContentPreview(`<div class="flex items-center justify-center w-full h-full p-4">
+            <div class="w-full max-w-4xl">
+              <video controls class="w-full h-auto max-h-[70vh] rounded-lg">
+                <source src="${url}" type="${cardContentType}">
+                Your browser does not support the video tag.
+              </video>
+              <div class="mt-2 text-center">
+                <a href="${url}" download="${card.hash}" class="inline-block bg-primary text-primary-foreground px-3 py-1 rounded-md">Download Video</a>
+              </div>
+            </div>
+          </div>`);
+        } else if (cardContentType.startsWith('audio/')) {
+          setContentPreview(`<div class="flex items-center justify-center w-full h-full p-4">
+            <div class="w-full max-w-2xl text-center">
+              <div class="mb-4">
+                <i class="fas fa-music text-6xl text-muted-foreground mb-4"></i>
+                <p class="text-lg font-medium">Audio File</p>
+                <p class="text-sm text-muted-foreground">${cardContentType}</p>
+              </div>
+              <audio controls class="w-full mb-4">
+                <source src="${url}" type="${cardContentType}">
+                Your browser does not support the audio element.
+              </audio>
+              <a href="${url}" download="${card.hash}" class="inline-block bg-primary text-primary-foreground px-3 py-1 rounded-md">Download Audio</a>
+            </div>
+          </div>`);
+        } else if (cardContentType.includes('zip') || 
+                   cardContentType.includes('rar') || 
+                   cardContentType.includes('tar') || 
+                   cardContentType.includes('gz')) {
+          setContentPreview(`<div class="flex items-center justify-center w-full h-full p-4">
+            <div class="text-center">
+              <i class="fas fa-file-archive text-6xl text-muted-foreground mb-4"></i>
+              <p class="text-lg font-medium mb-2">Archive File</p>
+              <p class="text-sm text-muted-foreground mb-4">${cardContentType}</p>
+              <p class="text-sm text-muted-foreground mb-4">Size: ${(content.size / 1024 / 1024).toFixed(2)} MB</p>
+              <a href="${url}" download="${card.hash}" class="inline-block bg-primary text-primary-foreground px-4 py-2 rounded-md">Download Archive</a>
+            </div>
+          </div>`);
         } else {
-          setContentPreview(`<div class="p-4 bg-muted rounded-md">
-            <p>Binary content (${cardContentType})</p>
-            <button class="mt-2 bg-primary text-primary-foreground px-3 py-1 rounded-md" 
-              onclick="window.open('${URL.createObjectURL(content)}', '_blank')">
-              Download
-            </button>
+          // Generic binary content with file type detection
+          const fileSize = (content.size / 1024 / 1024).toFixed(2);
+          const isExecutable = cardContentType.includes('executable') || cardContentType.includes('application/');
+          const iconClass = isExecutable ? 'fa-cog' : 'fa-file';
+          
+          setContentPreview(`<div class="flex items-center justify-center w-full h-full p-4">
+            <div class="text-center">
+              <i class="fas ${iconClass} text-6xl text-muted-foreground mb-4"></i>
+              <p class="text-lg font-medium mb-2">Binary Content</p>
+              <p class="text-sm text-muted-foreground mb-2">${cardContentType}</p>
+              <p class="text-sm text-muted-foreground mb-4">Size: ${fileSize} MB</p>
+              <p class="text-xs text-muted-foreground mb-4 max-w-md">This file type cannot be previewed directly. Click download to view it with an appropriate application.</p>
+              <a href="${url}" download="${card.hash}" class="inline-block bg-primary text-primary-foreground px-4 py-2 rounded-md">Download File</a>
+            </div>
           </div>`);
         }
       } else if (typeof content === 'string') {
-        setContentPreview(content);
-      }
+        // Handle string content (likely text)
+        setContentPreview(`<div class="p-4 h-full overflow-auto">
+          <div class="mb-2">
+            <span class="text-sm text-muted-foreground">Text Content</span>
+          </div>
+          <pre class="whitespace-pre-wrap font-mono text-sm bg-muted p-3 rounded overflow-auto">${content.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</pre>
+        </div>`);
+      }  
     } catch (err) {
       console.error('Error viewing content:', err);
       setContentPreview('Failed to load content. Please try again.');
@@ -129,7 +196,7 @@ export function MCardBrowser() {
     }
   };
   
-  // Handle file upload
+  // Handle file upload - now supports multiple files and any content type
   const handleFileUpload = async (files: FileList | null) => {
     if (!files || files.length === 0) return;
     
@@ -137,36 +204,38 @@ export function MCardBrowser() {
     setUploadStatus(null);
     
     try {
-      const file = files[0]; // Just handle one file for now
-      console.log('File to upload:', { 
-        name: file.name, 
-        type: file.type, 
-        size: file.size,
-        lastModified: new Date(file.lastModified).toISOString()
-      });
-      
-      const metadata = { filename: file.name };
-      console.log('Uploading with metadata:', metadata);
-      
-      // Wrap in try-catch to get more detailed error info
-      try {
-        const response = await mCardService.uploadFile(file, metadata);
-        console.log('Upload response:', response);
-        
-        setUploadStatus({
-          success: true,
-          message: `File uploaded successfully! Hash: ${response.hash}`
+      const uploadPromises = Array.from(files).map(async (file) => {
+        console.log('File to upload:', { 
+          name: file.name, 
+          type: file.type || 'application/octet-stream', // Default for unknown types
+          size: file.size,
+          lastModified: new Date(file.lastModified).toISOString()
         });
         
-        // Refresh the card list
-        fetchCards();
-      } catch (apiError) {
-        console.error('API error details:', apiError);
-        throw apiError; // Re-throw for outer catch
-      }
+        const metadata = { 
+          filename: file.name,
+          originalType: file.type || 'application/octet-stream',
+          size: file.size
+        };
+        console.log('Uploading with metadata:', metadata);
+        
+        const response = await mCardService.uploadFile(file, metadata);
+        console.log('Upload response:', response);
+        return response;
+      });
+      
+      const responses = await Promise.all(uploadPromises);
+      
+      setUploadStatus({
+        success: true,
+        message: `${responses.length} file(s) uploaded successfully! Hashes: ${responses.map(r => r.hash).join(', ')}`
+      });
+      
+      // Refresh the card list
+      fetchCards();
     } catch (err) {
       console.error('Error uploading file:', err);
-      let errorMsg = 'Failed to upload file. Please try again.';
+      let errorMsg = 'Failed to upload file(s). Please try again.';
       
       // Get more specific error message if available
       if (err instanceof Error) {
@@ -243,7 +312,7 @@ export function MCardBrowser() {
         type="file"
         ref={fileInputRef}
         className="hidden"
-        accept=".pdf,.txt,.md,.json,.jpg,.jpeg,.png,.gif"
+        multiple
         onChange={handleFileInputChange}
       />
       

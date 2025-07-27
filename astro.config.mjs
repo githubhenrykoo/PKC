@@ -46,7 +46,7 @@ export default defineConfig({
       // @ts-expect-error: Type incompatibility between VitePWA and Vite plugins
       VitePWA({
         registerType: 'autoUpdate',
-        includeAssets: ['favicon.ico', 'icons/*.png', 'images/*.png', 'pwa-192x192.png', 'pwa-512x512.png', 'robots.txt', 'apple-touch-icon.png'],
+        includeAssets: ['favicon.ico', 'icons/*.png', 'images/*.png', 'pwa-192x192.png', 'pwa-512x512.png', 'robots.txt'],
         manifest: {
           name: 'PKC Interactive Experience',
           short_name: 'PKC',
@@ -70,8 +70,8 @@ export default defineConfig({
           ]
         },
         workbox: {
-          // Be more specific about what to cache to prevent errors
-          globPatterns: ['**/*.{js,css,html}', 'favicon.ico', 'icons/*.{png,svg}', 'images/*.{png,jpg,jpeg,svg}', 'pwa-*.{png}', 'apple-touch-icon.png', 'robots.txt'],
+          // Only cache files that actually exist
+          globPatterns: ['**/*.{js,css,html}', 'favicon.ico', 'icons/*.png', 'images/*.png', 'pwa-*.png', 'robots.txt'],
           skipWaiting: true,
           clientsClaim: true,
           runtimeCaching: [
