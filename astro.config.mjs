@@ -41,6 +41,18 @@ export default defineConfig({
         allow: ['..']
       }
     },
+    // Suppress CSS minification warnings for Radix UI components
+    build: {
+      rollupOptions: {
+        onwarn(warning, warn) {
+          // Suppress radix CSS warnings
+          if (warning.code === 'CSS_SYNTAX_ERROR' && warning.message.includes('radix')) {
+            return;
+          }
+          warn(warning);
+        }
+      }
+    },
     // @ts-ignore
     plugins: [
       // @ts-expect-error: Type incompatibility between VitePWA and Vite plugins

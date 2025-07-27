@@ -81,47 +81,94 @@ export class MCardService {
     return this._post('/card', formData);
   }
   
-  // Upload file
+  // Upload file with enhanced error handling and size checks
   async uploadFile(file: File, metadata: Record<string, any> = {}): Promise<MCardItem> {
+    // File size check (warn for files > 100MB)
+    const maxSize = 100 * 1024 * 1024; // 100MB
+    if (file.size > maxSize) {
+      console.warn(`Large file detected: ${(file.size / 1024 / 1024).toFixed(2)}MB. This may take longer to upload.`);
+    }
+    
+    // Check for empty files
+    if (file.size === 0) {
+      throw new Error('Cannot upload empty file');
+    }
+    
     const formData = new FormData();
     formData.append('file', file);
     
-    if (Object.keys(metadata).length > 0) {
-      formData.append('metadata', JSON.stringify(metadata));
-    }
+    // Add enhanced metadata
+    const enhancedMetadata = {
+      filename: file.name,
+      originalType: file.type || 'application/octet-stream',
+      size: file.size,
+      lastModified: file.lastModified,
+      ...metadata
+    };
     
-    return this._post('/files', formData);
+    formData.append('metadata', JSON.stringify(enhancedMetadata));
+    
+    return this._post('/files', formData, true); // Use enhanced POST with timeout
   }
   
-  // Helper methods
-  private async _fetch(path: string, options: RequestInit = {}): Promise<Response> {
+  // Helper methods with enhanced error handling
+  private async _fetch(path: string, options: RequestInit = {}, isFileUpload = false): Promise<Response> {
     try {
       const requestUrl = `${this.baseUrl}${path}`;
       console.log(`API Request: ${options.method || 'GET'} ${requestUrl}`);
       
+      // Enhanced logging for file uploads
       if (options.body instanceof FormData) {
         console.log('FormData entries:');
-        // Log FormData entries for debugging
+        let totalSize = 0;
         for (const pair of (options.body as FormData).entries()) {
           if (pair[0] === 'file') {
             const file = pair[1] as File;
-            console.log(`- ${pair[0]}: File(${file.name}, ${file.type}, ${file.size} bytes)`);
+            totalSize = file.size;
+            console.log(`- ${pair[0]}: File(${file.name}, ${file.type || 'unknown'}, ${(file.size / 1024 / 1024).toFixed(2)}MB)`);
           } else {
             console.log(`- ${pair[0]}: ${pair[1]}`);
           }
         }
+        
+        if (isFileUpload && totalSize > 0) {
+          console.log(`Upload size: ${(totalSize / 1024 / 1024).toFixed(2)}MB`);
+          if (totalSize > 50 * 1024 * 1024) { // 50MB
+            console.warn('Large file upload detected. This may take several minutes.');
+          }
+        }
       }
       
-      const response = await fetch(requestUrl, options);
+      // Create a timeout promise for large uploads
+      const timeoutMs = isFileUpload ? 300000 : 30000; // 5 minutes for uploads, 30s for others
+      
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        setTimeout(() => {
+          reject(new Error(`Request timeout after ${timeoutMs / 1000} seconds. ${isFileUpload ? 'Large files may need more time to upload.' : ''}`));
+        }, timeoutMs);
+      });
+      
+      const fetchPromise = fetch(requestUrl, options);
+      
+      const response = await Promise.race([fetchPromise, timeoutPromise]);
       
       console.log(`API Response: ${response.status} ${response.statusText}`);
       
       if (!response.ok) {
-        // Try to get more error details from the response
+        // Enhanced error handling with specific messages for common issues
         let errorDetails = '';
+        let userFriendlyMessage = '';
+        
         try {
           const errorJson = await response.clone().json();
-          errorDetails = JSON.stringify(errorJson);
+          errorDetails = JSON.stringify(errorJson, null, 2);
+          
+          // Extract user-friendly messages from API errors
+          if (errorJson.detail) {
+            userFriendlyMessage = errorJson.detail;
+          } else if (errorJson.message) {
+            userFriendlyMessage = errorJson.message;
+          }
         } catch (e) {
           try {
             errorDetails = await response.clone().text();
@@ -130,11 +177,39 @@ export class MCardService {
           }
         }
         
-        throw new Error(`API error (${response.status}): ${response.statusText}\nDetails: ${errorDetails}`);
+        // Provide specific error messages for common HTTP status codes
+        switch (response.status) {
+          case 413:
+            userFriendlyMessage = 'File is too large. The server has a file size limit.';
+            break;
+          case 400:
+            if (!userFriendlyMessage) {
+              userFriendlyMessage = 'Bad request. The file format may not be supported or the request is malformed.';
+            }
+            break;
+          case 500:
+            userFriendlyMessage = 'Server error. The upload service may be temporarily unavailable.';
+            break;
+          case 502:
+          case 503:
+          case 504:
+            userFriendlyMessage = 'Service temporarily unavailable. Please try again in a moment.';
+            break;
+        }
+        
+        const finalMessage = userFriendlyMessage || `API error (${response.status}): ${response.statusText}`;
+        throw new Error(`${finalMessage}\n\nTechnical details: ${errorDetails}`);
       }
+      
       return response;
     } catch (error) {
       console.error('MCard API error:', error);
+      
+      // Enhanced error messages for network issues
+      if (error instanceof TypeError && error.message.includes('fetch')) {
+        throw new Error('Network error: Unable to connect to the upload service. Please check your internet connection and try again.');
+      }
+      
       throw error;
     }
   }
@@ -144,13 +219,15 @@ export class MCardService {
     return await response.json();
   }
 
-  private async _post(path: string, body: FormData | URLSearchParams | string): Promise<any> {
+  private async _post(path: string, body: FormData | URLSearchParams | string, isFileUpload = false): Promise<any> {
     const options: RequestInit = {
       method: 'POST',
       body
     };
     
-    const response = await this._fetch(path, options);
+    // For file uploads, we don't set timeout on the request itself
+    // but we can add progress tracking in the future
+    const response = await this._fetch(path, options, isFileUpload);
     return await response.json();
   }
 }
