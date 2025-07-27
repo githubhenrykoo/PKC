@@ -139,18 +139,17 @@ export class MCardService {
         }
       }
       
-      // Create a timeout promise for large uploads
-      const timeoutMs = isFileUpload ? 300000 : 30000; // 5 minutes for uploads, 30s for others
-      
-      const timeoutPromise = new Promise<never>((_, reject) => {
-        setTimeout(() => {
-          reject(new Error(`Request timeout after ${timeoutMs / 1000} seconds. ${isFileUpload ? 'Large files may need more time to upload.' : ''}`));
-        }, timeoutMs);
-      });
-      
-      const fetchPromise = fetch(requestUrl, options);
-      
-      const response = await Promise.race([fetchPromise, timeoutPromise]);
+      // For file uploads, allow unlimited time - no timeout
+      const response = isFileUpload 
+        ? await fetch(requestUrl, options) // No timeout for file uploads
+        : await Promise.race([
+            fetch(requestUrl, options),
+            new Promise<never>((_, reject) => {
+              setTimeout(() => {
+                reject(new Error('Request timeout after 30 seconds'));
+              }, 30000); // Only timeout non-upload requests
+            })
+          ]);
       
       console.log(`API Response: ${response.status} ${response.statusText}`);
       
