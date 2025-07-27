@@ -297,13 +297,51 @@ export function MCardBrowser() {
   const formatTimestamp = (gTime: string | undefined): string => {
     if (!gTime) return 'Unknown';
     
-    const parts = gTime.split('|');
-    if (parts.length < 2) return 'Unknown';
-    
     try {
-      return new Date(parts[1]).toLocaleString();
-    } catch (e) {
+      const date = new Date(gTime);
+      return date.toLocaleString();
+    } catch (error) {
+      console.error('Error formatting timestamp:', error);
       return 'Invalid date';
+    }
+  };
+  
+  // Handle card deletion
+  const handleDeleteCard = async (hash: string) => {
+    try {
+      const response = await mCardService.deleteCard(hash);
+      
+      if (response.success) {
+        // Clear selected card if it was the one deleted
+        if (selectedCard?.hash === hash) {
+          setSelectedCard(null);
+          setContentPreview(null);
+          setContentType('');
+        }
+        
+        // Refresh the card list
+        await fetchCards();
+        
+        // Show success message
+        setUploadStatus({
+          success: true,
+          message: `Card deleted successfully: ${hash.substring(0, 8)}...`
+        });
+        
+        // Clear message after 3 seconds
+        setTimeout(() => setUploadStatus(null), 3000);
+      } else {
+        throw new Error(response.message || 'Failed to delete card');
+      }
+    } catch (err) {
+      console.error('Error deleting card:', err);
+      setUploadStatus({
+        success: false,
+        message: `Failed to delete card: ${err instanceof Error ? err.message : 'Unknown error'}`
+      });
+      
+      // Clear error message after 5 seconds
+      setTimeout(() => setUploadStatus(null), 5000);
     }
   };
 
@@ -368,6 +406,7 @@ export function MCardBrowser() {
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
             onDrop={handleDrop}
+            onDeleteCard={handleDeleteCard}
           />
         </div>
       </ResizablePanel>

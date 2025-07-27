@@ -52,9 +52,17 @@ export class MCardService {
     );
   }
   
-  // Get card count
+  // Get count of all cards
   async getCardCount(): Promise<MCardCountResponse> {
-    return this._get('/cards/count');
+    return this._get(`/cards/count`);
+  }
+  
+  // Delete a card by hash
+  async deleteCard(hash: string): Promise<{ success: boolean; message: string }> {
+    const response = await this._fetch(`/card/${hash}`, {
+      method: 'DELETE'
+    });
+    return await response.json();
   }
   
   // Get card content

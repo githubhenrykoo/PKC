@@ -1,7 +1,20 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { MCardService, type MCardItem } from "@/services/MCardService";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Trash2 } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 interface ContentViewerProps {
   selectedCard: MCardItem | null;
@@ -15,6 +28,7 @@ interface ContentViewerProps {
   onDragOver: (e: React.DragEvent) => void;
   onDragLeave: (e: React.DragEvent) => void;
   onDrop: (e: React.DragEvent) => void;
+  onDeleteCard?: (hash: string) => Promise<void>;
 }
 
 export function ContentViewer({
@@ -28,8 +42,10 @@ export function ContentViewer({
   onDragEnter,
   onDragOver,
   onDragLeave,
-  onDrop
+  onDrop,
+  onDeleteCard
 }: ContentViewerProps) {
+  const [deleteLoading, setDeleteLoading] = useState(false);
   return (
     <div 
       className={`h-full w-full flex flex-col overflow-hidden ${isDragging ? 'ring-2 ring-primary' : ''}`}
@@ -39,19 +55,66 @@ export function ContentViewer({
       onDrop={onDrop}
     >
       <div className="p-4 bg-card border-b">
-        <h2 className="text-lg font-medium">
-          {selectedCard ? `Content: ${selectedCard.hash}` : 'Content Viewer'}
-        </h2>
-        {selectedCard && (
-          <div className="flex justify-between items-center mt-1">
-            <div className="text-sm text-muted-foreground">
-              Type: {contentType}
-            </div>
-            <div className="text-sm text-muted-foreground">
-              Created: {formatTimestamp(selectedCard.g_time)}
-            </div>
+        <div className="flex justify-between items-start">
+          <div className="flex-1">
+            <h2 className="text-lg font-medium">
+              {selectedCard ? `Content: ${selectedCard.hash}` : 'Content Viewer'}
+            </h2>
+            {selectedCard && (
+              <div className="flex justify-between items-center mt-1">
+                <div className="text-sm text-muted-foreground">
+                  Type: {contentType}
+                </div>
+                <div className="text-sm text-muted-foreground">
+                  Created: {formatTimestamp(selectedCard.g_time)}
+                </div>
+              </div>
+            )}
           </div>
-        )}
+          {selectedCard && onDeleteCard && (
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button 
+                  variant="destructive" 
+                  size="sm" 
+                  disabled={deleteLoading}
+                  className="ml-4"
+                >
+                  <Trash2 size={14} className="mr-1" />
+                  Delete
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Delete Card</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Are you sure you want to delete this card? This action cannot be undone.
+                    <br /><br />
+                    <strong>Hash:</strong> {selectedCard.hash.substring(0, 12)}...
+                    <br />
+                    <strong>Type:</strong> {contentType}
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={async () => {
+                      setDeleteLoading(true);
+                      try {
+                        await onDeleteCard(selectedCard.hash);
+                      } finally {
+                        setDeleteLoading(false);
+                      }
+                    }}
+                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  >
+                    {deleteLoading ? 'Deleting...' : 'Delete'}
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          )}
+        </div>
       
         {/* Upload status message */}
         {uploadStatus && (
