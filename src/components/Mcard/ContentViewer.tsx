@@ -40,7 +40,7 @@ export function ContentViewer({
     >
       <div className="p-4 bg-card border-b">
         <h2 className="text-lg font-medium">
-          {selectedCard ? `Content: ${selectedCard.hash.substring(0, 8)}...` : 'Content Viewer'}
+          {selectedCard ? `Content: ${selectedCard.hash}` : 'Content Viewer'}
         </h2>
         {selectedCard && (
           <div className="flex justify-between items-center mt-1">
@@ -62,8 +62,8 @@ export function ContentViewer({
       </div>
     
       <div className="flex-1 overflow-hidden">
-        <ScrollArea className="h-full w-full max-h-[calc(100vh-12rem)]" type="always">
-          <div className="p-4 w-full">
+        <ScrollArea className="h-full w-full" type="always">
+          <div className="p-4 w-full h-full">
             {loading && <div className="text-center py-8">Loading content...</div>}
           
             {!loading && !selectedCard && (
@@ -74,11 +74,11 @@ export function ContentViewer({
           
             {!loading && selectedCard && contentPreview && (
               contentType.startsWith('text/') ? (
-                <pre className="whitespace-pre-wrap bg-muted p-4 rounded-md overflow-auto w-full max-h-[calc(100vh-16rem)]">
+                <pre className="whitespace-pre-wrap bg-muted p-4 rounded-md overflow-auto w-full h-full">
                   {contentPreview}
                 </pre>
               ) : contentType === 'application/pdf' ? (
-                <div className="w-full h-full relative" style={{ height: 'calc(100vh - 180px)' }}>
+                <div className="w-full h-full relative">
                   <div 
                     className="absolute inset-0"
                     dangerouslySetInnerHTML={{ __html: contentPreview as string }} 
@@ -86,7 +86,7 @@ export function ContentViewer({
                 </div>
               ) : (
                 <div 
-                  className="w-full overflow-auto max-h-[calc(100vh-16rem)]"
+                  className="w-full h-full overflow-auto"
                   dangerouslySetInnerHTML={{ __html: contentPreview as string }} 
                 />
               )

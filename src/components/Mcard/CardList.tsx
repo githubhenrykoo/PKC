@@ -148,7 +148,12 @@ export function CardList({
                 onClick={() => handleSelectCard(card)}
               >
                 <div className="flex justify-between items-center">
-                  <Badge variant="outline" className="mb-1">{card.hash.substring(0, 5)}</Badge>
+                  <Badge variant="outline" className="mb-1">
+                    {card.hash.length > 6 
+                      ? `${card.hash.substring(0, 3)}...${card.hash.slice(-3)}` 
+                      : card.hash
+                    }
+                  </Badge>
                   <Badge className="text-xs">{card.content_type}</Badge>
                 </div>
                 <div className="text-xs text-muted-foreground mt-1">
