@@ -125,7 +125,8 @@ export default function UploadDebug() {
     setLoading(true);
     
     try {
-      const service = new MCardService();
+      // Use the imported MCardService instance directly
+      const service = MCardService;
       
       // Monkey patch console.log to capture service logs
       const originalConsoleLog = console.log;

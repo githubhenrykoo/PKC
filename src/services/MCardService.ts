@@ -2,6 +2,7 @@
  * MCardService - Handles all interactions with the MCard API
  */
 import { MCARD_API_URL } from '../config';
+
 export interface MCardItem {
   hash: string;
   content_type: string;
@@ -240,3 +241,7 @@ export class MCardService {
     return await response.json();
   }
 }
+
+// Add default export for compatibility with existing imports
+const defaultMCardService = new MCardService();
+export default defaultMCardService;
