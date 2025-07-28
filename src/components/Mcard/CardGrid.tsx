@@ -10,7 +10,6 @@ interface CardGridProps {
   selectedCard: MCardItem | null;
   searchQuery: string;
   onSelectCard: (card: MCardItem) => void;
-  formatTimestamp: (gTime: string | undefined) => string;
 }
 
 export function CardGrid({ 
@@ -20,7 +19,7 @@ export function CardGrid({
   selectedCard, 
   searchQuery, 
   onSelectCard, 
-  formatTimestamp 
+
 }: CardGridProps) {
   return (
     <div className="flex-1 overflow-hidden">
@@ -50,7 +49,7 @@ export function CardGrid({
               card={card}
               isSelected={selectedCard?.hash === card.hash}
               onClick={onSelectCard}
-              formatTimestamp={formatTimestamp}
+
             />
           ))}
         </div>

@@ -21,7 +21,6 @@ interface ContentViewerProps {
   contentPreview: string | null;
   contentType: string;
   loading: boolean;
-  formatTimestamp: (gTime: string | undefined) => string;
   uploadStatus: { success: boolean; message: string } | null;
   isDragging: boolean;
   onDragEnter: (e: React.DragEvent) => void;
@@ -36,7 +35,6 @@ export function ContentViewer({
   contentPreview,
   contentType,
   loading,
-  formatTimestamp,
   uploadStatus,
   isDragging,
   onDragEnter,
@@ -66,7 +64,7 @@ export function ContentViewer({
                   Type: {contentType}
                 </div>
                 <div className="text-sm text-muted-foreground">
-                  Created: {formatTimestamp(selectedCard.g_time)}
+                  g_time: {selectedCard.g_time || 'Unknown'}
                 </div>
               </div>
             )}

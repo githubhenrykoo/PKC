@@ -6,10 +6,9 @@ interface CardItemProps {
   card: MCardItem;
   isSelected: boolean;
   onClick: (card: MCardItem) => void;
-  formatTimestamp: (gTime: string | undefined) => string;
 }
 
-export function CardItem({ card, isSelected, onClick, formatTimestamp }: CardItemProps) {
+export function CardItem({ card, isSelected, onClick }: CardItemProps) {
   return (
     <div 
       className={`p-2 mb-1 rounded-md cursor-pointer hover:bg-accent transition-colors ${
@@ -27,7 +26,7 @@ export function CardItem({ card, isSelected, onClick, formatTimestamp }: CardIte
         <Badge className="text-xs min-w-[120px] text-center">{card.content_type}</Badge>
       </div>
       <div className="text-xs text-muted-foreground mt-1">
-        Created: {formatTimestamp(card.g_time)}
+        g_time: {card.g_time || 'Unknown'}
       </div>
     </div>
   );

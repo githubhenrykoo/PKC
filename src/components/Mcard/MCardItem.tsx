@@ -31,7 +31,7 @@ export function MCardItem({ card, onViewContent }: MCardItemProps) {
       </CardHeader>
       <CardContent className="flex-grow">
         <p className="text-sm text-muted-foreground">
-          Created: {formattedDate}
+            g_time: {formattedDate}
         </p>
       </CardContent>
       <CardFooter className="pt-2">

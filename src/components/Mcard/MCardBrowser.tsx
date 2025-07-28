@@ -93,19 +93,6 @@ export function MCardBrowser() {
     fetchCards(); // Refresh the card list after successful upload
   };
   
-  // Format timestamp for display
-  const formatTimestamp = (gTime: string | undefined): string => {
-    if (!gTime) return 'Unknown';
-    
-    try {
-      const date = new Date(gTime);
-      return date.toLocaleString();
-    } catch (error) {
-      console.error('Error formatting timestamp:', error);
-      return 'Invalid date';
-    }
-  };
-  
   // Handle card deletion
   const handleDeleteCard = async (hash: string) => {
     try {
@@ -182,7 +169,6 @@ export function MCardBrowser() {
             setPage={setPage}
             handleOpenFileDialog={handleOpenFileDialog}
             handleFileInputChange={handleFileInputChange}
-            formatTimestamp={formatTimestamp}
           />
         </div>
       </ResizablePanel>
@@ -197,7 +183,6 @@ export function MCardBrowser() {
             contentPreview={contentPreview}
             contentType={contentType}
             loading={loading}
-            formatTimestamp={formatTimestamp}
             uploadStatus={uploadStatus}
             isDragging={isDragging}
             onDragEnter={handleDragEnter}

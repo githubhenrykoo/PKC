@@ -22,7 +22,6 @@ interface CardListProps {
   setPage: (page: number | ((prevPage: number) => number)) => void;
   handleOpenFileDialog: () => void;
   handleFileInputChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  formatTimestamp: (gTime: string | undefined) => string;
 }
 
 export function CardList({
@@ -41,8 +40,7 @@ export function CardList({
   setSearchType,
   setPage,
   handleOpenFileDialog,
-  handleFileInputChange,
-  formatTimestamp
+  handleFileInputChange
 }: CardListProps) {
   return (
     <div className="flex h-full flex-col">
@@ -69,7 +67,6 @@ export function CardList({
         selectedCard={selectedCard}
         searchQuery={searchQuery}
         onSelectCard={handleSelectCard}
-        formatTimestamp={formatTimestamp}
       />
       
       <PaginationControls
