@@ -79,6 +79,8 @@ The following environment variables can be set in your docker-compose.yml:
 | PORT | Port to expose the API | 49384 |
 | LOG_LEVEL | Logging level (DEBUG, INFO, WARNING, ERROR) | INFO |
 | MCard-Password | Admin password for administrative operations | None |
+| CORS_ALLOWED_ORIGINS | Comma-separated list of origins allowed to access the API | * |
+| CORS_ALLOW_CREDENTIALS | Whether to allow credentials in CORS requests | false |
 
 ## Authentication
 
@@ -657,6 +659,7 @@ curl -s http://localhost:49384/v1/cards/count | jq
 3. **API Key Rejected**: Verify the API key is provided correctly in the Authorization header.
 4. **Container Won't Start**: Check logs with `docker logs mcard-service`.
 5. **Database Access Issues**: Verify the volume is mounted correctly and has appropriate permissions.
+6. **CORS Errors on File Uploads**: Binary files (JPG, MP3) may fail to upload due to CORS restrictions. Ensure proper CORS configuration in the server environment variables.
 
 ### Getting Help
 

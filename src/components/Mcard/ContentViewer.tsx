@@ -122,9 +122,9 @@ export function ContentViewer({
         )}
       </div>
     
-      <div className="flex-1 overflow-hidden">
-        <ScrollArea className="h-full w-full" type="always">
-          <div className="p-4 w-full h-full">
+      <div className="flex-1 overflow-hidden flex flex-col">
+        <ScrollArea className="flex-grow h-full w-full" type="always">
+          <div className="p-4 w-full h-full min-h-[calc(100vh-200px)]">
             {loading && <div className="text-center py-8">Loading content...</div>}
           
             {!loading && !selectedCard && (
@@ -135,14 +135,21 @@ export function ContentViewer({
           
             {!loading && selectedCard && contentPreview && (
               contentType.startsWith('text/') || contentType.includes('markdown') ? (
-                <div className="w-full h-full relative">
+                <div className="w-full h-full relative" style={{ minHeight: 'calc(100vh - 200px)' }}>
                   <iframe 
                     srcDoc={`
                       <!DOCTYPE html>
                       <html>
                         <head>
                           <meta charset="UTF-8">
+                          <meta name="viewport" content="width=device-width, initial-scale=1.0">
                           <style>
+                            html, body { 
+                              height: 100%;
+                              margin: 0;
+                              padding: 0;
+                              overflow: auto;
+                            }
                             body { 
                               font-family: ui-monospace, SFMono-Regular, "SF Mono", Consolas, "Liberation Mono", Menlo, monospace;
                               margin: 0; 
@@ -153,6 +160,8 @@ export function ContentViewer({
                               word-wrap: break-word;
                               font-size: 14px;
                               line-height: 1.5;
+                              min-height: calc(100vh - 32px); /* Full height minus padding */
+                              box-sizing: border-box;
                             }
                             .download-btn {
                               position: fixed;
@@ -166,21 +175,27 @@ export function ContentViewer({
                               font-size: 12px;
                               z-index: 1000;
                             }
+                            .content-container {
+                              min-height: calc(100% - 40px);
+                            }
                           </style>
                         </head>
                         <body>
                           <a href="${selectedCard ? URL.createObjectURL(new Blob([contentPreview.replace(/<[^>]*>/g, '').replace(/Content Type:.*?Download/s, '').trim()], {type: contentType})) : '#'}" download="${selectedCard?.hash}" class="download-btn">Download</a>
-                          ${contentPreview.replace(/<[^>]*>/g, '').replace(/Content Type:.*?Download/s, '').trim()}
+                          <div class="content-container">
+                            ${contentPreview.replace(/<[^>]*>/g, '').replace(/Content Type:.*?Download/s, '').trim()}
+                          </div>
                         </body>
                       </html>
                     `}
                     className="w-full h-full border-0"
+                    style={{ minHeight: 'calc(100vh - 200px)', height: '100%' }}
                     title="Content Preview"
                     sandbox="allow-downloads"
                   />
                 </div>
               ) : contentType === 'application/pdf' ? (
-                <div className="w-full h-full relative">
+                <div className="w-full h-full relative" style={{ minHeight: 'calc(100vh - 200px)' }}>
                   <div 
                     className="absolute inset-0"
                     dangerouslySetInnerHTML={{ __html: contentPreview as string }} 
@@ -188,7 +203,8 @@ export function ContentViewer({
                 </div>
               ) : (
                 <div 
-                  className="w-full h-full overflow-auto"
+                  className="w-full h-full overflow-auto" 
+                  style={{ minHeight: 'calc(100vh - 200px)' }}
                   dangerouslySetInnerHTML={{ __html: contentPreview as string }} 
                 />
               )

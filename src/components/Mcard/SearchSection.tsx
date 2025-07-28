@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Search, RefreshCw } from "lucide-react";
 
 export enum SearchType {
   CONTENT = 'content',
@@ -23,6 +24,44 @@ export function SearchSection({
   onSearchTypeChange,
   onSearch
 }: SearchSectionProps) {
+  // Create a reference to store the timeout ID for debounce
+  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
+  // Track if search query is 3+ characters
+  const [canAutoSearch, setCanAutoSearch] = useState(searchQuery.length >= 3);
+  
+  // Handle search query changes with debounce
+  const handleSearchInputChange = (value: string) => {
+    // Update the search query in parent component immediately
+    onSearchQueryChange(value);
+    
+    // Update auto-search eligibility
+    setCanAutoSearch(value.length >= 3);
+    
+    // Clear any existing timeout
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+    }
+    
+    // Only set up auto-search if query is 3+ characters
+    if (value.length >= 3) {
+      // Create new timeout with 500ms delay
+      debounceTimerRef.current = setTimeout(() => {
+        // Trigger search
+        console.log(`Auto-searching for: ${value}`);
+        onSearch(new Event('submit') as any);
+      }, 500); // 0.5 second debounce delay
+    }
+  };
+  
+  // Clean up timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+      }
+    };
+  }, []);
+
   return (
     <div className="space-y-3">
       <Tabs 
@@ -35,17 +74,44 @@ export function SearchSection({
         </TabsList>
       </Tabs>
     
-      <form onSubmit={onSearch} className="flex gap-2">
+      <form onSubmit={(e) => {
+        e.preventDefault();
+        onSearch(e);
+      }} className="flex gap-2">
         <Input
           type="text"
-          placeholder="Search card content..."
+          placeholder={searchType === SearchType.CONTENT 
+            ? "Search card content... (auto-searches after 3 chars)" 
+            : "Search by hash..."}
           value={searchQuery}
-          onChange={(e) => onSearchQueryChange(e.target.value)}
+          onChange={(e) => handleSearchInputChange(e.target.value)}
           className="flex-grow"
         />
-        <Button type="submit" variant="secondary">
-          Search
-        </Button>
+        <div className="flex gap-1">
+          <Button 
+            type="submit" 
+            variant="default"
+            size="sm"
+            className="px-3 flex items-center"
+            title="Search"
+          >
+            <Search size={16} className="mr-1" />
+            Search
+          </Button>
+          <Button 
+            type="button" 
+            variant="outline"
+            size="sm"
+            className="px-2" 
+            onClick={() => {
+              // Force refresh by triggering search with current query
+              onSearch(new Event('submit') as any);
+            }}
+            title="Reload results"
+          >
+            <RefreshCw size={16} />
+          </Button>
+        </div>
       </form>
     </div>
   );

@@ -116,7 +116,9 @@ export class MCardService {
     
     formData.append('metadata', JSON.stringify(enhancedMetadata));
     
-    return this._post('/files', formData, true); // Use enhanced POST with timeout
+    // Use direct API call - server CORS has been fixed
+    console.log(`Uploading file: ${file.name}, type: ${file.type}, size: ${(file.size / 1024 / 1024).toFixed(2)}MB`);
+    return this._post('/files', formData, true);
   }
   
   // Helper methods with enhanced error handling

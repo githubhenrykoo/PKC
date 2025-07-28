@@ -95,7 +95,7 @@ let deferredPrompt: BeforeInstallPromptEvent | null = null;
         
         document.body.appendChild(installButton);
         
-        // Remove the button after 10 seconds
+        // Remove the button after 3 seconds
         setTimeout(() => {
           if (document.body.contains(installButton)) {
             document.body.removeChild(installButton);
@@ -145,7 +145,7 @@ let deferredPrompt: BeforeInstallPromptEvent | null = null;
                         </button>
                         
                         <p id="countdown" class="countdown-text">
-                            <span>or I will push myself in <span class="countdown-number">10</span> seconds</span>
+                            <span>or I will push myself in <span class="countdown-number">3</span> seconds</span>
                         </p>
                     </div>
                 </div>
@@ -557,7 +557,7 @@ let deferredPrompt: BeforeInstallPromptEvent | null = null;
             
             // State
             let countdownInterval;
-            let timeLeft = 10;
+            let timeLeft = 3;
             let isDarkMode = false;
             
             // Theme Toggle
