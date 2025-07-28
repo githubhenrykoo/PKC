@@ -136,10 +136,51 @@ export function ContentViewer({
             )}
           
             {!loading && selectedCard && contentPreview && (
-              contentType.startsWith('text/') ? (
-                <pre className="whitespace-pre-wrap bg-muted p-4 rounded-md overflow-auto w-full h-full">
-                  {contentPreview}
-                </pre>
+              contentType.startsWith('text/') || contentType.includes('markdown') ? (
+                <div className="w-full h-full relative">
+                  <iframe 
+                    srcDoc={`
+                      <!DOCTYPE html>
+                      <html>
+                        <head>
+                          <meta charset="UTF-8">
+                          <style>
+                            body { 
+                              font-family: ui-monospace, SFMono-Regular, "SF Mono", Consolas, "Liberation Mono", Menlo, monospace;
+                              margin: 0; 
+                              padding: 16px; 
+                              background: #f9fafb;
+                              color: #374151;
+                              white-space: pre-wrap;
+                              word-wrap: break-word;
+                              font-size: 14px;
+                              line-height: 1.5;
+                            }
+                            .download-btn {
+                              position: fixed;
+                              top: 10px;
+                              right: 10px;
+                              background: #3b82f6;
+                              color: white;
+                              padding: 6px 12px;
+                              border-radius: 4px;
+                              text-decoration: none;
+                              font-size: 12px;
+                              z-index: 1000;
+                            }
+                          </style>
+                        </head>
+                        <body>
+                          <a href="${selectedCard ? URL.createObjectURL(new Blob([contentPreview.replace(/<[^>]*>/g, '').replace(/Content Type:.*?Download/s, '').trim()], {type: contentType})) : '#'}" download="${selectedCard?.hash}" class="download-btn">Download</a>
+                          ${contentPreview.replace(/<[^>]*>/g, '').replace(/Content Type:.*?Download/s, '').trim()}
+                        </body>
+                      </html>
+                    `}
+                    className="w-full h-full border-0"
+                    title="Content Preview"
+                    sandbox="allow-downloads"
+                  />
+                </div>
               ) : contentType === 'application/pdf' ? (
                 <div className="w-full h-full relative">
                   <div 
