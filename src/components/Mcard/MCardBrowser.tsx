@@ -93,6 +93,54 @@ export function MCardBrowser() {
     fetchCards(); // Refresh the card list after successful upload
   };
   
+  // Handle text content upload (for both edit and direct text input)
+  const handleUploadContent = async (content: string, contentType = 'text/plain') => {
+    try {
+      setUploadStatus({
+        success: false,
+        message: 'Uploading content...'
+      });
+      
+      // Create a Blob with the proper content type
+      const contentBlob = new Blob([content], { type: contentType });
+      
+      // Use storeContent with the blob (which has content type information)
+      const response = await mCardService.storeContent(contentBlob);
+      
+      if (response && response.hash) {
+        // Refresh the card list
+        await fetchCards();
+        
+        // Show success message
+        setUploadStatus({
+          success: true,
+          message: `Content uploaded successfully: ${response.hash.substring(0, 8)}...`
+        });
+        
+        // Select the newly created card
+        handleSelectCard({
+          hash: response.hash,
+          content_type: response.content_type,
+          g_time: response.g_time
+        });
+        
+        // Clear message after 3 seconds
+        setTimeout(() => setUploadStatus(null), 3000);
+      } else {
+        throw new Error('Failed to upload content');
+      }
+    } catch (err) {
+      console.error('Error uploading content:', err);
+      setUploadStatus({
+        success: false,
+        message: `Failed to upload content: ${err instanceof Error ? err.message : 'Unknown error'}`
+      });
+      
+      // Clear error message after 5 seconds
+      setTimeout(() => setUploadStatus(null), 5000);
+    }
+  };
+  
   // Handle card deletion
   const handleDeleteCard = async (hash: string) => {
     try {
@@ -190,6 +238,7 @@ export function MCardBrowser() {
             onDragLeave={handleDragLeave}
             onDrop={handleDrop}
             onDeleteCard={handleDeleteCard}
+            onUploadContent={handleUploadContent}
           />
         </div>
       </ResizablePanel>

@@ -1,9 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { MCardService, type MCardItem } from "@/services/MCardService";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Trash2 } from "lucide-react";
+import { Trash2, Edit, Save, FileText } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import { Card } from "@/components/ui/card";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -28,6 +30,7 @@ interface ContentViewerProps {
   onDragLeave: (e: React.DragEvent) => void;
   onDrop: (e: React.DragEvent) => void;
   onDeleteCard?: (hash: string) => Promise<void>;
+  onUploadContent?: (content: string, contentType?: string) => Promise<void>;
 }
 
 export function ContentViewer({
@@ -41,9 +44,46 @@ export function ContentViewer({
   onDragOver,
   onDragLeave,
   onDrop,
-  onDeleteCard
+  onDeleteCard,
+  onUploadContent
 }: ContentViewerProps) {
   const [deleteLoading, setDeleteLoading] = useState(false);
+  const [editMode, setEditMode] = useState(false);
+  const [editedContent, setEditedContent] = useState<string>('');
+  const [isTypingMode, setIsTypingMode] = useState(false);
+  const [newContent, setNewContent] = useState<string>('');
+  
+  // Check if content is text or markdown for edit capability
+  const isTextContent = contentType.startsWith('text/') || contentType.includes('markdown');
+  
+  // Update edited content when selectedCard changes
+  useEffect(() => {
+    if (contentPreview) {
+      // Clean content for editing (remove HTML tags and download section)
+      const cleanedContent = contentPreview
+        .replace(/<[^>]*>/g, '')
+        .replace(/Content Type:.*?Download/s, '')
+        .trim();
+      setEditedContent(cleanedContent);
+    }
+  }, [contentPreview]);
+  
+  // Handle saving edited content
+  const handleSaveEdit = async () => {
+    if (onUploadContent && editedContent) {
+      await onUploadContent(editedContent, contentType);
+      setEditMode(false);
+    }
+  };
+  
+  // Handle uploading new typed content
+  const handleUploadTypedContent = async () => {
+    if (onUploadContent && newContent) {
+      await onUploadContent(newContent, 'text/plain');
+      setNewContent('');
+      setIsTypingMode(false);
+    }
+  };
   return (
     <div 
       className={`h-full w-full flex flex-col overflow-hidden ${isDragging ? 'ring-2 ring-primary' : ''}`}
@@ -69,7 +109,43 @@ export function ContentViewer({
               </div>
             )}
           </div>
-          {selectedCard && onDeleteCard && (
+          {isTextContent && selectedCard && !editMode && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setEditMode(true)}
+              className="ml-2"
+            >
+              <Edit size={14} className="mr-1" />
+              Edit
+            </Button>
+          )}
+          
+          {editMode && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleSaveEdit}
+              className="ml-2"
+            >
+              <Save size={14} className="mr-1" />
+              Save as New
+            </Button>
+          )}
+          
+          {!selectedCard && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setIsTypingMode(!isTypingMode)}
+              className="ml-2"
+            >
+              <FileText size={14} className="mr-1" />
+              {isTypingMode ? 'File Upload' : 'Text Input'}
+            </Button>
+          )}
+          
+          {selectedCard && onDeleteCard && !editMode && (
             <AlertDialog>
               <AlertDialogTrigger asChild>
                 <Button 
@@ -133,7 +209,63 @@ export function ContentViewer({
               </div>
             )}
           
-            {!loading && selectedCard && contentPreview && (
+            {/* Text input mode when no card is selected */}
+            {!loading && !selectedCard && isTypingMode && (
+              <Card className="mb-4 p-4">
+                <h3 className="text-lg font-medium mb-2">Enter Text Content</h3>
+                <Textarea
+                  value={newContent}
+                  onChange={(e) => setNewContent(e.target.value)}
+                  placeholder="Type or paste your content here..."
+                  className="min-h-[200px] mb-4"
+                />
+                <div className="flex justify-end gap-2">
+                  <Button 
+                    variant="outline" 
+                    onClick={() => setIsTypingMode(false)}
+                  >
+                    Cancel
+                  </Button>
+                  <Button 
+                    onClick={handleUploadTypedContent}
+                    disabled={!newContent.trim()}
+                  >
+                    <Save size={16} className="mr-2" />
+                    Upload Content
+                  </Button>
+                </div>
+              </Card>
+            )}
+            
+            {/* Edit mode for text content */}
+            {!loading && selectedCard && editMode && (
+              <Card className="mb-4 p-4 w-full">
+                <h3 className="text-lg font-medium mb-2">Edit Content</h3>
+                <Textarea
+                  value={editedContent}
+                  onChange={(e) => setEditedContent(e.target.value)}
+                  className="min-h-[400px] mb-4"
+                />
+                <div className="flex justify-end gap-2">
+                  <Button 
+                    variant="outline" 
+                    onClick={() => setEditMode(false)}
+                  >
+                    Cancel
+                  </Button>
+                  <Button 
+                    onClick={handleSaveEdit}
+                    disabled={!editedContent.trim()}
+                  >
+                    <Save size={16} className="mr-2" />
+                    Save as New Card
+                  </Button>
+                </div>
+              </Card>
+            )}
+            
+            {/* Normal content display (not in edit mode) */}
+            {!loading && selectedCard && contentPreview && !editMode && (
               contentType.startsWith('text/') || contentType.includes('markdown') ? (
                 <div className="w-full h-full relative" style={{ minHeight: 'calc(100vh - 200px)' }}>
                   <iframe 
