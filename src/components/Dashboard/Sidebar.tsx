@@ -1,6 +1,7 @@
 import React from 'react';
 import { cn } from "@/lib/utils";
 import { type PanelType } from './Panels';
+import { useMediaQuery } from '@/hooks/useMediaQuery';
 
 interface SidebarProps {
   className?: string;
@@ -18,30 +19,32 @@ interface NavLinkProps {
 
 function NavLink({ panel, icon, children, active = false, onClick }: NavLinkProps) {
   return (
-    <button 
-      type="button"
-      onClick={() => onClick(panel)}
-      className={cn(
-        "group flex w-full items-center rounded-md px-3 py-2 text-sm font-medium text-left",
-        active 
-          ? "bg-accent text-accent-foreground" 
-          : "hover:bg-accent hover:text-accent-foreground"
-      )}
-    >
-      <span className="mr-2 h-4 w-4">{icon}</span>
-      <span>{children}</span>
-    </button>
+    <li className="mb-2">
+      <button
+        onClick={() => onClick(panel)}
+        className={cn(
+          "flex items-center w-full px-4 py-3 text-sm font-medium rounded-md transition-all",
+          "active:scale-95 transform transition-transform duration-150",
+          active
+            ? "bg-blue-600 text-white shadow-sm dark:bg-blue-700"
+            : "bg-blue-500 text-white hover:bg-blue-600 dark:bg-blue-600 dark:hover:bg-blue-700",
+          "focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-blue-600",
+          "touch-manipulation" // Optimize for touch devices
+        )}
+        aria-current={active ? 'page' : undefined}
+      >
+        <span className="mr-3 flex-shrink-0">{icon}</span>
+        <span className="text-left">{children}</span>
+      </button>
+    </li>
   );
 }
 
 export function Sidebar({ className, activePanel, onPanelChange }: SidebarProps) {
   return (
-    <aside className={cn(
-      "fixed top-14 z-30 -ml-2 hidden h-[calc(100vh-3.5rem)] w-full shrink-0 border-r md:sticky md:block",
-      className
-    )}>
-      <div className="h-full py-6 pl-8 pr-6 lg:py-8">
-        <nav className="grid items-start gap-2">
+    <aside className={cn("h-full overflow-y-auto p-4 md:p-6", className)}>
+      <nav>
+        <ul className="space-y-2">
           <NavLink 
             panel="mcard"
             icon={<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -90,8 +93,11 @@ export function Sidebar({ className, activePanel, onPanelChange }: SidebarProps)
           >
             Help & Support
           </NavLink>
-        </nav>
-      </div>
+        </ul>
+      </nav>
+      
+      {/* Add some bottom padding on mobile to account for browser UI */}
+      <div className="h-16 md:h-0"></div>
     </aside>
   );
 }

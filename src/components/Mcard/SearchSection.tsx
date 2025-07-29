@@ -68,9 +68,19 @@ export function SearchSection({
         defaultValue="content" 
         onValueChange={(value) => onSearchTypeChange(value === 'content' ? SearchType.CONTENT : SearchType.HASH)}
       >
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="content">Content Search</TabsTrigger>
-          <TabsTrigger value="hash">Hash Search</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-2 gap-2 bg-transparent p-0">
+          <TabsTrigger 
+            value="content"
+            className="data-[state=active]:bg-white data-[state=active]:text-blue-600 bg-blue-600 text-white hover:bg-blue-700 hover:text-white transition-colors"
+          >
+            Content Search
+          </TabsTrigger>
+          <TabsTrigger 
+            value="hash"
+            className="data-[state=active]:bg-white data-[state=active]:text-blue-600 bg-blue-600 text-white hover:bg-blue-700 hover:text-white transition-colors"
+          >
+            Hash Search
+          </TabsTrigger>
         </TabsList>
       </Tabs>
     
@@ -81,7 +91,7 @@ export function SearchSection({
         <Input
           type="text"
           placeholder={searchType === SearchType.CONTENT 
-            ? "Search card content... (auto-searches after 3 chars)" 
+            ? "Search card content..." 
             : "Search by hash..."}
           value={searchQuery}
           onChange={(e) => handleSearchInputChange(e.target.value)}

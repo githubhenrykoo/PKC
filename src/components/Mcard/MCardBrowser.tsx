@@ -4,11 +4,14 @@ import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/componen
 import { CardList } from "./CardList";
 import { SearchType } from "./SearchSection";
 import { ContentViewer } from "./ContentViewer";
-import { BottomNavigation } from "./BottomNavigation";
 import { useCardContent } from "@/hooks/useCardContent";
 import { useFileUpload } from "@/hooks/useFileUpload";
+import { useMediaQuery } from "@/hooks/useMediaQuery";
+import { Button } from "@/components/ui/button";
+import { ArrowLeft } from "lucide-react";
 
 export function MCardBrowser() {
+  const isMobile = useMediaQuery('(max-width: 768px)');
   const [cards, setCards] = useState<MCardItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -17,6 +20,7 @@ export function MCardBrowser() {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchType, setSearchType] = useState<SearchType>(SearchType.CONTENT);
   const [totalCards, setTotalCards] = useState(0);
+  const [showDetail, setShowDetail] = useState(false);
 
   const mCardService = new MCardService();
   
@@ -48,6 +52,13 @@ export function MCardBrowser() {
   useEffect(() => {
     fetchCards();
   }, [page]);
+
+  // Reset detail view when search query changes on mobile
+  useEffect(() => {
+    if (isMobile && searchQuery) {
+      setShowDetail(false);
+    }
+  }, [searchQuery, isMobile]);
 
   // Function to fetch cards based on current state
   const fetchCards = async () => {
@@ -84,8 +95,18 @@ export function MCardBrowser() {
   // Handle search
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    setPage(1); // Reset to first page when searching
+    setPage(1);
     fetchCards();
+  };
+
+  const handleCardSelect = (card: MCardItem) => {
+    handleSelectCard(card);
+    if (isMobile) setShowDetail(true);
+  };
+
+  const handleBackToList = () => {
+    setShowDetail(false);
+    clearSelection();
   };
   
   // Handle file upload callback for the hook
@@ -178,9 +199,74 @@ export function MCardBrowser() {
     }
   };
 
+  // Mobile view - Show either list or detail
+  if (isMobile) {
+    return (
+      <div className="flex flex-col h-full">
+        <input
+          type="file"
+          ref={fileInputRef}
+          className="hidden"
+          multiple
+          onChange={handleFileInputChange}
+        />
+
+        {showDetail ? (
+          <div className="flex-1 flex flex-col">
+            <div className="p-2 border-b flex items-center">
+              <Button variant="ghost" size="sm" onClick={handleBackToList}>
+                <ArrowLeft className="h-4 w-4 mr-1" />
+                Back to List
+              </Button>
+            </div>
+            <div className="flex-1 overflow-auto">
+              <ContentViewer 
+                selectedCard={selectedCard}
+                contentPreview={contentPreview}
+                contentType={contentType}
+                loading={loading}
+                uploadStatus={uploadStatus}
+                isDragging={isDragging}
+                onDragEnter={handleDragEnter}
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                onDrop={handleDrop}
+                onDeleteCard={handleDeleteCard}
+                onUploadContent={handleUploadContent}
+              />
+            </div>
+          </div>
+        ) : (
+          <div className="flex-1 overflow-hidden">
+            <CardList 
+              cards={cards}
+              loading={loading}
+              error={error}
+              page={page}
+              totalPages={totalPages}
+              totalCards={totalCards}
+              searchQuery={searchQuery}
+              searchType={searchType}
+              selectedCard={selectedCard}
+              handleSelectCard={handleCardSelect}
+              handleSearch={handleSearch}
+              setSearchQuery={setSearchQuery}
+              setSearchType={setSearchType}
+              setPage={setPage}
+              handleOpenFileDialog={handleOpenFileDialog}
+              handleFileInputChange={handleFileInputChange}
+            />
+          </div>
+        )}
+
+
+      </div>
+    );
+  }
+
+  // Desktop view - Show both panels
   return (
-    <>
-      {/* Hidden file input for uploads */}
+    <div className="flex flex-col h-full">
       <input
         type="file"
         ref={fileInputRef}
@@ -189,69 +275,53 @@ export function MCardBrowser() {
         onChange={handleFileInputChange}
       />
       
-      <ResizablePanelGroup 
-        direction="horizontal" 
-        className="h-full w-full"
-        onLayout={(sizes) => {
-          // Optional: Save sizes to localStorage or state if needed
-          console.log('Layout changed:', sizes);
-        }}
-      >
-      {/* Left Panel - MCard List */}
-      <ResizablePanel defaultSize={33} minSize={25} maxSize={50} className="h-full">
-        <div className="h-full overflow-hidden">
-          <CardList 
-            cards={cards}
-            loading={loading}
-            error={error}
-            page={page}
-            totalPages={totalPages}
-            totalCards={totalCards}
-            searchQuery={searchQuery}
-            searchType={searchType}
-            selectedCard={selectedCard}
-            handleSelectCard={handleSelectCard}
-            handleSearch={handleSearch}
-            setSearchQuery={setSearchQuery}
-            setSearchType={setSearchType}
-            setPage={setPage}
-            handleOpenFileDialog={handleOpenFileDialog}
-            handleFileInputChange={handleFileInputChange}
-          />
-        </div>
-      </ResizablePanel>
-    
-      <ResizableHandle withHandle />
-    
-      {/* Right Panel - Content Display */}
-      <ResizablePanel defaultSize={67} minSize={50} className="h-full">
-        <div className="h-full overflow-hidden">
-          <ContentViewer 
-            selectedCard={selectedCard}
-            contentPreview={contentPreview}
-            contentType={contentType}
-            loading={loading}
-            uploadStatus={uploadStatus}
-            isDragging={isDragging}
-            onDragEnter={handleDragEnter}
-            onDragOver={handleDragOver}
-            onDragLeave={handleDragLeave}
-            onDrop={handleDrop}
-            onDeleteCard={handleDeleteCard}
-            onUploadContent={handleUploadContent}
-          />
-        </div>
-      </ResizablePanel>
-    </ResizablePanelGroup>
-    
-    {/* Bottom Navigation Controls */}
-    <BottomNavigation 
-      page={page}
-      totalPages={totalPages}
-      totalCards={totalCards}
-      loading={loading}
-      onPageChange={setPage}
-    />
-    </>
+      <ResizablePanelGroup direction="horizontal" className="flex-1">
+        <ResizablePanel defaultSize={33} minSize={25} maxSize={50}>
+          <div className="h-full overflow-hidden">
+            <CardList 
+              cards={cards}
+              loading={loading}
+              error={error}
+              page={page}
+              totalPages={totalPages}
+              totalCards={totalCards}
+              searchQuery={searchQuery}
+              searchType={searchType}
+              selectedCard={selectedCard}
+              handleSelectCard={handleSelectCard}
+              handleSearch={handleSearch}
+              setSearchQuery={setSearchQuery}
+              setSearchType={setSearchType}
+              setPage={setPage}
+              handleOpenFileDialog={handleOpenFileDialog}
+              handleFileInputChange={handleFileInputChange}
+            />
+          </div>
+        </ResizablePanel>
+        
+        <ResizableHandle withHandle />
+        
+        <ResizablePanel defaultSize={67} minSize={50}>
+          <div className="h-full overflow-hidden">
+            <ContentViewer 
+              selectedCard={selectedCard}
+              contentPreview={contentPreview}
+              contentType={contentType}
+              loading={loading}
+              uploadStatus={uploadStatus}
+              isDragging={isDragging}
+              onDragEnter={handleDragEnter}
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDrop}
+              onDeleteCard={handleDeleteCard}
+              onUploadContent={handleUploadContent}
+            />
+          </div>
+        </ResizablePanel>
+      </ResizablePanelGroup>
+      
+
+    </div>
   );
 }

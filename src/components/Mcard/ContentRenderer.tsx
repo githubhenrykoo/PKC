@@ -26,7 +26,14 @@ export function ContentRenderer({ card, content, contentType }: ContentRendererP
         `<div class="p-4 h-full overflow-auto">
           <div class="mb-2 flex justify-between items-center">
             <span class="text-sm text-muted-foreground">Content Type: ${contentType}</span>
-            <a href="${url}" download="${card.hash}" class="inline-block bg-primary text-primary-foreground px-2 py-1 rounded text-sm">Download</a>
+            <a href="${url}" download="${card.hash}" class="inline-flex items-center gap-1 bg-primary text-primary-foreground px-2 py-1 rounded text-sm">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-3.5 h-3.5">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                <polyline points="7 10 12 15 17 10"/>
+                <line x1="12" y1="15" x2="12" y2="3"/>
+              </svg>
+              Download
+            </a>
           </div>
           <pre class="whitespace-pre-wrap font-mono text-sm bg-muted p-3 rounded overflow-auto">${text.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</pre>
         </div>`
@@ -42,8 +49,13 @@ export function ContentRenderer({ card, content, contentType }: ContentRendererP
           <a 
             href="${url}" 
             download="${card.hash}.pdf"
-            class="inline-block bg-primary text-primary-foreground px-3 py-1 rounded-md"
+            class="inline-flex items-center gap-1.5 bg-primary text-primary-foreground px-3 py-1.5 rounded-md text-sm"
           >
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-3.5 h-3.5">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+              <polyline points="7 10 12 15 17 10"/>
+              <line x1="12" y1="15" x2="12" y2="3"/>
+            </svg>
             Download PDF
           </a>
         </div>
@@ -56,7 +68,14 @@ export function ContentRenderer({ card, content, contentType }: ContentRendererP
             Your browser does not support the video tag.
           </video>
           <div class="mt-2 text-center">
-            <a href="${url}" download="${card.hash}" class="inline-block bg-primary text-primary-foreground px-3 py-1 rounded-md">Download Video</a>
+            <a href="${url}" download="${card.hash}" class="inline-flex items-center gap-1.5 bg-primary text-primary-foreground px-3 py-1.5 rounded-md text-sm">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-3.5 h-3.5">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                <polyline points="7 10 12 15 17 10"/>
+                <line x1="12" y1="15" x2="12" y2="3"/>
+              </svg>
+              Download Video
+            </a>
           </div>
         </div>
       </div>`;
