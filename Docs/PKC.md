@@ -27,18 +27,19 @@ modified: 2025-07-20T22:16:59+08:00
 
 ## Executive Summary
 
-PKC (Progressive Knowledge Container) is a **modular, card-based web application** built on **Astro Islands Architecture** and **libP2P modular networking** that implements a triadic system for self-sovereign knowledge management and community learning. The system treats every piece of content as an atomic "Card" component, leveraging **MCard** as the universal storage foundation, **PCard** for compositional logic, and **VCard** for security boundaries and value exchange over distributed networks.
+PKC (Progressive Knowledge Container) is a **knowledge management operating system** designed with a **scale-free computational infrastructure** that aligns with human cognitive capacity while adapting to the continuously evolving technical landscape. Built on arithmetic logic principles that ensure domain-independence and technological neutrality, PKC implements a triadic system through a **modular, card-based architecture** leveraging **Astro Islands** and **libP2P** networking modules. The system preserves flexibility and portability across all fields of knowledge by treating every piece of content as an atomic "Card" component, with **MCard** serving as the universal storage foundation, **PCard** for compositional logic, and **VCard** for security boundaries and value exchange.
 
-### Core Implementation Philosophy: Islands Architecture with Modular Networking
+### Core Implementation Philosophy: Scale-Free Architecture with Domain-Independent Logic
 
-PKC adopts Astro's Islands Architecture paradigm enhanced with **libP2P modular networking** for universal connectivity:
+PKC achieves its knowledge operating system capabilities through a fundamental architecture aligned with both human cognition and technological evolution:
 
+- **Arithmetic Logic Foundation**: Core system operations rely on domain-independent arithmetic principles that maintain neutrality across knowledge domains
 - **Everything is a Card**: All content, components, and interactions are first stored as atomic MCards with IPFS-compatible content addressing
-- **Hash-Based Composition**: PCards compose Astro Components and Hydrated HTML JSX components through cryptographic hash references
-- **Selective Hydration**: Only interactive components are hydrated on the client, optimizing performance
+- **Hash-Based Composition**: PCards compose components through cryptographic hash references, ensuring arithmetic verifiability
+- **Cognitive Scale Alignment**: System architecture mirrors human cognitive structures through discrete, composable knowledge units
 - **Local-First Foundation**: All data resides in embedded databases with global P2P networking through libP2P and IPFS
 - **Universal Connectivity**: libP2P enables seamless networking across any devices and network conditions
-- **Distributed Content Addressing**: IPFS integration provides content-addressable storage that works across the global network
+- **Technological Adaptability**: The scale-free design allows PKC to evolve with changing technological resources without fundamental restructuring
 
 ```mermaid
 %%{init: {"flowchart": {"htmlLabels": true, "curve": "basis"}}}%%
@@ -85,27 +86,33 @@ graph TB
     style P2P fill:#fff3e0,stroke:#ff9800
 ```
 
-### Upgradable Architecture Pattern with Distributed Networking
+### Web3.0/Web5.0 Compliant Architecture with Decentralized Infrastructure
 
-PKC implements **upgradable smart contract design patterns** enhanced with **modular networking capabilities**, ensuring:
+PKC implements **Web3.0/Web5.0 compliant architecture** with full support for **Decentralized Web Node (DWN)** standards and **Decentralized Identity (DiD)** protocols:
 
 - **Continuous Evolution**: Software infrastructure evolves without breaking existing functionality
-- **Version Compatibility**: Hash-based references maintain backward compatibility across network nodes
-- **Modular Upgrades**: Individual cards and components can be upgraded independently across the P2P network
-- **Global Integration**: Local-first data synchronizes with distributed systems through libP2P protocols
-- **Universal Connectivity**: libP2P's modular networking enables operation across any network topology
-- **Content Distribution**: IPFS provides efficient, decentralized content distribution and caching
+- **Version Compatibility**: Hash-based references maintain backward compatibility across network nodes, including Distributed Web Nodes
+- **Self-Sovereign Identity**: Native integration with W3C Decentralized Identifiers (DiD) for user-controlled digital identity
+- **Decentralized Web Nodes**: Full compatibility with DWN specifications for decentralized data storage and message exchange
+- **Verifiable Credentials**: Support for W3C Verifiable Credentials to enable trustworthy attribute verification without central authorities
+- **Smart Contract Patterns**: Upgradable smart contract design patterns enable modular evolution while preserving backward compatibility
+- **Global Integration**: Local-first data synchronizes with distributed Web3.0 systems through libP2P protocols
+- **Universal Connectivity**: libP2P's modular networking enables operation across any Web3.0 network topology
+- **Content Addressing**: IPFS provides efficient, decentralized content distribution with CID-based addressing
 
-### Networking-Enabled Value Exchange
+### Web5.0 Value Exchange and Decentralized Capabilities
 
-The **modular networking foundation** is crucial for VCard's value-carrying capabilities:
+The **decentralized infrastructure** is foundational for VCard's self-sovereign value capabilities:
 
-- **Secure P2P Transactions**: libP2P's security model provides cryptographic guarantees for value exchange
-- **Distributed Authentication**: JWT tokens and hash-based signatures work across P2P networks
-- **Network-Agnostic Operation**: Value exchange works across any network configuration
-- **Resilient Connectivity**: DHT-based peer discovery ensures robust network participation
+- **Secure DiD Transactions**: Cryptographic operations based on DiD standards provide tamper-proof value exchange
+- **Distributed Authentication**: Verifiable Credentials and DiD-anchored proofs work across decentralized networks
+- **Decentralized Data Storage**: Personal data storage through Decentralized Web Nodes with user-controlled permissions
+- **Zero-Knowledge Proofs**: Privacy-preserving verification of value credentials without revealing underlying data
+- **Network-Agnostic Operation**: Value exchange works across any Web3.0/Web5.0 network configuration
+- **Cross-Chain Connectivity**: Support for multi-chain value transfer through blockchain-agnostic interfaces
+- **Resilient Discovery**: DHT-based peer and service discovery ensures robust participation in the decentralized web
 
-The system serves as the foundational infrastructure for the Extreme Learning Process (XLP), combining decentralized Web5 architecture with formal computational structures and modular networking to create environments where individuals and communities maintain full control over their knowledge assets while leveraging advanced AI capabilities through modular, upgradable components that operate seamlessly across distributed networks.
+The system serves as the foundational infrastructure for the Extreme Learning Process (XLP), combining Web5.0's decentralized architecture with formal computational structures to create environments where individuals and communities maintain full self-sovereignty over their knowledge and value assets. This empowers users to leverage advanced AI capabilities through modular, upgradable components that operate seamlessly across decentralized networks without compromising ownership or privacy.
 
 ### Core Implementation Philosophy: Islands Architecture
 
