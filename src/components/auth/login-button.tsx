@@ -2,7 +2,7 @@ import React from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { Button } from '@/components/ui/button';
 import { Loader2, LogIn } from 'lucide-react';
-import { loginWithAuthentik } from '@/store/slices';
+import { loginWithAuthentik } from '@/store/slices/auth-slice';
 import { selectIsLoading, selectError } from '@/store/selectors';
 import type { AppDispatch } from '@/store';
 

@@ -74,7 +74,7 @@ export function DashboardLayout({ title = "PKC Dashboard" }: DashboardLayoutProp
   return (
     <ThemeProvider>
       <div className="relative flex min-h-screen flex-col bg-background">
-        <TopBar title="PKC">
+        <TopBar title="PKC" client:load>
           <Button 
             ref={menuButtonRef}
             variant="ghost" 
