@@ -2,35 +2,68 @@ import React, { useEffect, useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Loader2, CheckCircle, XCircle } from 'lucide-react';
 
-// OAuth token exchange function
+// OAuth token exchange function with PKCE support
 async function exchangeCodeForTokens(code: string, state: string) {
   console.log('🔄 Exchanging authorization code for tokens...');
   
   const authUrl = import.meta.env.PUBLIC_AUTHENTIK_URL || 'https://auth.pkc.pub';
   const clientId = import.meta.env.PUBLIC_AUTHENTIK_CLIENT_ID;
-  const clientSecret = import.meta.env.PUBLIC_AUTHENTIK_CLIENT_SECRET;
   const redirectUri = `${window.location.origin}/auth/callback`;
   
   const tokenEndpoint = `${authUrl}/application/o/token/`;
+  
+  // Try PKCE first (more secure for client-side apps)
+  const codeVerifier = sessionStorage.getItem('pkce_code_verifier');
+  
+  const tokenParams: Record<string, string> = {
+    grant_type: 'authorization_code',
+    code: code,
+    redirect_uri: redirectUri,
+    client_id: clientId!,
+  };
+  
+  // Add PKCE code_verifier if available, otherwise try client_secret
+  if (codeVerifier) {
+    console.log('🔐 Using PKCE authentication');
+    tokenParams.code_verifier = codeVerifier;
+  } else {
+    console.log('🔐 Using client secret authentication');
+    const clientSecret = import.meta.env.PUBLIC_AUTHENTIK_CLIENT_SECRET;
+    if (clientSecret) {
+      tokenParams.client_secret = clientSecret;
+    } else {
+      console.warn('⚠️ No client secret or PKCE verifier available');
+    }
+  }
+  
+  console.log('🔄 Token request params:', Object.keys(tokenParams));
   
   const response = await fetch(tokenEndpoint, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/x-www-form-urlencoded',
     },
-    body: new URLSearchParams({
-      grant_type: 'authorization_code',
-      code: code,
-      redirect_uri: redirectUri,
-      client_id: clientId!,
-      client_secret: clientSecret || '',
-    }),
+    body: new URLSearchParams(tokenParams),
   });
   
   if (!response.ok) {
     const errorText = await response.text();
     console.error('❌ Token exchange failed:', response.status, errorText);
+    
+    // Provide more helpful error messages
+    if (response.status === 400) {
+      const errorData = JSON.parse(errorText);
+      if (errorData.error === 'invalid_client') {
+        throw new Error('OAuth client authentication failed. Please check:\n1. Client ID is correct\n2. Authentik OAuth application is configured properly\n3. Client secret is set (or PKCE is enabled)');
+      }
+    }
+    
     throw new Error(`Token exchange failed: ${response.status} ${response.statusText}`);
+  }
+  
+  // Clear PKCE verifier after successful token exchange
+  if (codeVerifier) {
+    sessionStorage.removeItem('pkce_code_verifier');
   }
   
   return await response.json();
