@@ -13,9 +13,10 @@ export const prerender = false;
   <body>
     <div id="auth-callback-root"></div>
     
-    <script>
+    <script type="module">
       import { AuthCallback } from '../../components/auth/auth-callback';
       import { createRoot } from 'react-dom/client';
+      import { createElement } from 'react';
       import { Provider } from 'react-redux';
       import { PersistGate } from 'redux-persist/integration/react';
       import { store, persistor } from '../../store';
@@ -24,11 +25,11 @@ export const prerender = false;
       const root = createRoot(container);
       
       root.render(
-        <Provider store={store}>
-          <PersistGate loading={<div>Loading...</div>} persistor={persistor}>
-            <AuthCallback />
-          </PersistGate>
-        </Provider>
+        createElement(Provider, { store },
+          createElement(PersistGate, { loading: createElement('div', null, 'Loading...'), persistor },
+            createElement(AuthCallback)
+          )
+        )
       );
     </script>
   </body>

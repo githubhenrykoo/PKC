@@ -17,6 +17,12 @@ interface TopBarProps {
 // Component that works without Redux context
 function SimpleTopBarActions() {
   const handleLogin = async () => {
+    // Debug environment variables
+    console.log('🔍 Environment Variables Debug:');
+    console.log('PUBLIC_AUTHENTIK_URL:', import.meta.env.PUBLIC_AUTHENTIK_URL);
+    console.log('PUBLIC_AUTHENTIK_CLIENT_ID:', import.meta.env.PUBLIC_AUTHENTIK_CLIENT_ID);
+    console.log('PUBLIC_MCARD_API_URL:', import.meta.env.PUBLIC_MCARD_API_URL);
+    
     try {
       // Import auth service dynamically to avoid Redux dependency
       const { authService } = await import('@/services/auth-service');
@@ -27,7 +33,24 @@ function SimpleTopBarActions() {
       const authUrl = import.meta.env.PUBLIC_AUTHENTIK_URL || 'https://auth.pkc.pub';
       const clientId = import.meta.env.PUBLIC_AUTHENTIK_CLIENT_ID || 'YQ6Us24EhfFoQjIabvpuTZM8CJjdG0t52TjHM3jz';
       const redirectUri = `${window.location.origin}/auth/callback`;
-      const loginUrl = `${authUrl}/application/o/authorize/?response_type=code&client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=openid%20profile%20email&state=${Date.now()}`;
+      
+      console.log('🔐 Login URL components:');
+      console.log('Auth URL:', authUrl);
+      console.log('Client ID:', clientId);
+      console.log('Redirect URI:', redirectUri);
+      
+      // Create properly formatted OAuth 2.0 authorization URL
+      const state = Date.now().toString();
+      const params = new URLSearchParams({
+        response_type: 'code',
+        client_id: clientId,
+        redirect_uri: redirectUri,
+        scope: 'openid profile email',
+        state: state
+      });
+      const loginUrl = `${authUrl}/application/o/authorize/?${params.toString()}`;
+      console.log('🚀 Full login URL:', loginUrl);
+      
       window.location.href = loginUrl;
     }
   };

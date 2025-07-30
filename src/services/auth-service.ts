@@ -26,11 +26,17 @@ class AuthService {
   private scope: string;
 
   constructor() {
-    // Use environment variables for configuration
-    this.baseUrl = import.meta.env.AUTHENTIK_URL || 'https://auth.pkc.pub';
-    this.clientId = import.meta.env.AUTHENTIK_CLIENT_ID || '';
+    // Use PUBLIC_ prefixed environment variables for client-side access
+    this.baseUrl = import.meta.env.PUBLIC_AUTHENTIK_URL || 'https://auth.pkc.pub';
+    this.clientId = import.meta.env.PUBLIC_AUTHENTIK_CLIENT_ID || '';
     this.redirectUri = `${window.location.origin}/auth/callback`;
     this.scope = 'openid profile email';
+    
+    // Debug: Log the loaded environment variables
+    console.log('🔧 AuthService Environment Variables:');
+    console.log('BASE URL:', this.baseUrl);
+    console.log('CLIENT ID:', this.clientId);
+    console.log('REDIRECT URI:', this.redirectUri);
   }
 
   /**
@@ -88,7 +94,7 @@ class AuthService {
     const tokens = await this.exchangeCodeForTokens(code);
     
     // Get user info
-    const userInfo = await this.getUserInfo(tokens.access_token);
+    const userInfo = await this.getUserInfo(tokens.accessToken);
     
     // Convert to our User interface
     const user = this.mapUserInfo(userInfo);
