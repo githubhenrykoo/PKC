@@ -41,5 +41,9 @@ ENV PORT=4321
 # Expose port 4321
 EXPOSE 4321
 
-# Use Node.js to start the application
-CMD ["npm", "start"]
+# Copy entrypoint script
+COPY docker-entrypoint.sh /app/docker-entrypoint.sh
+RUN chmod +x /app/docker-entrypoint.sh
+
+# Use entrypoint script to inject runtime environment variables and start the application
+CMD ["/app/docker-entrypoint.sh"]

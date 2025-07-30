@@ -2,20 +2,19 @@ version: '3.8'
 
 services:
   pkc-app:
-    image: henry768/pkc:latest  # Uses locally built image
+    image: henry768/pkc:latest
     container_name: pkc-app
     restart: unless-stopped
     ports:
       - "4321:4321"
+    # Load variables from .env file
+    env_file:
+      - .env
     environment:
       - NODE_ENV=production
-      - PUBLIC_MCARD_API_URL=https://devmcard.pkc.pub/v1
-      - PUBLIC_AUTHENTIK_URL=https://auth.pkc.pub
-      - PUBLIC_AUTHENTIK_CLIENT_ID=aB0bijEh4VBAQL3rGXsrbcM8ZoJv9OIayUz0rHgo
-      - PUBLIC_AUTHENTIK_REDIRECT_URI=https://dev.pkc.pub/auth/callback
-      # For confidential client, use client secret
-      - PUBLIC_AUTHENTIK_CLIENT_SECRET=${PUBLIC_AUTHENTIK_CLIENT_SECRET}
-    healthcheck:  
+      # No need to hardcode PUBLIC_ variables here
+      # They will come from the .env file
+    healthcheck:
       test: ["CMD", "wget", "-q", "--spider", "http://localhost:4321"]
       interval: 30s
       timeout: 10s
