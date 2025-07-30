@@ -39,7 +39,7 @@ export function CardListHeader({ totalCards, onOpenFileDialog, onFileInputChange
         type="file"
         ref={fileInputRef}
         className="hidden"
-        accept=".pdf,.txt,.md,.json,.jpg,.jpeg,.png,.gif"
+        multiple
         onChange={onFileInputChange}
       />
     </div>
