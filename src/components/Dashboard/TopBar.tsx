@@ -85,7 +85,11 @@ function TopBarActions() {
         alert('Authentication configuration error. Please check environment variables.');
         return;
       }
-      const redirectUri = `${window.location.origin}/auth/callback`;
+      // Use exact redirect URI matching Authentik config (no port)
+      const hostname = window.location.hostname;
+      const redirectUri = `${window.location.protocol}//${hostname}/auth/callback`;
+      
+      console.log('🔗 Using redirect URI for login:', redirectUri);
       
       const state = Date.now().toString();
       const params = new URLSearchParams({

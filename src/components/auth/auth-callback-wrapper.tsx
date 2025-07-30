@@ -8,7 +8,13 @@ async function exchangeCodeForTokens(code: string, state: string) {
   
   const authUrl = import.meta.env.PUBLIC_AUTHENTIK_URL || 'https://auth.pkc.pub';
   const clientId = import.meta.env.PUBLIC_AUTHENTIK_CLIENT_ID;
-  const redirectUri = `${window.location.origin}/auth/callback`;
+  
+  // Use exact redirect URI matching Authentik config
+  // For dev.pkc.pub environment: https://dev.pkc.pub/auth/callback (no port)
+  const hostname = window.location.hostname;
+  const redirectUri = `${window.location.protocol}//${hostname}/auth/callback`;
+  
+  console.log('🔗 Using redirect URI:', redirectUri);
   
   const tokenEndpoint = `${authUrl}/application/o/token/`;
   
