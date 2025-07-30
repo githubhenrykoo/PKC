@@ -68,19 +68,28 @@ function TopBarActions() {
   
   const handleLogin = async () => {
     console.log('🔍 Environment Variables Debug:');
-    console.log('PUBLIC_AUTHENTIK_URL:', import.meta.env.PUBLIC_AUTHENTIK_URL);
-    console.log('PUBLIC_AUTHENTIK_CLIENT_ID:', import.meta.env.PUBLIC_AUTHENTIK_CLIENT_ID);
-    console.log('PUBLIC_AUTHENTIK_REDIRECT_URI:', import.meta.env.PUBLIC_AUTHENTIK_REDIRECT_URI);
-    console.log('PUBLIC_MCARD_API_URL:', import.meta.env.PUBLIC_MCARD_API_URL);
+    // TEMPORARY: Hardcoded environment variables for deployment
+    const hardcodedEnv = {
+      PUBLIC_AUTHENTIK_URL: "https://auth.pkc.pub",
+      PUBLIC_AUTHENTIK_CLIENT_ID: "aB0bijEh4VBAQL3rGXsrbcM8ZoJv9OIayUz0rHgo",
+      PUBLIC_AUTHENTIK_REDIRECT_URI: "https://dev.pkc.pub/auth/callback",
+      PUBLIC_MCARD_API_URL: "https://devmcard.pkc.pub/v1",
+      PUBLIC_AUTHENTIK_CLIENT_SECRET: "Fji9cdAIT7whfY5wDcLF8TK9gj6ce6N224LokKzpUAVicQ5CB0Z84BA9ufyMjKZkMyxj3Wa8Ua4FuhSwfEEpwFWe3sx3f8Npz3RE7MAUtxmebax6JoHuUKnsQrzJyGMl"
+    };
+    console.log('PUBLIC_AUTHENTIK_URL:', hardcodedEnv.PUBLIC_AUTHENTIK_URL);
+    console.log('PUBLIC_AUTHENTIK_CLIENT_ID:', hardcodedEnv.PUBLIC_AUTHENTIK_CLIENT_ID);
+    console.log('PUBLIC_AUTHENTIK_REDIRECT_URI:', hardcodedEnv.PUBLIC_AUTHENTIK_REDIRECT_URI);
+    console.log('PUBLIC_MCARD_API_URL:', hardcodedEnv.PUBLIC_MCARD_API_URL);
     
     try {
       const { authService } = await import('@/services/auth-service');
       await authService.loginWithAuthentik();
     } catch (error) {
       console.error('Login failed:', error);
-      const authUrl = import.meta.env.PUBLIC_AUTHENTIK_URL;
-      const clientId = import.meta.env.PUBLIC_AUTHENTIK_CLIENT_ID;
-      const redirectUri = import.meta.env.PUBLIC_AUTHENTIK_REDIRECT_URI;
+      // TEMPORARY: Using hardcoded values for deployment
+      const authUrl = "https://auth.pkc.pub";
+      const clientId = "aB0bijEh4VBAQL3rGXsrbcM8ZoJv9OIayUz0rHgo";
+      const redirectUri = "https://dev.pkc.pub/auth/callback";
       
       if (!authUrl || !clientId || !redirectUri) {
         console.error('❌ Missing environment variables:', { authUrl, clientId, redirectUri });

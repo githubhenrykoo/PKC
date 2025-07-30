@@ -27,12 +27,12 @@ class AuthService {
   private scope: string;
 
   constructor() {
-    // Use PUBLIC_ prefixed environment variables from runtime env utility
-    this.baseUrl = (env as any).PUBLIC_AUTHENTIK_URL || 'https://auth.pkc.pub';
-    this.clientId = (env as any).PUBLIC_AUTHENTIK_CLIENT_ID || '';
+    // TEMPORARY: Hardcoded environment variables for deployment
+    this.baseUrl = "https://auth.pkc.pub";
+    this.clientId = "aB0bijEh4VBAQL3rGXsrbcM8ZoJv9OIayUz0rHgo";
     
-    // Use PUBLIC_AUTHENTIK_REDIRECT_URI from environment or fallback to window.location.origin
-    this.redirectUri = (env as any).PUBLIC_AUTHENTIK_REDIRECT_URI || `${window.location.origin}/auth/callback`;
+    // TEMPORARY: Hardcoded redirect URI for deployment
+    this.redirectUri = "https://dev.pkc.pub/auth/callback";
     this.scope = 'openid profile email';
     
     // Debug: Log the loaded environment variables
@@ -132,7 +132,8 @@ class AuthService {
         code,
         redirect_uri: this.redirectUri,
         client_id: this.clientId,
-        client_secret: (env as any).PUBLIC_AUTHENTIK_CLIENT_SECRET || '',
+        // TEMPORARY: Hardcoded client secret for deployment
+        client_secret: "Fji9cdAIT7whfY5wDcLF8TK9gj6ce6N224LokKzpUAVicQ5CB0Z84BA9ufyMjKZkMyxj3Wa8Ua4FuhSwfEEpwFWe3sx3f8Npz3RE7MAUtxmebax6JoHuUKnsQrzJyGMl",
       }),
     });
 
@@ -182,7 +183,8 @@ class AuthService {
         grant_type: 'refresh_token',
         refresh_token: refreshToken,
         client_id: this.clientId,
-        client_secret: (env as any).PUBLIC_AUTHENTIK_CLIENT_SECRET || '',
+        // TEMPORARY: Hardcoded client secret for deployment
+        client_secret: "Fji9cdAIT7whfY5wDcLF8TK9gj6ce6N224LokKzpUAVicQ5CB0Z84BA9ufyMjKZkMyxj3Wa8Ua4FuhSwfEEpwFWe3sx3f8Npz3RE7MAUtxmebax6JoHuUKnsQrzJyGMl",
       }),
     });
 
@@ -236,7 +238,8 @@ class AuthService {
         body: new URLSearchParams({
           token: accessToken,
           client_id: this.clientId,
-          client_secret: (env as any).PUBLIC_AUTHENTIK_CLIENT_SECRET || '',
+          // TEMPORARY: Hardcoded client secret for deployment
+        client_secret: "Fji9cdAIT7whfY5wDcLF8TK9gj6ce6N224LokKzpUAVicQ5CB0Z84BA9ufyMjKZkMyxj3Wa8Ua4FuhSwfEEpwFWe3sx3f8Npz3RE7MAUtxmebax6JoHuUKnsQrzJyGMl",
         }),
       });
     } catch (error) {
