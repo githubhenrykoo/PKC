@@ -77,8 +77,14 @@ function TopBarActions() {
       await authService.loginWithAuthentik();
     } catch (error) {
       console.error('Login failed:', error);
-      const authUrl = import.meta.env.PUBLIC_AUTHENTIK_URL || 'https://auth.pkc.pub';
-      const clientId = import.meta.env.PUBLIC_AUTHENTIK_CLIENT_ID || 'YQ6Us24EhfFoQjIabvpuTZM8CJjdG0t52TjHM3jz';
+      const authUrl = import.meta.env.PUBLIC_AUTHENTIK_URL;
+      const clientId = import.meta.env.PUBLIC_AUTHENTIK_CLIENT_ID;
+      
+      if (!authUrl || !clientId) {
+        console.error('❌ Missing environment variables:', { authUrl, clientId });
+        alert('Authentication configuration error. Please check environment variables.');
+        return;
+      }
       const redirectUri = `${window.location.origin}/auth/callback`;
       
       const state = Date.now().toString();
