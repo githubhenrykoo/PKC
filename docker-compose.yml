@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   pkc-app:
-    image: henry768/pkc:local
+    image: henry768/pkc:latest
     container_name: pkc-app
     restart: unless-stopped
     ports:

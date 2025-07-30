@@ -1,4 +1,5 @@
 import type { User, AuthTokens, AuthResponse, TokenRefreshResponse } from '../store/types/auth';
+import { env } from '../utils/env';
 
 interface OIDCUserInfo {
   sub: string;
@@ -26,17 +27,20 @@ class AuthService {
   private scope: string;
 
   constructor() {
-    // Use PUBLIC_ prefixed environment variables for client-side access
-    this.baseUrl = import.meta.env.PUBLIC_AUTHENTIK_URL || 'https://auth.pkc.pub';
-    this.clientId = import.meta.env.PUBLIC_AUTHENTIK_CLIENT_ID || '';
-    this.redirectUri = `${window.location.origin}/auth/callback`;
+    // Use PUBLIC_ prefixed environment variables from runtime env utility
+    this.baseUrl = (env as any).PUBLIC_AUTHENTIK_URL || 'https://auth.pkc.pub';
+    this.clientId = (env as any).PUBLIC_AUTHENTIK_CLIENT_ID || '';
+    
+    // Use PUBLIC_AUTHENTIK_REDIRECT_URI from environment or fallback to window.location.origin
+    this.redirectUri = (env as any).PUBLIC_AUTHENTIK_REDIRECT_URI || `${window.location.origin}/auth/callback`;
     this.scope = 'openid profile email';
     
     // Debug: Log the loaded environment variables
-    console.log('🔧 AuthService Environment Variables:');
+    console.log('🔧 AuthService Runtime Environment Variables:');
     console.log('BASE URL:', this.baseUrl);
     console.log('CLIENT ID:', this.clientId);
     console.log('REDIRECT URI:', this.redirectUri);
+    console.log('Using runtime env:', typeof window !== 'undefined' && window.RUNTIME_ENV ? 'YES' : 'NO');
   }
 
   /**
@@ -127,7 +131,7 @@ class AuthService {
         code,
         redirect_uri: this.redirectUri,
         client_id: this.clientId,
-        client_secret: import.meta.env.AUTHENTIK_CLIENT_SECRET || '',
+        client_secret: (env as any).PUBLIC_AUTHENTIK_CLIENT_SECRET || '',
       }),
     });
 
@@ -177,7 +181,7 @@ class AuthService {
         grant_type: 'refresh_token',
         refresh_token: refreshToken,
         client_id: this.clientId,
-        client_secret: import.meta.env.AUTHENTIK_CLIENT_SECRET || '',
+        client_secret: (env as any).PUBLIC_AUTHENTIK_CLIENT_SECRET || '',
       }),
     });
 
@@ -231,7 +235,7 @@ class AuthService {
         body: new URLSearchParams({
           token: accessToken,
           client_id: this.clientId,
-          client_secret: import.meta.env.AUTHENTIK_CLIENT_SECRET || '',
+          client_secret: (env as any).PUBLIC_AUTHENTIK_CLIENT_SECRET || '',
         }),
       });
     } catch (error) {
