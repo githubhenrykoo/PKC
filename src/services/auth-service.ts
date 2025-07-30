@@ -40,7 +40,8 @@ class AuthService {
     console.log('BASE URL:', this.baseUrl);
     console.log('CLIENT ID:', this.clientId);
     console.log('REDIRECT URI:', this.redirectUri);
-    console.log('Using runtime env:', typeof window !== 'undefined' && window.RUNTIME_ENV ? 'YES' : 'NO');
+    // Use proper type assertion to fix TypeScript error
+    console.log('Using runtime env:', typeof window !== 'undefined' && (window as Window & {RUNTIME_ENV?: any}).RUNTIME_ENV ? 'YES' : 'NO');
   }
 
   /**

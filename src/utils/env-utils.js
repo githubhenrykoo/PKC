@@ -11,8 +11,12 @@ export function createEnv() {
   return new Proxy({}, {
     get(target, prop) {
       // Check if we're in the browser and if window.RUNTIME_ENV exists
-      if (typeof window !== 'undefined' && window.RUNTIME_ENV && prop in window.RUNTIME_ENV) {
-        return window.RUNTIME_ENV[prop];
+      // Use type assertion to fix TypeScript errors
+      const win = typeof window !== 'undefined' ? window : undefined;
+      const runtimeEnv = win ? win.RUNTIME_ENV : undefined;
+      
+      if (win && runtimeEnv && prop in runtimeEnv) {
+        return runtimeEnv[prop];
       }
       
       // Fall back to build-time environment variables
