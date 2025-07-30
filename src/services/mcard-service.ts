@@ -15,7 +15,11 @@ class MCardService {
 
   constructor() {
     // Use MCard API base URL from environment or default to localhost
-    this.baseUrl = import.meta.env.MCARD_API_URL || 'http://localhost:49384/v1';
+    this.baseUrl = import.meta.env.PUBLIC_MCARD_API_URL || 'http://localhost:49384/v1';
+    
+    // Debug: Log the configured URL
+    console.log('🔧 MCARD_API_URL configured as:', this.baseUrl);
+    console.log('🔧 MCardService initialized with baseUrl:', this.baseUrl);
   }
 
   /**

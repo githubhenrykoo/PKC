@@ -1,6 +1,5 @@
 ---
 // Authentication callback page for Authentik OIDC flow
-import { ReduxProvider } from '../../components/providers/redux-provider';
 import { AuthCallbackWrapper } from '../../components/auth/auth-callback-wrapper';
 export const prerender = false;
 ---
@@ -15,9 +14,7 @@ export const prerender = false;
   </head>
   <body>
     <div id="callback-root">
-      <ReduxProvider client:only="react">
-        <AuthCallbackWrapper />
-      </ReduxProvider>
+      <AuthCallbackWrapper client:load />
     </div>
   </body>
 </html>

@@ -2,6 +2,63 @@ import React, { useEffect, useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Loader2, CheckCircle, XCircle } from 'lucide-react';
 
+// OAuth token exchange function
+async function exchangeCodeForTokens(code: string, state: string) {
+  console.log('🔄 Exchanging authorization code for tokens...');
+  
+  const authUrl = import.meta.env.PUBLIC_AUTHENTIK_URL || 'https://auth.pkc.pub';
+  const clientId = import.meta.env.PUBLIC_AUTHENTIK_CLIENT_ID;
+  const clientSecret = import.meta.env.PUBLIC_AUTHENTIK_CLIENT_SECRET;
+  const redirectUri = `${window.location.origin}/auth/callback`;
+  
+  const tokenEndpoint = `${authUrl}/application/o/token/`;
+  
+  const response = await fetch(tokenEndpoint, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+    },
+    body: new URLSearchParams({
+      grant_type: 'authorization_code',
+      code: code,
+      redirect_uri: redirectUri,
+      client_id: clientId!,
+      client_secret: clientSecret || '',
+    }),
+  });
+  
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error('❌ Token exchange failed:', response.status, errorText);
+    throw new Error(`Token exchange failed: ${response.status} ${response.statusText}`);
+  }
+  
+  return await response.json();
+}
+
+// Fetch user profile from Authentik
+async function fetchUserProfile(accessToken: string) {
+  console.log('👤 Fetching user profile from Authentik...');
+  
+  const authUrl = import.meta.env.PUBLIC_AUTHENTIK_URL || 'https://auth.pkc.pub';
+  const userInfoEndpoint = `${authUrl}/application/o/userinfo/`;
+  
+  const response = await fetch(userInfoEndpoint, {
+    headers: {
+      'Authorization': `Bearer ${accessToken}`,
+      'Content-Type': 'application/json',
+    },
+  });
+  
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error('❌ User profile fetch failed:', response.status, errorText);
+    throw new Error(`User profile fetch failed: ${response.status} ${response.statusText}`);
+  }
+  
+  return await response.json();
+}
+
 // Safe wrapper that handles authentication callback without Redux complexity
 export function AuthCallbackWrapper() {
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
@@ -28,7 +85,49 @@ export function AuthCallbackWrapper() {
           throw new Error('No authorization code received');
         }
         
-        console.log('✅ Authorization code found, marking as successful');
+        console.log('✅ Authorization code found, processing authentication...');
+        setMessage('Exchanging code for tokens...');
+        
+        // Exchange authorization code for access tokens
+        try {
+          const tokenResponse = await exchangeCodeForTokens(code, state);
+          console.log('🔑 Token exchange successful');
+          
+          setMessage('Fetching user profile...');
+          
+          // Fetch user profile using access token
+          if (!tokenResponse.access_token) {
+            throw new Error('No access token received from token exchange');
+          }
+          const userProfile = await fetchUserProfile(tokenResponse.access_token);
+          console.log('👤 User profile fetched:', userProfile);
+          
+          const userInfo = {
+            id: userProfile.sub || userProfile.id || state,
+            email: userProfile.email,
+            username: userProfile.preferred_username || userProfile.username,
+            firstName: userProfile.given_name,
+            lastName: userProfile.family_name,
+            fullName: userProfile.name,
+            avatar: userProfile.picture,
+            loginTime: new Date().toISOString(),
+            accessToken: tokenResponse.access_token,
+            refreshToken: tokenResponse.refresh_token,
+            expiresAt: Date.now() + (tokenResponse.expires_in * 1000)
+          };
+          
+          // Store user info in localStorage for TopBar to access
+          localStorage.setItem('pkc_user', JSON.stringify(userInfo));
+          localStorage.setItem('pkc_authenticated', 'true');
+          
+          console.log('✅ Real user information stored:', userInfo);
+        } catch (error) {
+          console.error('❌ Authentication failed:', error);
+          setStatus('error');
+          const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+          setMessage(`Authentication failed: ${errorMessage}`);
+          return;
+        }
         setMessage('Authentication successful!');
         setStatus('success');
         
