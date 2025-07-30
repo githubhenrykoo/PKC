@@ -1,0 +1,40 @@
+---
+// Authentication test page
+export const prerender = false;
+---
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Authentication Test - PKC</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+  </head>
+  <body class="bg-gray-50 min-h-screen">
+    <div id="auth-test-root" class="container mx-auto px-4 py-8"></div>
+    
+    <script type="module">
+      import React from 'react';
+      import { createRoot } from 'react-dom/client';
+      import { Provider } from 'react-redux';
+      import { PersistGate } from 'redux-persist/integration/react';
+      import { store, persistor } from '../../store/index.ts';
+      import { AuthTestPage } from '../../components/auth/auth-test-page.tsx';
+
+      const container = document.getElementById('auth-test-root');
+      const root = createRoot(container);
+      
+      root.render(
+        React.createElement(Provider, { store },
+          React.createElement(PersistGate, { 
+            loading: React.createElement('div', { className: 'text-center p-8' }, 'Loading...'), 
+            persistor 
+          },
+            React.createElement(AuthTestPage)
+          )
+        )
+      );
+    </script>
+  </body>
+</html>

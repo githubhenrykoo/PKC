@@ -1,0 +1,35 @@
+---
+// Authentication callback page for Authentik OIDC flow
+export const prerender = false;
+---
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Authentication - PKC</title>
+  </head>
+  <body>
+    <div id="auth-callback-root"></div>
+    
+    <script>
+      import { AuthCallback } from '../../components/auth/auth-callback';
+      import { createRoot } from 'react-dom/client';
+      import { Provider } from 'react-redux';
+      import { PersistGate } from 'redux-persist/integration/react';
+      import { store, persistor } from '../../store';
+
+      const container = document.getElementById('auth-callback-root');
+      const root = createRoot(container);
+      
+      root.render(
+        <Provider store={store}>
+          <PersistGate loading={<div>Loading...</div>} persistor={persistor}>
+            <AuthCallback />
+          </PersistGate>
+        </Provider>
+      );
+    </script>
+  </body>
+</html>
