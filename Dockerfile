@@ -19,6 +19,13 @@ COPY . .
 # Build the application
 RUN npm run build
 
+# Create runtime-env.js in the dist/client directory
+RUN echo "// This file will be overwritten with environment variables at container startup\nwindow.RUNTIME_ENV = {};" > dist/client/runtime-env.js
+
+# Copy Docker entrypoint script
+COPY docker-entrypoint.sh /app/docker-entrypoint.sh
+RUN chmod +x /app/docker-entrypoint.sh
+
 # Use Node.js for runtime stage instead of nginx
 FROM node:20-alpine
 

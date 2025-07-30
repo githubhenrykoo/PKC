@@ -1,15 +1,22 @@
 import React, { useEffect, useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Loader2, CheckCircle, XCircle } from 'lucide-react';
+import { env } from '@/utils/env';
 
 // OAuth token exchange function with PKCE support
 async function exchangeCodeForTokens(code: string, state: string) {
   console.log('🔄 Exchanging authorization code for tokens...');
   
-  const authUrl = import.meta.env.PUBLIC_AUTHENTIK_URL || 'https://auth.pkc.pub';
-  const clientId = import.meta.env.PUBLIC_AUTHENTIK_CLIENT_ID;
-  const redirectUri = import.meta.env.PUBLIC_AUTHENTIK_REDIRECT_URI;
-  const clientSecret = import.meta.env.PUBLIC_AUTHENTIK_CLIENT_SECRET;
+  const authUrl = env.PUBLIC_AUTHENTIK_URL || 'https://auth.pkc.pub';
+  const clientId = env.PUBLIC_AUTHENTIK_CLIENT_ID;
+  const redirectUri = env.PUBLIC_AUTHENTIK_REDIRECT_URI;
+  const clientSecret = env.PUBLIC_AUTHENTIK_CLIENT_SECRET;
+  
+  console.log('🔧 Environment variables in token exchange:', {
+    authUrl,
+    clientId,
+    redirectUri
+  });
   
   if (!redirectUri) {
     console.error('❌ Missing PUBLIC_AUTHENTIK_REDIRECT_URI environment variable');
@@ -99,8 +106,10 @@ async function exchangeCodeForTokens(code: string, state: string) {
 async function fetchUserProfile(accessToken: string) {
   console.log('👤 Fetching user profile from Authentik...');
   
-  const authUrl = import.meta.env.PUBLIC_AUTHENTIK_URL || 'https://auth.pkc.pub';
+  const authUrl = env.PUBLIC_AUTHENTIK_URL || 'https://auth.pkc.pub';
   const userInfoEndpoint = `${authUrl}/application/o/userinfo/`;
+  
+  console.log('🔧 Using authUrl for userinfo:', authUrl);
   
   const response = await fetch(userInfoEndpoint, {
     headers: {

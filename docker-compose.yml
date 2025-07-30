@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   pkc-app:
-    image: henry768/pkc:latest
+    image: henry768/pkc:local
     container_name: pkc-app
     restart: unless-stopped
     ports:
@@ -12,13 +12,6 @@ services:
       - .env
     environment:
       - NODE_ENV=production
-    # Mount the runtime environment script and .env file
-    volumes:
-      - ./src/runtime-env.js:/app/runtime-env.js
-      - ./src/utils/env.js:/app/dist/client/env.js
-    # Run the runtime environment script before starting the application
-    command: >
-      sh -c "node /app/runtime-env.js && npm start"
     healthcheck:
       test: ["CMD", "wget", "-q", "--spider", "http://localhost:4321"]
       interval: 30s
