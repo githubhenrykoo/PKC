@@ -12,8 +12,13 @@ services:
       - .env
     environment:
       - NODE_ENV=production
-      # No need to hardcode PUBLIC_ variables here
-      # They will come from the .env file
+    # Mount the runtime environment script and .env file
+    volumes:
+      - ./src/runtime-env.js:/app/runtime-env.js
+      - ./src/utils/env.js:/app/dist/client/env.js
+    # Run the runtime environment script before starting the application
+    command: >
+      sh -c "node /app/runtime-env.js && npm start"
     healthcheck:
       test: ["CMD", "wget", "-q", "--spider", "http://localhost:4321"]
       interval: 30s

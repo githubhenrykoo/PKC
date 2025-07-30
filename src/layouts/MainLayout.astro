@@ -1,0 +1,37 @@
+---
+// MainLayout.astro
+---
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PKC</title>
+  
+  <!-- Runtime environment variables injection script -->
+  <script is:inline define:vars={{ 
+    PUBLIC_AUTHENTIK_URL: import.meta.env.PUBLIC_AUTHENTIK_URL,
+    PUBLIC_AUTHENTIK_CLIENT_ID: import.meta.env.PUBLIC_AUTHENTIK_CLIENT_ID,
+    PUBLIC_AUTHENTIK_REDIRECT_URI: import.meta.env.PUBLIC_AUTHENTIK_REDIRECT_URI,
+    PUBLIC_AUTHENTIK_CLIENT_SECRET: import.meta.env.PUBLIC_AUTHENTIK_CLIENT_SECRET,
+    PUBLIC_MCARD_API_URL: import.meta.env.PUBLIC_MCARD_API_URL
+  }}>
+    // Create global runtime environment object
+    window.RUNTIME_ENV = {
+      PUBLIC_AUTHENTIK_URL: PUBLIC_AUTHENTIK_URL || "https://auth.pkc.pub",
+      PUBLIC_AUTHENTIK_CLIENT_ID: PUBLIC_AUTHENTIK_CLIENT_ID,
+      PUBLIC_AUTHENTIK_REDIRECT_URI: PUBLIC_AUTHENTIK_REDIRECT_URI || "http://localhost:4321/auth/callback",
+      PUBLIC_AUTHENTIK_CLIENT_SECRET: PUBLIC_AUTHENTIK_CLIENT_SECRET,
+      PUBLIC_MCARD_API_URL: PUBLIC_MCARD_API_URL
+    };
+    console.log("Environment variables loaded:", window.RUNTIME_ENV);
+  </script>
+  
+  <!-- Slot for head content from child layouts -->
+  <slot name="head"/>
+</head>
+<body>
+  <slot />
+</body>
+</html>
