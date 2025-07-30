@@ -9,6 +9,7 @@ async function exchangeCodeForTokens(code: string, state: string) {
   const authUrl = import.meta.env.PUBLIC_AUTHENTIK_URL || 'https://auth.pkc.pub';
   const clientId = import.meta.env.PUBLIC_AUTHENTIK_CLIENT_ID;
   const redirectUri = import.meta.env.PUBLIC_AUTHENTIK_REDIRECT_URI;
+  const clientSecret = import.meta.env.PUBLIC_AUTHENTIK_CLIENT_SECRET;
   
   if (!redirectUri) {
     console.error('❌ Missing PUBLIC_AUTHENTIK_REDIRECT_URI environment variable');
@@ -16,12 +17,15 @@ async function exchangeCodeForTokens(code: string, state: string) {
   }
   
   console.log('🔗 Using redirect URI from environment:', redirectUri);
+  console.log('🌐 Using token endpoint:', `${authUrl}/application/o/token/`);
   
+  // Authentik token endpoint
   const tokenEndpoint = `${authUrl}/application/o/token/`;
   
-  // Try PKCE first (more secure for client-side apps)
+  // PKCE code verifier if available from login flow
   const codeVerifier = sessionStorage.getItem('pkce_code_verifier');
   
+  // Set up basic token request parameters
   const tokenParams: Record<string, string> = {
     grant_type: 'authorization_code',
     code: code,
@@ -29,39 +33,54 @@ async function exchangeCodeForTokens(code: string, state: string) {
     client_id: clientId!,
   };
   
-  // Add PKCE code_verifier if available, otherwise try client_secret
-  if (codeVerifier) {
-    console.log('🔐 Using PKCE authentication');
+  // For Confidential clients, use client_secret
+  if (clientSecret) {
+    tokenParams.client_secret = clientSecret;
+    console.log('🔐 Using client_secret authentication (Confidential client)');
+  } else if (codeVerifier) {
+    // For Public clients, use PKCE
     tokenParams.code_verifier = codeVerifier;
+    console.log('🔒 Using PKCE authentication (Public client)');
   } else {
-    console.log('🔐 Using client secret authentication');
-    const clientSecret = import.meta.env.PUBLIC_AUTHENTIK_CLIENT_SECRET;
-    if (clientSecret) {
-      tokenParams.client_secret = clientSecret;
-    } else {
-      console.warn('⚠️ No client secret or PKCE verifier available');
-    }
+    console.warn('⚠️ No client secret or PKCE verifier available!');
   }
   
-  console.log('🔄 Token request params:', Object.keys(tokenParams));
+  // Log request parameters (without sensitive data)
+  console.log('💬 Token request details:');
+  console.log('- Endpoint:', tokenEndpoint);
+  console.log('- Method: POST');
+  console.log('- Parameters:', Object.keys(tokenParams));
+  console.log('- Client ID:', clientId);
+  console.log('- Redirect URI:', redirectUri);
+  console.log('- Has Client Secret:', !!tokenParams.client_secret);
+  console.log('- Has Code Verifier:', !!tokenParams.code_verifier);
   
+  // Make the token request
   const response = await fetch(tokenEndpoint, {
     method: 'POST',
     headers: {
-      'Content-Type': 'application/x-www-form-urlencoded',
+      'Content-Type': 'application/x-www-form-urlencoded'
     },
-    body: new URLSearchParams(tokenParams),
+    body: new URLSearchParams(tokenParams)
   });
   
+  // Handle response
   if (!response.ok) {
     const errorText = await response.text();
     console.error('❌ Token exchange failed:', response.status, errorText);
     
     // Provide more helpful error messages
     if (response.status === 400) {
-      const errorData = JSON.parse(errorText);
-      if (errorData.error === 'invalid_client') {
-        throw new Error('OAuth client authentication failed. Please check:\n1. Client ID is correct\n2. Authentik OAuth application is configured properly\n3. Client secret is set (or PKCE is enabled)');
+      try {
+        const errorData = JSON.parse(errorText);
+        if (errorData.error === 'invalid_client') {
+          throw new Error('OAuth client authentication failed. Please check:\n1. Client ID is correct\n2. Authentik OAuth application is configured properly\n3. Client secret is correct (for Confidential client)');
+        } else {
+          throw new Error(`OAuth error: ${errorData.error} - ${errorData.error_description || 'Unknown error'}`);
+        }
+      } catch (e) {
+        // If JSON parsing fails, throw the raw error text
+        throw new Error(`Token exchange failed: ${errorText}`);
       }
     }
     

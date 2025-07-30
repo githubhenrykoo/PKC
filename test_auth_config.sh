@@ -51,10 +51,26 @@ echo "🔗 Full Authorization URL:"
 echo "$FULL_AUTH_URL"
 echo ""
 
-# Test 4: Test token endpoint
-echo "🧪 Test 4: Testing token endpoint..."
-TOKEN_URL="${AUTHENTIK_URL}/application/o/token/"
-if curl -s -I "$TOKEN_URL" | grep -q "405 Method Not Allowed\|200 OK"; then
+# Test 4: Test direct client ID validation via authorize endpoint
+AUTHORIZE_ENDPOINT="$AUTHENTIK_URL$OPENID_APP_PATH/authorize"
+echo "Testing client ID validation via authorize endpoint: $AUTHORIZE_ENDPOINT"
+
+# Create a test request with minimal parameters
+TEST_RESPONSE=$(curl -s -i "$AUTHORIZE_ENDPOINT?client_id=$CLIENT_ID&response_type=code&scope=openid&redirect_uri=https://dev.pkc.pub/auth/callback" -o /dev/null -w '%{http_code}')
+echo "Authorize endpoint response code: $TEST_RESPONSE"
+
+# 302 means successful validation and redirect
+# 400 typically means invalid client ID or other parameters
+if [ "$TEST_RESPONSE" -eq 302 ]; then
+  echo "✅ Client ID validation successful: Received redirect response"
+else
+  echo "❌ Client ID validation failed: HTTP $TEST_RESPONSE"
+fi
+
+# Test the token endpoint
+TOKEN_ENDPOINT="$AUTHENTIK_URL$OPENID_APP_PATH"
+echo "\nTesting token endpoint availability: $TOKEN_ENDPOINT"
+if curl -s -I "$TOKEN_ENDPOINT" | grep -q "405 Method Not Allowed\|200 OK"; then
     echo "✅ Token endpoint is accessible"
 else
     echo "❌ Token endpoint is not accessible"
