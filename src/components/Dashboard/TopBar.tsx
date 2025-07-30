@@ -70,6 +70,7 @@ function TopBarActions() {
     console.log('🔍 Environment Variables Debug:');
     console.log('PUBLIC_AUTHENTIK_URL:', import.meta.env.PUBLIC_AUTHENTIK_URL);
     console.log('PUBLIC_AUTHENTIK_CLIENT_ID:', import.meta.env.PUBLIC_AUTHENTIK_CLIENT_ID);
+    console.log('PUBLIC_AUTHENTIK_REDIRECT_URI:', import.meta.env.PUBLIC_AUTHENTIK_REDIRECT_URI);
     console.log('PUBLIC_MCARD_API_URL:', import.meta.env.PUBLIC_MCARD_API_URL);
     
     try {
@@ -79,17 +80,15 @@ function TopBarActions() {
       console.error('Login failed:', error);
       const authUrl = import.meta.env.PUBLIC_AUTHENTIK_URL;
       const clientId = import.meta.env.PUBLIC_AUTHENTIK_CLIENT_ID;
+      const redirectUri = import.meta.env.PUBLIC_AUTHENTIK_REDIRECT_URI;
       
-      if (!authUrl || !clientId) {
-        console.error('❌ Missing environment variables:', { authUrl, clientId });
+      if (!authUrl || !clientId || !redirectUri) {
+        console.error('❌ Missing environment variables:', { authUrl, clientId, redirectUri });
         alert('Authentication configuration error. Please check environment variables.');
         return;
       }
-      // Use exact redirect URI matching Authentik config (no port)
-      const hostname = window.location.hostname;
-      const redirectUri = `${window.location.protocol}//${hostname}/auth/callback`;
-      
-      console.log('🔗 Using redirect URI for login:', redirectUri);
+      // Use the redirect URI from environment variables
+      console.log('🔗 Using redirect URI from environment:', redirectUri);
       
       const state = Date.now().toString();
       const params = new URLSearchParams({

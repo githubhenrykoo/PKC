@@ -10,6 +10,11 @@ services:
     environment:
       - NODE_ENV=production
       - PUBLIC_MCARD_API_URL=https://devmcard.pkc.pub/v1
+      - PUBLIC_AUTHENTIK_URL=https://auth.pkc.pub
+      - PUBLIC_AUTHENTIK_CLIENT_ID=aB0bijEh4VBAQL3rGXsrbcM8ZoJv9OIayUz0rHgo
+      - PUBLIC_AUTHENTIK_REDIRECT_URI=https://dev.pkc.pub/auth/callback
+      # For confidential client, use client secret
+      - PUBLIC_AUTHENTIK_CLIENT_SECRET=${PUBLIC_AUTHENTIK_CLIENT_SECRET}
     healthcheck:  
       test: ["CMD", "wget", "-q", "--spider", "http://localhost:4321"]
       interval: 30s

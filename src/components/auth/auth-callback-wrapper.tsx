@@ -8,13 +8,14 @@ async function exchangeCodeForTokens(code: string, state: string) {
   
   const authUrl = import.meta.env.PUBLIC_AUTHENTIK_URL || 'https://auth.pkc.pub';
   const clientId = import.meta.env.PUBLIC_AUTHENTIK_CLIENT_ID;
+  const redirectUri = import.meta.env.PUBLIC_AUTHENTIK_REDIRECT_URI;
   
-  // Use exact redirect URI matching Authentik config
-  // For dev.pkc.pub environment: https://dev.pkc.pub/auth/callback (no port)
-  const hostname = window.location.hostname;
-  const redirectUri = `${window.location.protocol}//${hostname}/auth/callback`;
+  if (!redirectUri) {
+    console.error('❌ Missing PUBLIC_AUTHENTIK_REDIRECT_URI environment variable');
+    throw new Error('Missing PUBLIC_AUTHENTIK_REDIRECT_URI environment variable');
+  }
   
-  console.log('🔗 Using redirect URI:', redirectUri);
+  console.log('🔗 Using redirect URI from environment:', redirectUri);
   
   const tokenEndpoint = `${authUrl}/application/o/token/`;
   
@@ -119,9 +120,11 @@ export function AuthCallbackWrapper() {
         console.log('  - code:', code ? `${code.substring(0, 10)}...` : 'null');
         console.log('  - state:', state);
         
-        if (!code) {
-          console.error('❌ No authorization code found in URL');
-          throw new Error('No authorization code received');
+        if (!code || !state) {
+          console.error('❌ Missing authorization parameters:', { code: !!code, state: !!state });
+          setStatus('error');
+          setMessage('Authentication failed: Missing authorization parameters');
+          return;
         }
         
         console.log('✅ Authorization code found, processing authentication...');
@@ -129,6 +132,7 @@ export function AuthCallbackWrapper() {
         
         // Exchange authorization code for access tokens
         try {
+          // We've already checked that code and state are not null above
           const tokenResponse = await exchangeCodeForTokens(code, state);
           console.log('🔑 Token exchange successful');
           
