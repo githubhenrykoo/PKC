@@ -1,6 +1,5 @@
 import React, { useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { Navigate } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
 import { Loader2, CheckCircle, XCircle } from 'lucide-react';
 import { handleAuthCallback, clearError } from '@/store/slices';
@@ -24,10 +23,12 @@ export function AuthCallback() {
     dispatch(handleAuthCallback(callbackUrl));
   }, [dispatch]);
 
-  // If successfully authenticated, redirect to home
-  if (isAuthenticated && !isLoading && !error) {
-    return <Navigate to="/" replace />;
-  }
+  // If successfully authenticated, redirect to dashboard
+  useEffect(() => {
+    if (isAuthenticated && !isLoading && !error) {
+      window.location.href = '/dashboard';
+    }
+  }, [isAuthenticated, isLoading, error]);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
