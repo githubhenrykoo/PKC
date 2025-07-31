@@ -1,6 +1,13 @@
 import { useState, useRef } from 'react';
 import { MCardService } from "@/services/MCardService";
 
+// Maximum file size: 10MB
+const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB in bytes
+
+/**
+ * Custom hook for handling file uploads with MCard service
+ * Includes 10MB file size limit validation
+ */
 export function useFileUpload() {
   const [loading, setLoading] = useState(false);
   const [uploadStatus, setUploadStatus] = useState<{ success: boolean; message: string } | null>(null);
@@ -15,8 +22,33 @@ export function useFileUpload() {
     setLoading(true);
     setUploadStatus(null);
     
+    // Check for files exceeding size limit
+    const validFiles: File[] = [];
+    const oversizedFiles: string[] = [];
+    
+    Array.from(files).forEach(file => {
+      if (file.size <= MAX_FILE_SIZE) {
+        validFiles.push(file);
+      } else {
+        oversizedFiles.push(file.name);
+      }
+    });
+    
+    // Handle case where all files exceed size limit
+    if (validFiles.length === 0) {
+      setLoading(false);
+      setUploadStatus({
+        success: false,
+        message: `Upload failed: File${oversizedFiles.length > 1 ? 's' : ''} exceed${oversizedFiles.length === 1 ? 's' : ''} the maximum size limit of 10MB.`
+      });
+      return;
+    }
+    
+    // Handle case where some files exceed size limit
+    const partialFailure = oversizedFiles.length > 0;
+    
     try {
-      const uploadPromises = Array.from(files).map(async (file) => {
+      const uploadPromises = validFiles.map(async (file) => {
         console.log('File to upload:', { 
           name: file.name, 
           type: file.type || 'application/octet-stream',
@@ -36,9 +68,16 @@ export function useFileUpload() {
       
       const responses = await Promise.all(uploadPromises);
       
+      let successMessage = `${responses.length} file(s) uploaded successfully! Hashes: ${responses.map(r => r.hash).join(', ')}`;
+      
+      // Append warning about skipped oversized files if any
+      if (partialFailure) {
+        successMessage += `\n\nNote: ${oversizedFiles.length} file(s) exceeded the 10MB size limit and were not uploaded: ${oversizedFiles.join(', ')}`;
+      }
+      
       setUploadStatus({
         success: true,
-        message: `${responses.length} file(s) uploaded successfully! Hashes: ${responses.map(r => r.hash).join(', ')}`
+        message: successMessage
       });
       
       onSuccess?.();
