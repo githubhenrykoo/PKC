@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import type { RAGQueryResult } from '@/services/RAGService';
+import type { RAGQueryResult, RAGHealthResponse, RAGStats } from '@/services/RAGService';
 
 interface ChatMessage {
   id: string;
@@ -13,10 +13,17 @@ interface ChatMessage {
 
 interface RAGChatProps {
   onQuery: (query: string, maxSources: number) => Promise<RAGQueryResult>;
+  health: RAGHealthResponse | null;
+  stats: RAGStats | null;
+  loading: boolean;
+  onRetrieveFromMCard: () => Promise<void>;
+  onIndexDocuments: () => Promise<void>;
+  isRetrieving: boolean;
+  isIndexing: boolean;
   className?: string;
 }
 
-export function RAGChat({ onQuery, className }: RAGChatProps) {
+export function RAGChat({ onQuery, health, stats, loading, onRetrieveFromMCard, onIndexDocuments, isRetrieving, isIndexing, className }: RAGChatProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [maxSources, setMaxSources] = useState(3);
@@ -83,34 +90,124 @@ export function RAGChat({ onQuery, className }: RAGChatProps) {
   };
 
   return (
-    <div className={cn("flex flex-col h-full min-h-0", className)}>
-      {/* Chat Header */}
-      <div className="flex-shrink-0 p-4 border-b bg-background">
-        <div className="flex items-center justify-between">
-          <div>
-            <h3 className="font-semibold">RAG Chat</h3>
-            <p className="text-sm text-muted-foreground">Ask questions about your documents</p>
+    <div className={cn("flex flex-col h-full min-h-0 w-full overflow-hidden", className)}>
+      {/* Chat Header with Status Information */}
+      <div className="flex-shrink-0 border-b bg-background">
+        {/* Status Section */}
+        <div className="p-4 border-b">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+            <div className="flex items-center space-x-2">
+              <div className={cn(
+                "w-2 h-2 rounded-full",
+                health?.status === 'healthy' ? 'bg-green-500' : 'bg-red-500'
+              )} />
+              <span className="font-medium">RAG Service:</span>
+              <span className={cn(
+                health?.status === 'healthy' ? 'text-green-600' : 'text-red-600'
+              )}>
+                {loading ? 'Loading...' : (health?.status === 'healthy' ? 'Online' : 'Offline')}
+              </span>
+            </div>
+            <div className="flex items-center space-x-2">
+              <div className={cn(
+                "w-2 h-2 rounded-full",
+                health?.mcard_healthy ? 'bg-green-500' : 'bg-red-500'
+              )} />
+              <span className="font-medium">MCard:</span>
+              <span className={cn(
+                health?.mcard_healthy ? 'text-green-600' : 'text-red-600'
+              )}>
+                {health?.mcard_healthy ? 'Connected' : 'Disconnected'}
+              </span>
+            </div>
+            <div className="flex items-center space-x-2">
+              <span className="font-medium">Documents:</span>
+              <span className="text-muted-foreground">
+                {stats?.unique_documents || 0}
+              </span>
+            </div>
+            <div className="flex items-center space-x-2">
+              <span className="font-medium">Chunks:</span>
+              <span className="text-muted-foreground">
+                {stats?.total_chunks || 0}
+              </span>
+            </div>
           </div>
-          <div className="flex items-center space-x-2">
-            <label className="text-sm text-muted-foreground">Max sources:</label>
-            <select 
-              value={maxSources} 
-              onChange={(e) => setMaxSources(Number(e.target.value))}
-              className="border rounded px-2 py-1 text-sm"
-            >
-              <option value="1">1</option>
-              <option value="3">3</option>
-              <option value="5">5</option>
-              <option value="10">10</option>
-            </select>
+        </div>
+        
+        {/* Document Management Controls */}
+        <div className="p-4 border-b">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Retrieve from MCard */}
+            <div className="flex flex-col">
+              <Button 
+                onClick={onRetrieveFromMCard} 
+                disabled={isRetrieving}
+                className="flex items-center justify-center space-x-2 mb-2"
+              >
+                {isRetrieving && (
+                  <svg className="animate-spin -ml-1 mr-2 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                )}
+                <span>Retrieve from MCard</span>
+              </Button>
+              <div className="text-xs text-muted-foreground">
+                <strong>Retrieve from MCard:</strong> Fetch all documents from your MCard database
+              </div>
+            </div>
+            
+            {/* Index Documents */}
+            <div className="flex flex-col">
+              <Button 
+                onClick={onIndexDocuments} 
+                disabled={isIndexing}
+                className="flex items-center justify-center space-x-2 mb-2"
+              >
+                {isIndexing && (
+                  <svg className="animate-spin -ml-1 mr-2 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                )}
+                <span>Index Documents</span>
+              </Button>
+              <div className="text-xs text-muted-foreground">
+                <strong>Index Documents:</strong> Process and index documents for semantic search
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        {/* Chat Header */}
+        <div className="p-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="font-semibold">RAG Chat</h3>
+              <p className="text-sm text-muted-foreground">Ask questions about your documents</p>
+            </div>
+            <div className="flex items-center space-x-2">
+              <label className="text-sm text-muted-foreground">Max sources:</label>
+              <select 
+                value={maxSources} 
+                onChange={(e) => setMaxSources(Number(e.target.value))}
+                className="border rounded px-2 py-1 text-sm"
+              >
+                <option value="1">1</option>
+                <option value="3">3</option>
+                <option value="5">5</option>
+                <option value="10">10</option>
+              </select>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4 min-h-0">
+      {/* Messages - This container must flex-grow to fill available space */}
+      <div className="flex-1 overflow-y-auto p-4 space-y-4 min-h-0" style={{ display: 'flex', flexDirection: 'column' }}>
         {messages.length === 0 ? (
-          <div className="flex items-center justify-center h-full text-muted-foreground">
+          <div className="flex items-center justify-center h-full w-full text-muted-foreground" style={{ flexGrow: 1 }}>
             <div className="text-center space-y-2">
               <p className="text-lg">💬 Start a conversation</p>
               <p className="text-sm">Ask me anything about your indexed documents</p>
@@ -177,8 +274,8 @@ export function RAGChat({ onQuery, className }: RAGChatProps) {
       </div>
 
       {/* Input */}
-      <div className="flex-shrink-0 p-4 border-t bg-background">
-        <form onSubmit={handleSubmit} className="flex space-x-2">
+      <div className="flex-shrink-0 p-4 border-t bg-background w-full">
+        <form onSubmit={handleSubmit} className="flex w-full space-x-2">
           <input
             ref={inputRef}
             type="text"
