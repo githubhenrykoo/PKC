@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Button } from '@/components/ui/button';
+import { Button } from "@/components/ui/button";
+import { env } from '@/utils/env';
 import { LogIn, User, LogOut } from 'lucide-react';
 import {
   DropdownMenu,
@@ -68,18 +69,11 @@ function TopBarActions() {
   
   const handleLogin = async () => {
     console.log('🔍 Environment Variables Debug:');
-    // TEMPORARY: Hardcoded environment variables for deployment
-    const hardcodedEnv = {
-      PUBLIC_AUTHENTIK_URL: "https://auth.pkc.pub",
-      PUBLIC_AUTHENTIK_CLIENT_ID: "aB0bijEh4VBAQL3rGXsrbcM8ZoJv9OIayUz0rHgo",
-      PUBLIC_AUTHENTIK_REDIRECT_URI: "https://dev.pkc.pub/auth/callback",
-      PUBLIC_MCARD_API_URL: "https://devmcard.pkc.pub/v1",
-      PUBLIC_AUTHENTIK_CLIENT_SECRET: "Fji9cdAIT7whfY5wDcLF8TK9gj6ce6N224LokKzpUAVicQ5CB0Z84BA9ufyMjKZkMyxj3Wa8Ua4FuhSwfEEpwFWe3sx3f8Npz3RE7MAUtxmebax6JoHuUKnsQrzJyGMl"
-    };
-    console.log('PUBLIC_AUTHENTIK_URL:', hardcodedEnv.PUBLIC_AUTHENTIK_URL);
-    console.log('PUBLIC_AUTHENTIK_CLIENT_ID:', hardcodedEnv.PUBLIC_AUTHENTIK_CLIENT_ID);
-    console.log('PUBLIC_AUTHENTIK_REDIRECT_URI:', hardcodedEnv.PUBLIC_AUTHENTIK_REDIRECT_URI);
-    console.log('PUBLIC_MCARD_API_URL:', hardcodedEnv.PUBLIC_MCARD_API_URL);
+    // Get environment variables using runtime env variables from .env
+    console.log('PUBLIC_AUTHENTIK_URL:', env.PUBLIC_AUTHENTIK_URL);
+    console.log('PUBLIC_AUTHENTIK_CLIENT_ID:', env.PUBLIC_AUTHENTIK_CLIENT_ID);
+    console.log('PUBLIC_AUTHENTIK_REDIRECT_URI:', env.PUBLIC_AUTHENTIK_REDIRECT_URI);
+    console.log('PUBLIC_MCARD_API_URL:', env.PUBLIC_MCARD_API_URL);
     
     try {
       const { authService } = await import('@/services/auth-service');

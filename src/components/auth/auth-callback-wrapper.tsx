@@ -7,11 +7,11 @@ import { env } from '@/utils/env';
 async function exchangeCodeForTokens(code: string, state: string) {
   console.log('🔄 Exchanging authorization code for tokens...');
   
-  // TEMPORARY: Hardcoded environment variables for deployment
-  const authUrl = "https://auth.pkc.pub";
-  const clientId = "aB0bijEh4VBAQL3rGXsrbcM8ZoJv9OIayUz0rHgo";
-  const redirectUri = "https://dev.pkc.pub/auth/callback";
-  const clientSecret = "Fji9cdAIT7whfY5wDcLF8TK9gj6ce6N224LokKzpUAVicQ5CB0Z84BA9ufyMjKZkMyxj3Wa8Ua4FuhSwfEEpwFWe3sx3f8Npz3RE7MAUtxmebax6JoHuUKnsQrzJyGMl";
+  // Use environment variables via the env utility
+  const authUrl = env.PUBLIC_AUTHENTIK_URL;
+  const clientId = env.PUBLIC_AUTHENTIK_CLIENT_ID;
+  const redirectUri = env.PUBLIC_AUTHENTIK_REDIRECT_URI;
+  const clientSecret = env.PUBLIC_AUTHENTIK_CLIENT_SECRET;
   
   console.log('🔧 Environment variables in token exchange:', {
     authUrl,

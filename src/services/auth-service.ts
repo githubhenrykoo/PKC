@@ -1,5 +1,18 @@
 import type { User, AuthTokens, AuthResponse, TokenRefreshResponse } from '../store/types/auth';
-import { env } from '../utils/env';
+
+// Define environment variable type for TypeScript
+interface EnvVariables {
+  PUBLIC_AUTHENTIK_URL: string;
+  PUBLIC_AUTHENTIK_CLIENT_ID: string;
+  PUBLIC_AUTHENTIK_CLIENT_SECRET: string;
+  PUBLIC_AUTHENTIK_REDIRECT_URI: string;
+  PUBLIC_MCARD_API_URL: string;
+  [key: string]: string | undefined;
+}
+
+// Import and type-cast the env utility
+import { env as importedEnv } from '../utils/env';
+const env = importedEnv as EnvVariables;
 
 interface OIDCUserInfo {
   sub: string;
@@ -27,12 +40,10 @@ class AuthService {
   private scope: string;
 
   constructor() {
-    // TEMPORARY: Hardcoded environment variables for deployment
-    this.baseUrl = "https://auth.pkc.pub";
-    this.clientId = "aB0bijEh4VBAQL3rGXsrbcM8ZoJv9OIayUz0rHgo";
-    
-    // TEMPORARY: Hardcoded redirect URI for deployment
-    this.redirectUri = "https://dev.pkc.pub/auth/callback";
+    // Use environment variables via the env utility
+    this.baseUrl = env.PUBLIC_AUTHENTIK_URL;
+    this.clientId = env.PUBLIC_AUTHENTIK_CLIENT_ID;
+    this.redirectUri = env.PUBLIC_AUTHENTIK_REDIRECT_URI;
     this.scope = 'openid profile email';
     
     // Debug: Log the loaded environment variables
@@ -132,8 +143,8 @@ class AuthService {
         code,
         redirect_uri: this.redirectUri,
         client_id: this.clientId,
-        // TEMPORARY: Hardcoded client secret for deployment
-        client_secret: "Fji9cdAIT7whfY5wDcLF8TK9gj6ce6N224LokKzpUAVicQ5CB0Z84BA9ufyMjKZkMyxj3Wa8Ua4FuhSwfEEpwFWe3sx3f8Npz3RE7MAUtxmebax6JoHuUKnsQrzJyGMl",
+        // Use client secret from environment variables
+        client_secret: env.PUBLIC_AUTHENTIK_CLIENT_SECRET,
       }),
     });
 
@@ -164,10 +175,10 @@ class AuthService {
     });
 
     if (!response.ok) {
-      throw new Error(`Failed to fetch user info: ${response.statusText}`);
+      throw new Error(`Failed to get user info: ${response.statusText}`);
     }
 
-    return await response.json();
+    return response.json();
   }
 
   /**
@@ -183,8 +194,8 @@ class AuthService {
         grant_type: 'refresh_token',
         refresh_token: refreshToken,
         client_id: this.clientId,
-        // TEMPORARY: Hardcoded client secret for deployment
-        client_secret: "Fji9cdAIT7whfY5wDcLF8TK9gj6ce6N224LokKzpUAVicQ5CB0Z84BA9ufyMjKZkMyxj3Wa8Ua4FuhSwfEEpwFWe3sx3f8Npz3RE7MAUtxmebax6JoHuUKnsQrzJyGMl",
+        // Use client secret from environment variables
+        client_secret: env.PUBLIC_AUTHENTIK_CLIENT_SECRET,
       }),
     });
 
@@ -238,8 +249,8 @@ class AuthService {
         body: new URLSearchParams({
           token: accessToken,
           client_id: this.clientId,
-          // TEMPORARY: Hardcoded client secret for deployment
-        client_secret: "Fji9cdAIT7whfY5wDcLF8TK9gj6ce6N224LokKzpUAVicQ5CB0Z84BA9ufyMjKZkMyxj3Wa8Ua4FuhSwfEEpwFWe3sx3f8Npz3RE7MAUtxmebax6JoHuUKnsQrzJyGMl",
+          // Use client secret from environment variables
+          client_secret: env.PUBLIC_AUTHENTIK_CLIENT_SECRET,
         }),
       });
     } catch (error) {
