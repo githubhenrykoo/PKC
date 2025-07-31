@@ -1,10 +1,11 @@
 import React from 'react';
 import { MCardBrowser } from "@/components/Mcard/MCardBrowser";
+import { RAGBrowser } from "@/components/RAG/RAGBrowser";
 import { useMediaQuery } from '@/hooks/useMediaQuery';
 import { cn } from "@/lib/utils";
 
 // Panel types
-export type PanelType = 'mcard' | 'settings' | 'analytics' | 'help';
+export type PanelType = 'mcard' | 'rag' | 'settings' | 'analytics' | 'help';
 
 interface PanelsProps {
   activePanel: PanelType;
@@ -52,6 +53,13 @@ export function Panels({ activePanel, className }: PanelsProps) {
       {activePanel === 'mcard' && (
         <div className="h-full w-full overflow-hidden">
           <MCardBrowser />
+        </div>
+      )}
+
+      {/* RAG Panel */}
+      {activePanel === 'rag' && (
+        <div className="h-full w-full overflow-hidden">
+          <RAGBrowser />
         </div>
       )}
 

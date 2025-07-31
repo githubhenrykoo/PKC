@@ -21,9 +21,11 @@ function getEnvVar(name: string): string | undefined {
 // Always use the environment variable from .env
 // No hardcoded fallbacks - require proper environment configuration
 export const MCARD_API_URL = getEnvVar('PUBLIC_MCARD_API_URL');
+export const RAG_API_URL = getEnvVar('PUBLIC_RAG_API_URL');
 
-// Log the selected API URL during initialization
+// Log the selected API URLs during initialization
 console.log('MCARD_API_URL configured as:', MCARD_API_URL);
+console.log('RAG_API_URL configured as:', RAG_API_URL);
 
 // Add TypeScript declaration for window.RUNTIME_ENV
 declare global {
