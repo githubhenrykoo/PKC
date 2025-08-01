@@ -7,18 +7,11 @@ services:
     restart: unless-stopped
     ports:
       - "4321:4321"
-    # Load variables from .env file
-    env_file:
-      - .env
+    # Mount .env file as volume for dynamic environment variable loading
+    volumes:
+      - ./.env:/app/.env:ro  # Read-only mount of .env file
     environment:
       - NODE_ENV=production
-      # Explicitly pass PUBLIC_ environment variables to ensure they're available
-      - PUBLIC_AUTHENTIK_URL=${PUBLIC_AUTHENTIK_URL}
-      - PUBLIC_AUTHENTIK_CLIENT_ID=${PUBLIC_AUTHENTIK_CLIENT_ID}
-      - PUBLIC_AUTHENTIK_CLIENT_SECRET=${PUBLIC_AUTHENTIK_CLIENT_SECRET}
-      - PUBLIC_MCARD_API_URL=${PUBLIC_MCARD_API_URL}
-      - PUBLIC_AUTHENTIK_REDIRECT_URI=${PUBLIC_AUTHENTIK_REDIRECT_URI}
-      - PUBLIC_RAG_API_URL=${PUBLIC_RAG_API_URL}
     healthcheck:
       test: ["CMD", "wget", "-q", "--spider", "http://localhost:4321"]
       interval: 30s
