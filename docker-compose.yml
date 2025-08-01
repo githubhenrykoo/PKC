@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   pkc-app:
-    image: henry768/pkc:latest
+    image: henry768/pkc:latest_RAG
     container_name: pkc-app
     restart: unless-stopped
     ports:
@@ -12,9 +12,22 @@ services:
       - .env
     environment:
       - NODE_ENV=production
+      # Explicitly pass PUBLIC_ environment variables to ensure they're available
+      - PUBLIC_AUTHENTIK_URL=${PUBLIC_AUTHENTIK_URL}
+      - PUBLIC_AUTHENTIK_CLIENT_ID=${PUBLIC_AUTHENTIK_CLIENT_ID}
+      - PUBLIC_AUTHENTIK_CLIENT_SECRET=${PUBLIC_AUTHENTIK_CLIENT_SECRET}
+      - PUBLIC_MCARD_API_URL=${PUBLIC_MCARD_API_URL}
+      - PUBLIC_AUTHENTIK_REDIRECT_URI=${PUBLIC_AUTHENTIK_REDIRECT_URI}
+      - PUBLIC_RAG_API_URL=${PUBLIC_RAG_API_URL}
     healthcheck:
       test: ["CMD", "wget", "-q", "--spider", "http://localhost:4321"]
       interval: 30s
       timeout: 10s
       retries: 3
+    # Ensure runtime environment script can write to dist directory
+    volumes:
+      - runtime_env:/tmp/runtime_env
+
+volumes:
+  runtime_env:
       start_period: 10s

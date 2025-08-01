@@ -9,17 +9,39 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>PKC</title>
   
-  <!-- TEMPORARY: Hardcoded environment variables as requested -->
+  <!-- Runtime environment variables -->
   <script is:inline>
-    // Hardcoded environment variables for deployment
-    window.RUNTIME_ENV = {
-      PUBLIC_MCARD_API_URL: "https://devmcard.pkc.pub/v1",
-      PUBLIC_AUTHENTIK_REDIRECT_URI: "https://dev.pkc.pub/auth/callback",
-      PUBLIC_AUTHENTIK_URL: "https://auth.pkc.pub",
-      PUBLIC_AUTHENTIK_CLIENT_ID: "aB0bijEh4VBAQL3rGXsrbcM8ZoJv9OIayUz0rHgo",
-      PUBLIC_AUTHENTIK_CLIENT_SECRET: "Fji9cdAIT7whfY5wDcLF8TK9gj6ce6N224LokKzpUAVicQ5CB0Z84BA9ufyMjKZkMyxj3Wa8Ua4FuhSwfEEpwFWe3sx3f8Npz3RE7MAUtxmebax6JoHuUKnsQrzJyGMl"
-    };
-    console.log("HARDCODED Environment variables loaded:", window.RUNTIME_ENV);
+    // Initialize RUNTIME_ENV as empty object
+    window.RUNTIME_ENV = window.RUNTIME_ENV || {};
+    
+    console.log("Initial environment variables:", window.RUNTIME_ENV);
+  </script>
+  
+  <!-- Load runtime environment variables from API endpoint -->
+  <script>
+    // Load environment variables from the runtime-env.js endpoint
+    // This works in both development and Docker environments
+    fetch('/runtime-env.js')
+      .then(response => {
+        if (response.ok) {
+          return response.text();
+        }
+        throw new Error('Runtime env endpoint not available');
+      })
+      .then(script => {
+        // Execute the script to set window.RUNTIME_ENV
+        eval(script);
+        console.log("✅ Runtime environment variables loaded from API:", window.RUNTIME_ENV);
+        
+        // Dispatch a custom event to notify other scripts that env is ready
+        window.dispatchEvent(new CustomEvent('runtime-env-loaded', { 
+          detail: window.RUNTIME_ENV 
+        }));
+      })
+      .catch(error => {
+        console.error('❌ Failed to load runtime environment variables:', error);
+        console.log('Current RUNTIME_ENV state:', window.RUNTIME_ENV);
+      });
   </script>
   
   <!-- Slot for head content from child layouts -->

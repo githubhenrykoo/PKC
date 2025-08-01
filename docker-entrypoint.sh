@@ -4,30 +4,30 @@ set -e
 # Generate runtime-env.js with all PUBLIC_ environment variables
 echo "Generating runtime environment variables file..."
 
-# Start building the content of the runtime-env.js file
-ENV_CONTENT="// Auto-generated at container startup\nwindow.RUNTIME_ENV = {\n"
+# Create the runtime-env.js file
+cat > /app/dist/client/runtime-env.js << 'EOF'
+// Auto-generated at container startup
+window.RUNTIME_ENV = {
+EOF
 
-# Loop through all environment variables and extract those starting with PUBLIC_
-for ENV_VAR in $(env | grep '^PUBLIC_' | sort); do
-  # Extract name and value
-  NAME=$(echo $ENV_VAR | cut -d= -f1)
-  VALUE=$(echo $ENV_VAR | cut -d= -f2-)
-  
-  # Add to env content, properly escaped for JSON
-  ENV_CONTENT="$ENV_CONTENT  \"$NAME\": \"$VALUE\",\n"
+# Add all PUBLIC_ environment variables
+env | grep '^PUBLIC_' | sort | while IFS='=' read -r name value; do
+  # Escape quotes in the value
+  escaped_value=$(echo "$value" | sed 's/"/\\"/g')
+  echo "  \"$name\": \"$escaped_value\"," >> /app/dist/client/runtime-env.js
 done
 
-# Remove the trailing comma if there are variables and close the object
-if [ $(env | grep -c '^PUBLIC_') -gt 0 ]; then
-  ENV_CONTENT="${ENV_CONTENT%,\n}\n"
-fi
-ENV_CONTENT="$ENV_CONTENT};"
+# Remove trailing comma and close the object
+sed -i '$ s/,$//' /app/dist/client/runtime-env.js
+echo "};
+" >> /app/dist/client/runtime-env.js
 
-# Write to file in dist/client directory
-echo "$ENV_CONTENT" > /app/dist/client/runtime-env.js
+# Also copy to the public directory for direct access
+cp /app/dist/client/runtime-env.js /app/dist/runtime-env.js
 
-# Confirm environment variables are written
-echo "✅ Runtime environment variables written to /app/dist/client/runtime-env.js"
+# Show what was generated
+echo "✅ Runtime environment variables written:"
+cat /app/dist/client/runtime-env.js
 
 # Start the application
 exec npm start
