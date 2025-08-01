@@ -15,6 +15,17 @@ export function createEnv() {
       const win = typeof window !== 'undefined' ? window : undefined;
       const runtimeEnv = win ? win.RUNTIME_ENV : undefined;
       
+      // Debug logging
+      if (prop === 'PUBLIC_AUTHENTIK_CLIENT_ID') {
+        console.log('🔍 Env utility debug:');
+        console.log('- window available:', !!win);
+        console.log('- window.RUNTIME_ENV available:', !!runtimeEnv);
+        console.log('- window.RUNTIME_ENV keys:', runtimeEnv ? Object.keys(runtimeEnv) : 'none');
+        console.log('- Using runtime env:', !!(win && runtimeEnv && prop in runtimeEnv) ? 'YES' : 'NO');
+        console.log('- Value from runtime:', runtimeEnv ? runtimeEnv[prop] : 'none');
+        console.log('- Value from build-time:', import.meta.env ? import.meta.env[prop] : 'none');
+      }
+      
       if (win && runtimeEnv && prop in runtimeEnv) {
         return runtimeEnv[prop];
       }

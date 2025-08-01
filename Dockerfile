@@ -19,6 +19,9 @@ COPY . .
 # Build the application
 RUN npm run build
 
+# Remove any static runtime-env.js files that would conflict with our dynamic API endpoint
+RUN find /app/dist -name "runtime-env.js" -type f -delete || true
+
 # Create runtime-env.js in the dist/client directory
 RUN echo "// This file will be overwritten with environment variables at container startup\nwindow.RUNTIME_ENV = {};" > dist/client/runtime-env.js
 
@@ -48,9 +51,5 @@ ENV PORT=4321
 # Expose port 4321
 EXPOSE 4321
 
-# Copy entrypoint script
-COPY docker-entrypoint.sh /app/docker-entrypoint.sh
-RUN chmod +x /app/docker-entrypoint.sh
-
-# Use entrypoint script to inject runtime environment variables and start the application
-CMD ["/app/docker-entrypoint.sh"]
+# Start the application directly (no entrypoint script needed since we use dynamic API endpoint)
+CMD ["npm", "start"]

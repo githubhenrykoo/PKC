@@ -12,6 +12,8 @@ services:
       - ./.env:/app/.env:ro  # Read-only mount of .env file
     environment:
       - NODE_ENV=production
+    # Override command to use npm start directly (no entrypoint script needed)
+    command: ["npm", "start"]
     healthcheck:
       test: ["CMD", "wget", "-q", "--spider", "http://localhost:4321"]
       interval: 30s
