@@ -20,14 +20,9 @@ COPY . .
 RUN npm run build
 
 # Remove any static runtime-env.js files that would conflict with our dynamic API endpoint
+# This ensures our dynamic /runtime-env.js API endpoint is not shadowed by static files
 RUN find /app/dist -name "runtime-env.js" -type f -delete || true
-
-# Create runtime-env.js in the dist/client directory
-RUN echo "// This file will be overwritten with environment variables at container startup\nwindow.RUNTIME_ENV = {};" > dist/client/runtime-env.js
-
-# Copy Docker entrypoint script
-COPY docker-entrypoint.sh /app/docker-entrypoint.sh
-RUN chmod +x /app/docker-entrypoint.sh
+RUN find /app/dist -name "runtime-env.*" -type f -delete || true
 
 # Use Node.js for runtime stage instead of nginx
 FROM node:20-alpine
