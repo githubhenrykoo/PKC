@@ -1,4 +1,9 @@
-import { RAG_API_URL } from '../config';
+// Declare global window.RUNTIME_ENV type
+declare global {
+  interface Window {
+    RUNTIME_ENV?: Record<string, string>;
+  }
+}
 
 export interface RAGDocument {
   hash: string;
@@ -63,8 +68,18 @@ export class RAGService {
   private baseUrl: string;
 
   constructor() {
-    this.baseUrl = RAG_API_URL || 'http://localhost:28302/api/v1';
-    console.log('RAGService initialized with baseUrl:', this.baseUrl);
+    // Use RAG API base URL from runtime environment (dynamically loaded) or fallback
+    this.baseUrl = window.RUNTIME_ENV?.PUBLIC_RAG_API_URL || 
+                   (typeof import.meta !== 'undefined' ? import.meta.env?.PUBLIC_RAG_API_URL : undefined) ||
+                   'http://localhost:28302/api/v1';
+    
+    // Debug: Log the configured URL and source
+    const source = window.RUNTIME_ENV?.PUBLIC_RAG_API_URL ? 'window.RUNTIME_ENV' : 
+                   (typeof import.meta !== 'undefined' && import.meta.env?.PUBLIC_RAG_API_URL) ? 'import.meta.env' : 
+                   'fallback';
+    console.log('🔧 RAG_API_URL configured as:', this.baseUrl);
+    console.log('🔧 RAGService initialized with baseUrl:', this.baseUrl);
+    console.log('🔧 Environment source:', source);
   }
 
   // Health and Status

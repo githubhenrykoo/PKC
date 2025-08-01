@@ -10,16 +10,29 @@ interface SearchResponse {
   pagination: PaginationState;
 }
 
-class MCardService {
+// Declare global window.RUNTIME_ENV type
+declare global {
+  interface Window {
+    RUNTIME_ENV?: Record<string, string>;
+  }
+}
+
+export class MCardService {
   private baseUrl: string;
 
   constructor() {
-    // Use MCard API base URL from environment or default to localhost
-    this.baseUrl = import.meta.env.PUBLIC_MCARD_API_URL || 'http://localhost:49384/v1';
+    // Use MCard API base URL from runtime environment (dynamically loaded) or fallback
+    this.baseUrl = window.RUNTIME_ENV?.PUBLIC_MCARD_API_URL || 
+                   (typeof import.meta !== 'undefined' ? import.meta.env?.PUBLIC_MCARD_API_URL : undefined) ||
+                   'http://localhost:49384/v1';
     
-    // Debug: Log the configured URL
+    // Debug: Log the configured URL and source
+    const source = window.RUNTIME_ENV?.PUBLIC_MCARD_API_URL ? 'window.RUNTIME_ENV' : 
+                   (typeof import.meta !== 'undefined' && import.meta.env?.PUBLIC_MCARD_API_URL) ? 'import.meta.env' : 
+                   'fallback';
     console.log('🔧 MCARD_API_URL configured as:', this.baseUrl);
     console.log('🔧 MCardService initialized with baseUrl:', this.baseUrl);
+    console.log('🔧 Environment source:', source);
   }
 
   /**
