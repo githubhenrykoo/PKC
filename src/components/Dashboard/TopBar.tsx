@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
-import { env } from '@/utils/env';
 import { LogIn, User, LogOut } from 'lucide-react';
 import {
   DropdownMenu,
@@ -23,12 +22,50 @@ interface TopBarProps {
   'client:media'?: string;
 }
 
+// Function to get runtime environment variables directly from window.RUNTIME_ENV
+const getRuntimeEnv = () => {
+  if (typeof window !== 'undefined' && window.RUNTIME_ENV) {
+    console.log('✅ Using window.RUNTIME_ENV:', window.RUNTIME_ENV);
+    return window.RUNTIME_ENV;
+  }
+  console.log('❌ window.RUNTIME_ENV not available, using fallback');
+  return {};
+};
+
 // TopBar actions with authentication state - no Redux dependency
 function TopBarActions() {
   console.log('🔧 TopBarActions component is rendering!');
   
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [user, setUser] = useState<any>(null);
+  const [runtimeEnvLoaded, setRuntimeEnvLoaded] = useState(false);
+  
+  // Wait for runtime environment variables to be loaded
+  useEffect(() => {
+    const checkRuntimeEnv = () => {
+      if (typeof window !== 'undefined' && window.RUNTIME_ENV) {
+        console.log('✅ Runtime environment loaded:', Object.keys(window.RUNTIME_ENV));
+        setRuntimeEnvLoaded(true);
+      } else {
+        console.log('⏳ Waiting for runtime environment...');
+        // Keep checking every 100ms until runtime env is loaded
+        setTimeout(checkRuntimeEnv, 100);
+      }
+    };
+    
+    // Listen for runtime env loaded event
+    const handleRuntimeEnvLoaded = () => {
+      console.log('📡 Runtime env loaded event received');
+      setRuntimeEnvLoaded(true);
+    };
+    
+    window.addEventListener('runtime-env-loaded', handleRuntimeEnvLoaded);
+    checkRuntimeEnv();
+    
+    return () => {
+      window.removeEventListener('runtime-env-loaded', handleRuntimeEnvLoaded);
+    };
+  }, []);
   
   // Check authentication status on component mount
   useEffect(() => {
@@ -69,43 +106,43 @@ function TopBarActions() {
   
   const handleLogin = async () => {
     console.log('🔍 Environment Variables Debug:');
-    // Get environment variables using runtime env variables from .env
-    console.log('PUBLIC_AUTHENTIK_URL:', env.PUBLIC_AUTHENTIK_URL);
-    console.log('PUBLIC_AUTHENTIK_CLIENT_ID:', env.PUBLIC_AUTHENTIK_CLIENT_ID);
-    console.log('PUBLIC_AUTHENTIK_REDIRECT_URI:', env.PUBLIC_AUTHENTIK_REDIRECT_URI);
-    console.log('PUBLIC_MCARD_API_URL:', env.PUBLIC_MCARD_API_URL);
     
-    try {
-      const { authService } = await import('@/services/auth-service');
-      await authService.loginWithAuthentik();
-    } catch (error) {
-      console.error('Login failed:', error);
-      // TEMPORARY: Using hardcoded values for deployment
-      const authUrl = "https://auth.pkc.pub";
-      const clientId = "aB0bijEh4VBAQL3rGXsrbcM8ZoJv9OIayUz0rHgo";
-      const redirectUri = "https://dev.pkc.pub/auth/callback";
-      
-      if (!authUrl || !clientId || !redirectUri) {
-        console.error('❌ Missing environment variables:', { authUrl, clientId, redirectUri });
-        alert('Authentication configuration error. Please check environment variables.');
-        return;
-      }
-      // Use the redirect URI from environment variables
-      console.log('🔗 Using redirect URI from environment:', redirectUri);
-      
-      const state = Date.now().toString();
-      const params = new URLSearchParams({
-        response_type: 'code',
-        client_id: clientId,
-        redirect_uri: redirectUri,
-        scope: 'openid profile email',
-        state: state
-      });
-      const loginUrl = `${authUrl}/application/o/authorize/?${params.toString()}`;
-      console.log('🚀 Full login URL:', loginUrl);
-      
-      window.location.href = loginUrl;
+    // Get environment variables directly from window.RUNTIME_ENV
+    const runtimeEnv = getRuntimeEnv();
+    console.log('🌍 Runtime Environment:', runtimeEnv);
+    console.log('PUBLIC_AUTHENTIK_URL:', runtimeEnv.PUBLIC_AUTHENTIK_URL);
+    console.log('PUBLIC_AUTHENTIK_CLIENT_ID:', runtimeEnv.PUBLIC_AUTHENTIK_CLIENT_ID);
+    console.log('PUBLIC_AUTHENTIK_REDIRECT_URI:', runtimeEnv.PUBLIC_AUTHENTIK_REDIRECT_URI);
+    console.log('PUBLIC_MCARD_API_URL:', runtimeEnv.PUBLIC_MCARD_API_URL);
+    
+    // Use runtime environment variables
+    const authUrl = runtimeEnv.PUBLIC_AUTHENTIK_URL;
+    const clientId = runtimeEnv.PUBLIC_AUTHENTIK_CLIENT_ID;
+    const redirectUri = runtimeEnv.PUBLIC_AUTHENTIK_REDIRECT_URI;
+    
+    console.log('🔑 Using values:');
+    console.log('- Auth URL:', authUrl);
+    console.log('- Client ID:', clientId);
+    console.log('- Redirect URI:', redirectUri);
+    
+    if (!authUrl || !clientId || !redirectUri) {
+      console.error('❌ Missing runtime environment variables:', { authUrl, clientId, redirectUri });
+      alert('Authentication configuration error. Please check environment variables.');
+      return;
     }
+    
+    const state = Date.now().toString();
+    const params = new URLSearchParams({
+      response_type: 'code',
+      client_id: clientId,
+      redirect_uri: redirectUri,
+      scope: 'openid profile email',
+      state: state
+    });
+    const loginUrl = `${authUrl}/application/o/authorize/?${params.toString()}`;
+    console.log('🚀 Full login URL:', loginUrl);
+    
+    window.location.href = loginUrl;
   };
   
   const handleLogout = () => {
@@ -158,6 +195,15 @@ function TopBarActions() {
     );
   }
 
+  // Show loading if runtime env is not loaded yet
+  if (!runtimeEnvLoaded) {
+    return (
+      <div className="flex items-center space-x-1 md:space-x-2">
+        <div className="text-sm text-muted-foreground">Loading...</div>
+      </div>
+    );
+  }
+  
   // Show login button if not authenticated
   return (
     <div className="flex items-center space-x-1 md:space-x-2">
