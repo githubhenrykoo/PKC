@@ -21,8 +21,9 @@ RUN npm run build
 
 # Remove any static runtime-env.js files that would conflict with our dynamic API endpoint
 # This ensures our dynamic /runtime-env.js API endpoint is not shadowed by static files
-RUN find /app/dist -name "runtime-env.js" -type f -delete || true
-RUN find /app/dist -name "runtime-env.*" -type f -delete || true
+# Only target static files in dist/client, not our API endpoint in dist/server
+RUN find /app/dist/client -name "runtime-env.js" -type f -delete 2>/dev/null || true
+RUN find /app/dist/client -name "runtime-env.*" -type f -delete 2>/dev/null || true
 
 # Use Node.js for runtime stage instead of nginx
 FROM node:20-alpine
