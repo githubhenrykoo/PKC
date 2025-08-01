@@ -1,17 +1,23 @@
 import React, { useEffect, useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Loader2, CheckCircle, XCircle } from 'lucide-react';
-import { env } from '@/utils/env';
+
+// Declare global window.RUNTIME_ENV type
+declare global {
+  interface Window {
+    RUNTIME_ENV?: Record<string, string>;
+  }
+}
 
 // OAuth token exchange function with PKCE support
 async function exchangeCodeForTokens(code: string, state: string) {
   console.log('🔄 Exchanging authorization code for tokens...');
   
-  // Use environment variables via the env utility
-  const authUrl = env.PUBLIC_AUTHENTIK_URL;
-  const clientId = env.PUBLIC_AUTHENTIK_CLIENT_ID;
-  const redirectUri = env.PUBLIC_AUTHENTIK_REDIRECT_URI;
-  const clientSecret = env.PUBLIC_AUTHENTIK_CLIENT_SECRET;
+  // Use environment variables from window.RUNTIME_ENV (loaded dynamically)
+  const authUrl = window.RUNTIME_ENV?.PUBLIC_AUTHENTIK_URL;
+  const clientId = window.RUNTIME_ENV?.PUBLIC_AUTHENTIK_CLIENT_ID;
+  const redirectUri = window.RUNTIME_ENV?.PUBLIC_AUTHENTIK_REDIRECT_URI;
+  const clientSecret = window.RUNTIME_ENV?.PUBLIC_AUTHENTIK_CLIENT_SECRET;
   
   console.log('🔧 Environment variables in token exchange:', {
     authUrl,
@@ -107,7 +113,7 @@ async function exchangeCodeForTokens(code: string, state: string) {
 async function fetchUserProfile(accessToken: string) {
   console.log('👤 Fetching user profile from Authentik...');
   
-  const authUrl = env.PUBLIC_AUTHENTIK_URL || 'https://auth.pkc.pub';
+  const authUrl = window.RUNTIME_ENV?.PUBLIC_AUTHENTIK_URL || 'https://auth.pkc.pub';
   const userInfoEndpoint = `${authUrl}/application/o/userinfo/`;
   
   console.log('🔧 Using authUrl for userinfo:', authUrl);
@@ -131,12 +137,61 @@ async function fetchUserProfile(accessToken: string) {
 // Safe wrapper that handles authentication callback without Redux complexity
 export function AuthCallbackWrapper() {
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
-  const [message, setMessage] = useState('Processing authentication...');
+  const [message, setMessage] = useState('Waiting for runtime environment...');
+  const [runtimeEnvLoaded, setRuntimeEnvLoaded] = useState(false);
+
+  // Wait for runtime environment to be loaded
+  useEffect(() => {
+    const checkRuntimeEnv = () => {
+      if (window.RUNTIME_ENV) {
+        console.log('✅ Runtime environment available for auth:', Object.keys(window.RUNTIME_ENV));
+        setRuntimeEnvLoaded(true);
+        setMessage('Processing authentication...');
+        return true;
+      }
+      return false;
+    };
+
+    // Check if already loaded
+    if (checkRuntimeEnv()) return;
+
+    // Listen for runtime env loaded event
+    const handleRuntimeEnvLoaded = () => {
+      console.log('🔔 Runtime environment loaded event received in auth component');
+      if (checkRuntimeEnv()) {
+        setRuntimeEnvLoaded(true);
+        setMessage('Processing authentication...');
+      }
+    };
+
+    window.addEventListener('runtime-env-loaded', handleRuntimeEnvLoaded);
+    
+    // Fallback timeout
+    const timeout = setTimeout(() => {
+      if (!window.RUNTIME_ENV) {
+        console.error('⏰ Timeout waiting for runtime environment in auth component');
+        setStatus('error');
+        setMessage('Failed to load application configuration');
+      }
+    }, 10000);
+
+    return () => {
+      window.removeEventListener('runtime-env-loaded', handleRuntimeEnvLoaded);
+      clearTimeout(timeout);
+    };
+  }, []);
 
   useEffect(() => {
+    if (!runtimeEnvLoaded) return;
+
     const handleCallback = async () => {
       try {
         console.log('🔧 AuthCallbackWrapper: Starting callback processing...');
+        console.log('🔧 Using runtime environment for OAuth:', {
+          authUrl: window.RUNTIME_ENV?.PUBLIC_AUTHENTIK_URL,
+          clientId: window.RUNTIME_ENV?.PUBLIC_AUTHENTIK_CLIENT_ID ? 'present' : 'missing',
+          redirectUri: window.RUNTIME_ENV?.PUBLIC_AUTHENTIK_REDIRECT_URI
+        });
         console.log('🔧 Current URL:', window.location.href);
         console.log('🔧 Search params:', window.location.search);
         
@@ -217,10 +272,10 @@ export function AuthCallbackWrapper() {
       }
     };
 
-    console.log('🚀 AuthCallbackWrapper: Component mounted, processing callback...');
+    console.log('🚀 AuthCallbackWrapper: Runtime env loaded, processing callback...');
     // Process the callback
     handleCallback();
-  }, []);
+  }, [runtimeEnvLoaded]);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
