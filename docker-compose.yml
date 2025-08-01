@@ -24,10 +24,7 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
-    # Ensure runtime environment script can write to dist directory
-    volumes:
-      - runtime_env:/tmp/runtime_env
+      start_period: 10s
 
 volumes:
   runtime_env:
-      start_period: 10s

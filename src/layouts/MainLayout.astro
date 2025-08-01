@@ -17,21 +17,31 @@
     console.log("Initial environment variables:", window.RUNTIME_ENV);
   </script>
   
-  <!-- Load runtime environment variables from API endpoint -->
+  <!-- Load runtime environment variables - Enhanced for production -->
   <script>
-    // Load environment variables from the runtime-env.js endpoint
-    // This works in both development and Docker environments
-    fetch('/runtime-env.js')
+    // Function to load environment variables
+    function loadRuntimeEnv() {
+      console.log('🔄 Loading runtime environment variables...');
+      
+      fetch('/runtime-env.js', {
+        method: 'GET',
+        cache: 'no-store', // Prevent caching issues in production
+        headers: {
+          'Cache-Control': 'no-cache'
+        }
+      })
       .then(response => {
+        console.log('📡 Runtime env response status:', response.status);
         if (response.ok) {
           return response.text();
         }
-        throw new Error('Runtime env endpoint not available');
+        throw new Error(`Runtime env endpoint returned ${response.status}`);
       })
       .then(script => {
+        console.log('📜 Runtime env script received:', script.substring(0, 100) + '...');
         // Execute the script to set window.RUNTIME_ENV
         eval(script);
-        console.log("✅ Runtime environment variables loaded from API:", window.RUNTIME_ENV);
+        console.log('✅ Runtime environment variables loaded successfully:', window.RUNTIME_ENV);
         
         // Dispatch a custom event to notify other scripts that env is ready
         window.dispatchEvent(new CustomEvent('runtime-env-loaded', { 
@@ -41,7 +51,23 @@
       .catch(error => {
         console.error('❌ Failed to load runtime environment variables:', error);
         console.log('Current RUNTIME_ENV state:', window.RUNTIME_ENV);
+        
+        // Fallback: try to use any existing RUNTIME_ENV
+        if (window.RUNTIME_ENV && Object.keys(window.RUNTIME_ENV).length > 0) {
+          console.log('🔄 Using existing RUNTIME_ENV as fallback');
+          window.dispatchEvent(new CustomEvent('runtime-env-loaded', { 
+            detail: window.RUNTIME_ENV 
+          }));
+        }
       });
+    }
+    
+    // Load immediately and also when DOM is ready
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', loadRuntimeEnv);
+    } else {
+      loadRuntimeEnv();
+    }
   </script>
   
   <!-- Slot for head content from child layouts -->
