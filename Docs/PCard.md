@@ -20,9 +20,16 @@ tags:
 
 ## Executive Summary
 
-PCard (`P` for Polynomial Functor) establishes a mathematical foundation for Conversational Programming through the composition of computationally testable functions that are uniquely identified by content hash values in a global namespace. By organizing computational structures around these principles, PCard creates a unified theory of functions that bridges mathematical abstractions with practical implementations, enabling a new paradigm of function-oriented programming based on polynomial representation rather than state manipulation, with modularity inspired by the Open MCP Client framework.
+PCard (`P` for Polynomial Functor) establishes a mathematical foundation for Conversational Programming by **exclusively operating on cryptographic hash-valued information**. This hash-only approach ensures optimal data compression, systematic version control, and guaranteed data integrity validation while remaining universally compatible with any data format, programming language, or runtime environment. By organizing computational structures around hash-referenced functions uniquely identified in a global namespace, PCard creates a unified theory of functions that bridges mathematical abstractions with practical implementations, enabling a new paradigm of function-oriented programming based on polynomial representation rather than state manipulation.
 
-As the dedicated **Control Plane** within the Software-defined Networking (SDN) architecture of PKC, PCard provides the critical computational process model layer that mediates between physical data representations (MCard) and social value interpretations (VCard). This Control Plane function is expressed through polynomial functors from Category Theory, enabling systematic knowledge orchestration and process versioning across distributed environments. The polynomial representation $F(X) = \sum (A_i \otimes X^{B_i})$ serves as a complete version history tracker, where each coefficient-exponent pair $(A_i, B_i)$ documents a discrete evolutionary stage in the process model's development, all uniquely identified by cryptographic hash values in a global namespace.
+As the dedicated **Control Plane** within the Software-defined Networking (SDN) architecture of PKC, PCard provides the critical computational process model layer that mediates between physical data representations (MCard) and social value interpretations (VCard). This Control Plane function is expressed through polynomial functors from Category Theory, with each variable, coefficient, and exponent represented exclusively as MCard hash values. The polynomial representation $F(X) = \sum (A_i \otimes C_j^{B_i})$ serves as a complete version history tracker, where:
+
+* $C_j$ is the hash-valued reference to any arbitrary function, data structure, or runtime environment, where $j$ indicates the version number of concrete implementations
+* $A_i$ is the hash-valued coefficient representing semantic metadata for version control
+* $B_i$ is the hash-valued exponent capturing execution context and validation criteria
+* Each $(A_i, B_i)$ pair documents a discrete evolutionary stage in the process model's development
+
+Through this hash-based polynomial representation, PCard achieves universal referencing capability—able to represent and validate functions across any programming paradigm, language boundary, or execution context while maintaining perfect data integrity verification.
 
 This polynomial versioning system allows PCard to track process model evolution with mathematical precision, enabling:
 1. **Differential Process Analysis**: Computing the "derivative" between process versions through polynomial subtraction

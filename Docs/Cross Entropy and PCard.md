@@ -10,7 +10,7 @@ The profound connection between PCard's polynomial functor formulation and infor
 
 PCard's polynomial functor structure can be expressed using tensor product notation with Einstein summation convention as:
 
-$$F(X) = A_i \otimes X^{B_i}$$
+$$F(C_j) = A_i \otimes C_j^{B_i}$$
 
 Where:
 - The tensor product $\otimes$ signifies the fundamental compositional structure of knowledge
@@ -18,13 +18,13 @@ Where:
 
 This formulation is **mathematically equivalent** to a probability distribution over computational pathways:
 
-$$P(pathway_i) = \frac{A_i \otimes X^{B_i}}{A_j \otimes X^{B_j}}$$
+$$P(pathway_i) = \frac{A_i \otimes C_j^{B_i}}{A_k \otimes C_j^{B_k}}$$
 
 Where:
 - **$A_i$** = **Prior probabilities** tensor representing computational outcomes (test cases)
-- **$X^{B_i}$** = **Conditional probabilities** tensor encoding input structure dependencies
+- **$C_j^{B_i}$** = **Conditional probabilities** tensor encoding input structure dependencies
 - The tensor product $\otimes$ captures the multi-dimensional interaction between test cases and functional behavior
-- The denominator $A_j \otimes X^{B_j}$ with repeated index $j$ represents the tensor contraction that ensures $P(pathway_i) \delta^i_j = 1$
+- The denominator $A_j \otimes C_j^{B_j}$ with repeated index $j$ represents the tensor contraction that ensures $P(pathway_i) \delta^i_j = 1$
 
 This formulation explicitly reveals the **tensor product structure** underlying PCard's representation, where knowledge components interact through tensor compositions rather than simple scalar multiplications. The tensor product $\otimes$ is crucial as it preserves the multi-dimensional nature of knowledge relationships across categorical boundaries, enabling a **structural isomorphism** between PCard's tensor representation and probabilistic distributions in machine learning systems.
 
