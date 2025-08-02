@@ -21,7 +21,7 @@ services:
       start_period: 10s
 
   pkc-app:
-    image: henry768/pkc:latest_RAG
+    image: henry768/pkc:latest_RAG_test
     container_name: pkc-app
     restart: unless-stopped
     ports:
