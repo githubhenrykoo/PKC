@@ -110,9 +110,9 @@ export function SearchSection({
           </Button>
           <Button 
             type="button" 
-            variant="outline"
+            variant="secondary"
             size="sm"
-            className="px-2" 
+            className="px-2 border border-gray-300 dark:border-gray-700" 
             onClick={() => {
               // Force refresh by triggering search with current query
               onSearch(new Event('submit') as any);

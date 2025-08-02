@@ -135,10 +135,10 @@ export function ContentViewer({
           
           {!selectedCard && (
             <Button
-              variant="outline"
+              variant="secondary"
               size="sm"
               onClick={() => setIsTypingMode(!isTypingMode)}
-              className="ml-2"
+              className="ml-2 border border-gray-300 dark:border-gray-700"
             >
               <FileText size={14} className="mr-1" />
               {isTypingMode ? 'File Upload' : 'Text Input'}
