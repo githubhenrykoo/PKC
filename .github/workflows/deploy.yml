@@ -43,7 +43,7 @@ jobs:
           context: .
           push: true
           platforms: linux/amd64,linux/arm64
-          tags: henry768/pkc:latest_RAG
+          tags: henry768/pkc:latest_RAG_test
           cache-from: type=registry,ref=henry768/pkc:buildcache
           cache-to: type=registry,ref=henry768/pkc:buildcache,mode=max
           build-args: |

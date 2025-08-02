@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { MCardService, type MCardItem } from "@/services/MCardService";
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
 import { CardList } from "./CardList";
@@ -21,8 +21,10 @@ export function MCardBrowser() {
   const [searchType, setSearchType] = useState<SearchType>(SearchType.CONTENT);
   const [totalCards, setTotalCards] = useState(0);
   const [showDetail, setShowDetail] = useState(false);
+  const [envReady, setEnvReady] = useState(false);
 
-  const mCardService = new MCardService();
+  // Use a ref to store the MCardService instance once created
+  const mCardServiceRef = useRef<MCardService | null>(null);
   
   // Use custom hooks for content and file upload
   const {
@@ -48,10 +50,50 @@ export function MCardBrowser() {
     setUploadStatus
   } = useFileUpload();
 
-  // Load cards on initial mount and when page changes
+  // Wait for runtime environment variables to load before creating MCardService
   useEffect(() => {
-    fetchCards();
-  }, [page]);
+    // Function to check if runtime env is loaded
+    const checkRuntimeEnv = () => {
+      if (window.RUNTIME_ENV) {
+        console.log('Runtime environment detected, initializing MCardService');
+        mCardServiceRef.current = new MCardService();
+        setEnvReady(true);
+        document.removeEventListener('runtime-env-loaded', checkRuntimeEnv);
+      }
+    };
+
+    // If runtime env is already available, create service immediately
+    if (window.RUNTIME_ENV) {
+      console.log('Runtime environment already available, initializing MCardService');
+      mCardServiceRef.current = new MCardService();
+      setEnvReady(true);
+    } else {
+      // Otherwise wait for the runtime-env-loaded event
+      console.log('Waiting for runtime environment to load...');
+      document.addEventListener('runtime-env-loaded', checkRuntimeEnv);
+      
+      // Fall back to build-time environment after a timeout
+      const timeoutId = setTimeout(() => {
+        if (!mCardServiceRef.current) {
+          console.warn('Runtime environment not loaded after timeout, falling back to build-time env');
+          mCardServiceRef.current = new MCardService();
+          setEnvReady(true);
+        }
+      }, 3000); // 3 second timeout
+      
+      return () => {
+        document.removeEventListener('runtime-env-loaded', checkRuntimeEnv);
+        clearTimeout(timeoutId);
+      };
+    }
+  }, []);
+
+  // Load cards when environment is ready and when page changes
+  useEffect(() => {
+    if (envReady) {
+      fetchCards();
+    }
+  }, [envReady, page]);
 
   // Reset detail view when search query changes on mobile
   useEffect(() => {
@@ -62,6 +104,12 @@ export function MCardBrowser() {
 
   // Function to fetch cards based on current state
   const fetchCards = async () => {
+    // Skip if environment is not ready yet
+    if (!envReady || !mCardServiceRef.current) {
+      console.log('Environment not ready, skipping fetch cards');
+      return;
+    }
+    
     setLoading(true);
     setError(null);
     
@@ -70,19 +118,19 @@ export function MCardBrowser() {
       
       if (searchQuery) {
         if (searchType === SearchType.HASH) {
-          response = await mCardService.searchByHash(searchQuery, page, 10);
+          response = await mCardServiceRef.current.searchByHash(searchQuery, page, 10);
         } else {
-          response = await mCardService.searchCards(searchQuery, page, 10);
+          response = await mCardServiceRef.current.searchCards(searchQuery, page, 10);
         }
       } else {
-        response = await mCardService.listCards(page, 10);
+        response = await mCardServiceRef.current.listCards(page, 10);
       }
       
       setCards(response.items);
       setTotalPages(response.total_pages || Math.ceil(response.total_items / 10));
       
       // Update total card count
-      const countResponse = await mCardService.getCardCount();
+      const countResponse = await mCardServiceRef.current.getCardCount();
       setTotalCards(countResponse.count);
     } catch (err) {
       setError('Failed to fetch cards. Please try again.');
@@ -111,11 +159,22 @@ export function MCardBrowser() {
   
   // Handle file upload callback for the hook
   const handleFileUploadCallback = () => {
-    fetchCards(); // Refresh the card list after successful upload
+    if (envReady && mCardServiceRef.current) {
+      fetchCards(); // Refresh the card list after successful upload
+    }
   };
   
   // Handle text content upload (for both edit and direct text input)
   const handleUploadContent = async (content: string, contentType = 'text/plain') => {
+    // Check if environment is ready
+    if (!envReady || !mCardServiceRef.current) {
+      setUploadStatus({
+        success: false,
+        message: 'Error: Service not initialized. Please wait or refresh the page.'
+      });
+      return;
+    }
+    
     try {
       setUploadStatus({
         success: false,
@@ -126,7 +185,7 @@ export function MCardBrowser() {
       const contentBlob = new Blob([content], { type: contentType });
       
       // Use storeContent with the blob (which has content type information)
-      const response = await mCardService.storeContent(contentBlob);
+      const response = await mCardServiceRef.current.storeContent(contentBlob);
       
       if (response && response.hash) {
         // Refresh the card list
@@ -164,41 +223,77 @@ export function MCardBrowser() {
   
   // Handle card deletion
   const handleDeleteCard = async (hash: string) => {
+    // Check if environment is ready
+    if (!envReady || !mCardServiceRef.current) {
+      alert('Error: Service not initialized. Please wait or refresh the page.');
+      return;
+    }
+    
     try {
-      const response = await mCardService.deleteCard(hash);
+      if (!hash) {
+        console.error('No hash provided for deletion');
+        return;
+      }
+
+      // Show confirmation modal
+      const confirmDelete = window.confirm('Are you sure you want to delete this item? This action cannot be undone.');
       
-      if (response.success) {
-        // Clear selected card if it was the one deleted
-        if (selectedCard?.hash === hash) {
-          clearSelection();
-        }
-        
-        // Refresh the card list
-        await fetchCards();
-        
+      if (!confirmDelete) {
+        return; // User cancelled
+      }
+      
+      // Set loading state
+      setLoading(true);
+      
+      // Perform deletion API call
+      const response = await mCardServiceRef.current.deleteCard(hash);
+      
+      if (response.success) {      
         // Show success message
         setUploadStatus({
           success: true,
           message: `Card deleted successfully: ${hash.substring(0, 8)}...`
         });
         
+        // Clear selected card if it was the one deleted
+        if (selectedCard?.hash === hash) {
+          clearSelection();
+        }
+        // Refresh the card list
+        await fetchCards();
+        
         // Clear message after 3 seconds
         setTimeout(() => setUploadStatus(null), 3000);
       } else {
-        throw new Error(response.message || 'Failed to delete card');
+        setUploadStatus({
+          success: false,
+          message: `Failed to delete card: ${hash.substring(0, 8)}...`
+        });
       }
-    } catch (err) {
-      console.error('Error deleting card:', err);
+    } catch (error) {
+      console.error('Error deleting card:', error);
       setUploadStatus({
         success: false,
-        message: `Failed to delete card: ${err instanceof Error ? err.message : 'Unknown error'}`
+        message: `Error deleting card: ${error instanceof Error ? error.message : String(error)}`
       });
-      
-      // Clear error message after 5 seconds
-      setTimeout(() => setUploadStatus(null), 5000);
+    } finally {
+      setLoading(false);
     }
   };
 
+  // Show loading state when environment variables are not yet loaded
+  if (!envReady || !mCardServiceRef.current) {
+    return (
+      <div className="flex h-full items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary mx-auto mb-4"></div>
+          <p>Initializing MCard Browser...</p>
+          <p className="text-sm text-gray-500 mt-2">Loading environment configuration</p>
+        </div>
+      </div>
+    );
+  }
+  
   // Mobile view - Show either list or detail
   if (isMobile) {
     return (

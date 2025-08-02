@@ -1,7 +1,7 @@
 /**
  * MCardService - Handles all interactions with the MCard API
  */
-import { MCARD_API_URL } from '../config';
+import { getMcardApiUrl } from '../config';
 
 export interface MCardItem {
   hash: string;
@@ -29,9 +29,18 @@ export class MCardService {
   private baseUrl: string;
 
   constructor(baseUrl?: string) {
-    // Use provided baseUrl or the centralized config value
-    this.baseUrl = baseUrl || MCARD_API_URL;
+    // Use provided baseUrl or get it dynamically from config
+    this.baseUrl = baseUrl || getMcardApiUrl();
     console.log('MCardService initialized with baseUrl:', this.baseUrl);
+  }
+  
+  /**
+   * Updates the base URL used by this service instance
+   * This can be used to update the URL after runtime environment is loaded
+   */
+  updateBaseUrl(newBaseUrl?: string) {
+    this.baseUrl = newBaseUrl || getMcardApiUrl();
+    console.log('MCardService base URL updated to:', this.baseUrl);
   }
 
   // List all cards with pagination
