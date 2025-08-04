@@ -176,6 +176,21 @@ export class RAGService {
 
   // Query Operations
   async queryDocuments(query: string, maxSources: number = 3): Promise<RAGQueryResult> {
+    // First, ensure we have the latest document list to help resolve hashes
+    let documents: RAGDocument[] = [];
+    try {
+      const docsResponse = await this.getDocuments(1, 100);
+      documents = docsResponse.documents;
+
+      // Import and use the RAGHashResolver
+      const { ragHashResolver } = await import('./RAGHashResolver');
+      ragHashResolver.updateDocumentCache(documents);
+    } catch (error) {
+      console.warn('Failed to get documents for hash resolution:', error);
+      // Continue even if we can't get documents - at least we'll get query results
+    }
+
+    // Perform the query as normal
     const response = await fetch(`${this.baseUrl}/query`, {
       method: 'POST',
       headers: {
@@ -190,6 +205,20 @@ export class RAGService {
     if (!response.ok) {
       throw new Error(`Query failed: ${response.statusText}`);
     }
-    return response.json();
+
+    // Get the query result
+    const queryResult: RAGQueryResult = await response.json();
+    
+    // Fix unknown hashes if possible
+    try {
+      const { ragHashResolver } = await import('./RAGHashResolver');
+      if (ragHashResolver.hasMappings()) {
+        return ragHashResolver.resolveHashes(queryResult);
+      }
+    } catch (error) {
+      console.warn('Failed to resolve hashes:', error);
+    }
+    
+    return queryResult;
   }
 }

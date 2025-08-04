@@ -39,15 +39,16 @@ services:
       start_period: 10s
 
   local-rag:
-    image: henry768/local-rag:small  # Use our locally built image
+    image: henry768/local-rag:small  # Use the small image as requested
     ports:
       - "28302:28302"
     environment:
       - PORT=28302
       - MCARD_BASE_URL=http://mcard-service:49384/v1
       - OLLAMA_BASE_URL=http://ollama:11434
-      - LOG_LEVEL=INFO
+      - LOG_LEVEL=DEBUG  # Change to DEBUG for more verbose logging
       - HOME=/app
+      - PRESERVE_HASH=true  # Add this to ensure hashes are preserved
     volumes:
       - vector_data:/app/data/vector_store
       - log_data:/app/data/logs

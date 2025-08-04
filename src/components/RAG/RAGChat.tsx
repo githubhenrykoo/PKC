@@ -239,7 +239,9 @@ export function RAGChat({ onQuery, health, stats, loading, onRetrieveFromMCard, 
                     <div className="space-y-1">
                       {message.result.citations.map((citation, idx) => (
                         <div key={idx} className="text-xs opacity-80 border-l-2 border-current/30 pl-2">
-                          <div className="font-medium">Hash: {citation.hash.substring(0, 8)}...</div>
+                          <div className="font-medium">
+                            <span className="font-bold">Hash:</span> {citation.hash}
+                          </div>
                           <div className="font-medium">Score: {citation.relevance_score.toFixed(3)}</div>
                           <div className="truncate">{citation.content.substring(0, 100)}...</div>
                         </div>
