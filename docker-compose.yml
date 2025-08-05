@@ -39,14 +39,14 @@ services:
       start_period: 10s
 
   local-rag:
-    image: henry768/local-rag:small  # Use the small image as requested
+    image: henry768/local-rag:super-small  # Use super-small image as requested
     ports:
       - "28302:28302"
     environment:
       - PORT=28302
       - MCARD_BASE_URL=http://mcard-service:49384/v1
       - OLLAMA_BASE_URL=http://ollama:11434
-      - LOG_LEVEL=DEBUG  # Change to DEBUG for more verbose logging
+      - LOG_LEVEL=INFO
       - HOME=/app
       - PRESERVE_HASH=true  # Add this to ensure hashes are preserved
     volumes:
@@ -81,8 +81,8 @@ services:
           sleep 3
         done &&
         echo 'Ollama API is available!' &&
-        echo 'Pulling qwen3:1.7b model...' &&
-        curl -s -X POST http://ollama:11434/api/pull -d '{"name":"qwen3:1.7b"}' &&
+        echo 'Pulling qwen3:0.6b model...' &&
+        curl -s -X POST http://ollama:11434/api/pull -d '{"name":"qwen3:0.6b"}' &&
         echo 'Pulling nomic-embed-text model...' &&
         curl -s -X POST http://ollama:11434/api/pull -d '{"name":"nomic-embed-text"}' &&
         echo 'Model initialization completed successfully!'
