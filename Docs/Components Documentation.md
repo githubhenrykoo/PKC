@@ -14,10 +14,12 @@ graph TD
     
     C -->|onPanelChange| A
     
-    D --> E[MCardBrowser]
-    D --> F[RAGBrowser]
-    D --> G[SettingsPanel]
-    D --> H[AnalyticsPanel]
+    D --> E[MCard Browser]
+    D --> F[RAG]
+    D --> G[Analytics Panel]
+    D --> H[Settings Panel]
+    D --> I[Help & Support Panel]
+    D --> J[Additional Panels]
     
     style A fill:#f9f,stroke:#333,stroke-width:2px
     style B fill:#bbf,stroke:#333,stroke-width:1px
@@ -94,4 +96,4 @@ Container component that renders the currently active panel based on user select
 
 #### Help & Support Panel
 
-#### Additional Panels Later
+#### Additional Panels
