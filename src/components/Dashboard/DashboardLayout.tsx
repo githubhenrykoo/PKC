@@ -73,23 +73,26 @@ export function DashboardLayout({ title = "PKC Dashboard" }: DashboardLayoutProp
 
   return (
     <ThemeProvider>
-      <div className="relative flex min-h-screen flex-col bg-background">
-        <TopBar title="PKC" client:load>
-          <Button 
-            ref={menuButtonRef}
-            variant="ghost" 
-            size="icon" 
-            className="md:hidden"
-            onClick={() => setIsMobileSidebarOpen(!isMobileSidebarOpen)}
-            aria-label="Toggle menu"
-            aria-expanded={isMobileSidebarOpen}
-          >
-            {isMobileSidebarOpen ? <X className="h-5 w-5" /> : <PanelLeft className="h-5 w-5" />}
-            <span className="sr-only">Toggle Menu</span>
-          </Button>
-        </TopBar>
+      <div className="flex flex-col h-screen bg-background">
+        {/* Fixed TopBar */}
+        <div className="fixed top-0 left-0 right-0 z-40 h-16 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+          <TopBar title="PKC" client:load>
+            <Button 
+              ref={menuButtonRef}
+              variant="ghost" 
+              size="icon" 
+              className="md:hidden"
+              onClick={() => setIsMobileSidebarOpen(!isMobileSidebarOpen)}
+              aria-label="Toggle menu"
+              aria-expanded={isMobileSidebarOpen}
+            >
+              {isMobileSidebarOpen ? <X className="h-5 w-5" /> : <PanelLeft className="h-5 w-5" />}
+              <span className="sr-only">Toggle Menu</span>
+            </Button>
+          </TopBar>
+        </div>
 
-        <div className="flex-1 flex overflow-hidden">
+        <div className="flex flex-1 pt-16">
           {/* Mobile Sidebar Overlay */}
           {isMobile && isMobileSidebarOpen && (
             <div 
@@ -98,66 +101,47 @@ export function DashboardLayout({ title = "PKC Dashboard" }: DashboardLayoutProp
             />
           )}
 
-          <ResizablePanelGroup 
-            direction={isMobile ? "vertical" : "horizontal"}
-            className="flex-1 relative"
+          {/* Fixed Sidebar */}
+          <div 
+            ref={sidebarRef}
+            className={cn(
+              'fixed top-16 bottom-0 left-0 z-30 w-64 border-r bg-background transition-transform duration-300 ease-in-out',
+              'md:translate-x-0',
+              isMobile ? [
+                'transform',
+                isMobileSidebarOpen ? 'translate-x-0' : '-translate-x-full',
+                'shadow-lg',
+              ] : ''
+            )}
+            style={{
+              transitionProperty: 'transform',
+              transitionTimingFunction: 'cubic-bezier(0.4, 0, 0.2, 1)',
+              transitionDuration: '300ms',
+            }}
           >
-            {/* Sidebar */}
-            <div 
-              ref={sidebarRef}
-              className={cn(
-                'transition-transform duration-300 ease-in-out',
-                'fixed inset-y-0 left-0 z-50 w-64',
-                'md:relative md:translate-x-0',
-                isMobile ? [
-                  'transform',
-                  isMobileSidebarOpen ? 'translate-x-0' : '-translate-x-full',
-                  'bg-background shadow-lg',
-                  'h-screen',
-                ] : ''
-              )}
-              style={{
-                transitionProperty: 'transform',
-                transitionTimingFunction: 'cubic-bezier(0.4, 0, 0.2, 1)',
-                transitionDuration: '300ms',
-              }}
-            >
-              <ResizablePanel 
-                defaultSize={getSidebarSize()}
-                minSize={isMobile ? 100 : 15}
-                maxSize={isMobile ? 100 : 30}
-                collapsedSize={0}
-                collapsible
-                className="h-full"
-              >
-                <div className="h-full">
-                  <Sidebar 
-                    activePanel={activePanel} 
-                    onPanelChange={handlePanelChange} 
-                  />
-                </div>
-              </ResizablePanel>
+            <div className="h-full overflow-y-auto">
+              <Sidebar 
+                activePanel={activePanel} 
+                onPanelChange={handlePanelChange} 
+              />
             </div>
-            
-            {!isMobile && <ResizableHandle withHandle />}
-            
-            {/* Main Content */}
-            <ResizablePanel 
-              defaultSize={100 - getSidebarSize()}
-              className={cn(
-                'transition-all duration-300',
-                isMobile && isMobileSidebarOpen && 'opacity-50 pointer-events-none',
-                'md:opacity-100 md:pointer-events-auto',
-                'h-full',
-                'overflow-auto',
-                'p-4 md:p-6',
-                'bg-background',
-                'min-h-[calc(100vh-4rem)]' // Account for the header height
-              )}
-            >
-              <Panels activePanel={activePanel} />
-            </ResizablePanel>
-          </ResizablePanelGroup>
+          </div>
+          
+          {/* Main Content */}
+          <div 
+            className={cn(
+              'flex-1 transition-all duration-300 overflow-auto',
+              'pt-4 md:pt-6',
+              'pl-4 md:pl-6',
+              'pr-4 md:pr-6',
+              'pb-4 md:pb-6',
+              'ml-0 md:ml-64', // Offset for sidebar on desktop
+              isMobile && isMobileSidebarOpen ? 'opacity-50 pointer-events-none' : 'opacity-100',
+              'h-[calc(100vh-4rem)]' // Full height minus header
+            )}
+          >
+            <Panels activePanel={activePanel} />
+          </div>
         </div>
       </div>
     </ThemeProvider>

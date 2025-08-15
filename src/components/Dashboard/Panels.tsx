@@ -46,19 +46,19 @@ export function Panels({ activePanel, className }: PanelsProps) {
 
   return (
     <div className={cn(
-      "flex w-full h-full flex-col overflow-hidden",
+      "flex w-full h-full flex-col overflow-auto",
       className
     )}>
       {/* MCard Browser Panel */}
       {activePanel === 'mcard' && (
-        <div className="h-full w-full overflow-hidden">
+        <div className="h-full w-full">
           <MCardBrowser />
         </div>
       )}
 
       {/* RAG Panel */}
       {activePanel === 'rag' && (
-        <div className="h-full w-full overflow-hidden">
+        <div className="h-full w-full">
           <RAGBrowser />
         </div>
       )}

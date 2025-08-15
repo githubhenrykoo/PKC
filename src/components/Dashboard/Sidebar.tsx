@@ -43,7 +43,7 @@ function NavLink({ panel, icon, children, active = false, onClick }: NavLinkProp
 export function Sidebar({ className, activePanel, onPanelChange }: SidebarProps) {
   return (
     <aside className={cn("h-full overflow-y-auto p-4 md:p-6", className)}>
-      <nav>
+      <nav className="h-full">
         <ul className="space-y-2">
           <NavLink 
             panel="mcard"
