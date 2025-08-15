@@ -29,6 +29,8 @@ graph TD
     style F fill:#bfb,stroke:#333,stroke-width:1px
     style G fill:#bfb,stroke:#333,stroke-width:1px
     style H fill:#bfb,stroke:#333,stroke-width:1px
+    style I fill:#bfb,stroke:#333,stroke-width:1px
+    style J fill:#bfb,stroke:#333,stroke-width:1px
 ```
 
 ## Component Breakdown
