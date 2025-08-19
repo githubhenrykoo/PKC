@@ -2,7 +2,7 @@
 
 ## Introduction
 
-Directly shows the Langfuse feature.
+**Directly shows the Langfuse feature.**
 
 ### Main Page Interface
 
