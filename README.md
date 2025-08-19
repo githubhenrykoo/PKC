@@ -111,6 +111,9 @@ cd PKC
 # Install dependencies
 npm install
 
+# (Optional but recommended) Fetch local rendering libraries for offline use
+npm run fetch:render-libs
+
 # Start development server
 npm run dev
 ```

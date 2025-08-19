@@ -7,7 +7,8 @@
     "build": "astro build",
     "preview": "astro preview",
     "start": "node ./dist/server/entry.mjs",
-    "astro": "astro"
+    "astro": "astro",
+    "fetch:render-libs": "node scripts/fetch-render-libs.js"
   },
   "dependencies": {
     "@astrojs/mdx": "^4.3.4",
