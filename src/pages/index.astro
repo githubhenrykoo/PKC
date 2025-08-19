@@ -30,82 +30,37 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     
-    <!-- PWA Installation Handler -->
-    <script>
-      // Register Service Worker
-      if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-          navigator.serviceWorker.register('/sw.js')
-            .then(registration => {
-              console.log('Service Worker registered with scope:', registration.scope);
-            })
-            .catch(error => {
-              console.error('Service Worker registration failed:', error);
-            });
-        });
-      }
-      
-      // Handle PWA installation
-      interface BeforeInstallPromptEvent extends Event {
-  prompt(): Promise<void>;
-  userChoice: Promise<{ outcome: string, platform: string }>;
-}
+    <!-- PWA Installation Handler (minimal) -->
+    <script is:inline>
+      // @ts-check
+      /**
+       * @typedef {Event & {
+       *   prompt: () => Promise<void>,
+       *   userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>
+       * }} BeforeInstallPromptEvent
+       */
+      /** @type {BeforeInstallPromptEvent | null} */
+      let deferredPrompt = null;
 
-let deferredPrompt: BeforeInstallPromptEvent | null = null;
-      
+      /** @param {BeforeInstallPromptEvent} e */
       window.addEventListener('beforeinstallprompt', (e) => {
-        // Prevent the default browser install prompt
         e.preventDefault();
-        // Stash the event so it can be triggered later
         deferredPrompt = e;
-        
-        // Show install button
-        const installButton = document.createElement('button');
-        installButton.textContent = 'Install App';
-        installButton.style.position = 'fixed';
-        installButton.style.bottom = '20px';
-        installButton.style.right = '20px';
-        installButton.style.padding = '10px 20px';
-        installButton.style.background = '#4f46e5';
-        installButton.style.color = 'white';
-        installButton.style.border = 'none';
-        installButton.style.borderRadius = '5px';
-        installButton.style.cursor = 'pointer';
-        installButton.style.zIndex = '1000';
-        
-        installButton.onclick = () => {
-          // Hide the button
-          installButton.style.display = 'none';
-          
-          // Show the install prompt - add null check
-          if (deferredPrompt) {
-            deferredPrompt.prompt();
-            
-            // Wait for the user to respond to the prompt
-            deferredPrompt.userChoice.then((choiceResult: {outcome: string, platform: string}) => {
-              if (choiceResult.outcome === 'accepted') {
-                console.log('User accepted the install prompt');
-              } else {
-                console.log('User dismissed the install prompt');
-              }
-              deferredPrompt = null;
-            });
-          }
-        };
-        
-        document.body.appendChild(installButton);
-        
-        // Remove the button after 3 seconds
-        setTimeout(() => {
-          if (document.body.contains(installButton)) {
-            document.body.removeChild(installButton);
-          }
-        }, 10000);
-      });
-      
-      // Track successful installation
-      window.addEventListener('appinstalled', (event) => {
-        console.log('App was installed successfully');
+
+        const btn = document.createElement('button');
+        btn.textContent = 'Install App';
+        Object.assign(btn.style, {
+          position: 'fixed', bottom: '20px', right: '20px', padding: '10px 20px',
+          background: '#4f46e5', color: '#fff', border: 'none', borderRadius: '5px', cursor: 'pointer', zIndex: '1000'
+        });
+        btn.addEventListener('click', async () => {
+          btn.style.display = 'none';
+          if (!deferredPrompt) return;
+          await deferredPrompt.prompt();
+          try { await deferredPrompt.userChoice; } finally { deferredPrompt = null; }
+        });
+        document.body.appendChild(btn);
+        setTimeout(() => btn.remove(), 10000);
       });
     </script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -139,7 +94,7 @@ let deferredPrompt: BeforeInstallPromptEvent | null = null;
                 
                 <div class="content">
                     <div class="action-section">
-                        <button id="pushButton" class="push-button">
+                        <button id="pushButton" class="push-button" onclick="window.location.href='/home'">
                             <span class="button-text">Push to Start</span>
                             <span class="button-particles"></span>
                         </button>
@@ -479,296 +434,54 @@ let deferredPrompt: BeforeInstallPromptEvent | null = null;
             }
         }
     </style>
-    <!-- Load anime.js at the end of body -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" onerror="handleAnimeError()"></script>
     <script is:inline>
-      // Register service worker for PWA - only run in browser
-      if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
+      // @ts-check
+      // Register service worker (on load)
+      if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
-          navigator.serviceWorker.register('/sw.js').then(registration => {
-            console.log('ServiceWorker registration successful with scope: ', registration.scope);
-          }).catch(error => {
-            console.error('ServiceWorker registration failed: ', error);
-          });
+          navigator.serviceWorker.register('/sw.js').catch(console.error);
         });
       }
-      
-      // Handle anime.js loading error - only run in browser
-      function handleAnimeError() {
-        if (typeof window === 'undefined') return;
-        console.warn('anime.js CDN failed, loading fallback');
-        const script = document.createElement('script');
-        script.src = 'https://unpkg.com/animejs@3.2.1/lib/anime.min.js';
-        script.onerror = () => {
-          console.error('All anime.js sources failed, using CSS fallbacks');
-          window.anime = createAnimeFallback();
-        };
-        document.head.appendChild(script);
-      }
-      
-      // Create a simple fallback for anime.js
-      function createAnimeFallback() {
-        return {
-          timeline: () => ({
-            add: () => ({}),
-            play: () => {},
-            reverse: () => {}
-          }),
-          default: () => ({
-            complete: () => {}
-          })
-        };
-      }
-        
-        // anime.js will be available globally when loaded
-        
-        // Wait for anime.js to load or use fallback - only run in browser
-        function waitForAnime(callback) {
-          if (typeof window === 'undefined') return;
-          if (typeof anime !== 'undefined') {
-            callback();
-          } else {
-            setTimeout(() => waitForAnime(callback), 100);
+
+      document.addEventListener('DOMContentLoaded', () => {
+        const pushButton = document.getElementById('pushButton');
+        const countdownNumber = document.querySelector('.countdown-number');
+        const themeToggle = document.getElementById('themeToggle');
+
+        if (!pushButton || !countdownNumber || !themeToggle) return;
+
+        // Theme toggle
+        let dark = false;
+        themeToggle.addEventListener('click', () => {
+          dark = !dark;
+          document.documentElement.classList.toggle('dark-theme');
+          themeToggle.innerHTML = dark ? '<i class="fas fa-sun"></i>' : '<i class="fas fa-moon"></i>';
+        });
+
+        // Countdown + redirect
+        let timeLeft = 3;
+        countdownNumber.textContent = String(timeLeft);
+        const timer = setInterval(() => {
+          timeLeft -= 1;
+          if (timeLeft <= 0) {
+            clearInterval(timer);
+            pushButton.setAttribute('disabled', 'true');
+            const txt = pushButton.querySelector('.button-text');
+            if (txt) txt.textContent = 'Redirecting...';
+            window.location.href = '/home';
+          } else if (countdownNumber) {
+            countdownNumber.textContent = String(timeLeft);
           }
-        }
-        
-        // Only run in browser
-        if (typeof window !== 'undefined') {
-            document.addEventListener('DOMContentLoaded', () => {
-                // Wait for anime.js to be available before initializing animations
-                waitForAnime(() => {
-                    initializeApp();
-                });
-            });
-        }
-        
-        function initializeApp() {
-            // DOM Elements
-            const pushButton = document.getElementById('pushButton');
-            const countdownElement = document.getElementById('countdown');
-            const countdownNumber = document.querySelector('.countdown-number');
-            const statusMessage = document.getElementById('statusMessage');
-            const themeToggle = document.getElementById('themeToggle');
-            
-            if (!pushButton || !countdownElement || !countdownNumber || !statusMessage || !themeToggle) {
-                console.error('Required elements not found');
-                return;
-            }
-            
-            // State
-            let countdownInterval;
-            let timeLeft = 3;
-            let isDarkMode = false;
-            
-            // Theme Toggle
-            themeToggle.addEventListener('click', () => {
-                isDarkMode = !isDarkMode;
-                document.documentElement.classList.toggle('dark-theme');
-                themeToggle.innerHTML = isDarkMode 
-                    ? '<i class="fas fa-sun"></i>' 
-                    : '<i class="fas fa-moon"></i>';
-            });
-            
-            // Show status message
-            const showStatus = (message, type = 'success') => {
-                if (!statusMessage) return;
-                
-                const content = statusMessage.querySelector('.status-content');
-                if (!content) return;
-                
-                // Update message and icon based on type
-                if (type === 'success') {
-                    content.innerHTML = `<i class="fas fa-check-circle"></i><span>${message}</span>`;
-                    statusMessage.style.background = '#10b981';
-                } else {
-                    content.innerHTML = `<i class="fas fa-exclamation-circle"></i><span>${message}</span>`;
-                    statusMessage.style.background = '#ef4444';
-                }
-                
-                // Show and auto-hide
-                statusMessage.classList.add('show');
-                setTimeout(() => {
-                    statusMessage.classList.remove('show');
-                }, 3000);
-            };
-            
-            // Button hover animation
-            const buttonHoverAnimation = anime.timeline({
-                autoplay: false,
-                duration: 300,
-                easing: 'easeOutQuad'
-            });
-            
-            buttonHoverAnimation
-                .add({
-                    targets: pushButton,
-                    translateY: -5,
-                    scale: 1.02,
-                    boxShadow: '0 10px 15px -3px rgba(79, 70, 229, 0.3), 0 4px 6px -2px rgba(79, 70, 229, 0.2)'
-                });
-            
-            // Button click animation
-            const buttonClickAnimation = (e) => {
-                if (!(e.target instanceof HTMLElement)) return;
-                
-                // Create ripple effect
-                const rect = e.target.getBoundingClientRect();
-                const x = e.clientX - rect.left;
-                const y = e.clientY - rect.top;
-                
-                const ripple = document.createElement('span');
-                ripple.className = 'ripple-effect';
-                ripple.style.left = `${x}px`;
-                ripple.style.top = `${y}px`;
-                pushButton.appendChild(ripple);
-                
-                // Animate ripple
-                anime({
-                    targets: ripple,
-                    width: 400,
-                    height: 400,
-                    opacity: [0.5, 0],
-                    easing: 'easeOutQuad',
-                    duration: 800,
-                    complete: () => ripple.remove()
-                });
-                
-                // Button press animation
-                anime({
-                    targets: pushButton,
-                    scale: [1, 0.98, 1],
-                    duration: 300,
-                    easing: 'easeInOutQuad'
-                });
-                
-                // Disable button after click
-                pushButton.disabled = true;
-                pushButton.style.cursor = 'default';
-                
-                // Update button text
-                const buttonText = pushButton.querySelector('.button-text');
-                if (buttonText) {
-                    buttonText.textContent = 'Redirecting...';
-                }
-                
-                console.log('Button pushed!');
-            };
-            
-            // Event listeners
-            // Update button click handler to include redirect
-            const handleButtonClick = (e) => {
-                // Stop countdown immediately
-                if (countdownInterval) {
-                    clearInterval(countdownInterval);
-                }
-                
-                // Run click animation
-                buttonClickAnimation(e);
-                
-                // Button press animation using CSS
-                pushButton.classList.add('button-press');
-                
-                // Show success message
-                showStatus('Redirecting to dashboard...', 'success');
-                
-                // Redirect after animation completes
-                setTimeout(() => {
-                    window.location.href = '/dashboard';
-                }, 800);
-            };
-            
-            // Event listeners
-            pushButton.addEventListener('mouseenter', () => buttonHoverAnimation.play());
-            pushButton.addEventListener('mouseleave', () => buttonHoverAnimation.reverse());
-            pushButton.addEventListener('click', handleButtonClick);
-            
-            // Animation function for countdown text using CSS classes
-            function animateCountdown(newText) {
-                if (!countdownElement) return;
-                
-                // Add fade-out class
-                countdownElement.classList.add('fade-out');
-                
-                // After fade out completes, update text and fade back in
-                setTimeout(() => {
-                    if (countdownNumber) {
-                        countdownNumber.textContent = newText;
-                    }
-                    countdownElement.classList.remove('fade-out');
-                    countdownElement.classList.add('fade-in');
-                    
-                    // Remove the fade-in class after animation completes
-                    setTimeout(() => {
-                        countdownElement.classList.remove('fade-in');
-                    }, 600);
-                }, 300);
-            }
-            
-            // Start the countdown
-            const startCountdown = () => {
-                countdownInterval = setInterval(() => {
-                    timeLeft--;
-                    
-                    if (timeLeft <= 0) {
-                        clearInterval(countdownInterval);
-                        
-                        // Final animation before redirect
-                        countdownElement.classList.add('fade-out-final');
-                        showStatus('Time\'s up! Redirecting to dashboard...', 'success');
-                        
-                        // Disable button
-                        pushButton.disabled = true;
-                        const buttonText = pushButton.querySelector('.button-text');
-                        if (buttonText) {
-                            buttonText.textContent = 'Redirecting...';
-                        }
-                        
-                        // Redirect after animation completes
-                        setTimeout(() => {
-                            window.location.href = '/dashboard';
-                        }, 800);
-                    } else {
-                        const newText = timeLeft.toString();
-                        animateCountdown(newText);
-                    }
-                }, 1000);
-            };
-            
-            // Start countdown
-            startCountdown();
-            
-            // Initial call to avoid delay
-            if (countdownNumber) {
-                countdownNumber.textContent = timeLeft.toString();
-            }
-            
-            // Add styles for ripple effect
-            const style = document.createElement('style');
-            style.textContent = `
-                .ripple-effect {
-                    position: absolute;
-                    border-radius: 50%;
-                    background: rgba(255, 255, 255, 0.7);
-                    transform: translate(-50%, -50%);
-                    pointer-events: none;
-                    width: 10px;
-                    height: 10px;
-                }
-                
-                .push-button:disabled {
-                    opacity: 0.7;
-                    cursor: not-allowed;
-                    transform: none !important;
-                }
-                
-                .button-press {
-                    transform: scale(0.95) !important;
-                    opacity: 0.9 !important;
-                    transition: transform 0.2s ease, opacity 0.2s ease !important;
-                }
-            `;
-            document.head.appendChild(style);
-        }
+        }, 1000);
+
+        pushButton.addEventListener('click', () => {
+          clearInterval(timer);
+          pushButton.setAttribute('disabled', 'true');
+          const txt = pushButton.querySelector('.button-text');
+          if (txt) txt.textContent = 'Redirecting...';
+          window.location.href = '/home';
+        });
+      });
     </script>
 </body>
 </html>
