@@ -61,42 +61,16 @@ import UnknownRenderer from '../../../components/Mcard/UnknownRenderer.astro';
 </script>
 
 <script is:inline>
-  // Dynamic Content Viewer functionality
+  // Dynamic Content Viewer - Redux sync functionality
   document.addEventListener('DOMContentLoaded', () => {
+    console.log('🎯 Content viewer initializing...');
+    
     const contentTitle = document.getElementById('content-title');
     const contentType = document.getElementById('content-type');
     const contentTimestamp = document.getElementById('content-timestamp');
-    const contentDisplay = document.getElementById('content-display');
+    const placeholder = document.getElementById('content-placeholder');
+    const rendererSlot = document.getElementById('renderer-slot');
     const loadingState = document.getElementById('loading-state');
-
-    // Load shared content-type utils exposed by the module script
-    let inferContentTypeFromFilename, getTypeIconSvg;
-    const utilsReady = (async () => {
-      const getUtils = () => (window && window['CONTENT_TYPE_UTILS']) ? window['CONTENT_TYPE_UTILS'] : null;
-      let u = getUtils();
-      if (u) {
-        inferContentTypeFromFilename = u.inferContentTypeFromFilename;
-        getTypeIconSvg = u.getTypeIconSvg;
-        return;
-      }
-      await new Promise((resolve) => {
-        let attempts = 0;
-        const check = () => {
-          u = getUtils();
-          if (u) {
-            inferContentTypeFromFilename = u.inferContentTypeFromFilename;
-            getTypeIconSvg = u.getTypeIconSvg;
-            resolve(null);
-          } else if (attempts++ < 100) {
-            setTimeout(check, 50);
-          } else {
-            console.warn('⚠️ CONTENT_TYPE_UTILS not found on window after waiting');
-            resolve(null);
-          }
-        };
-        check();
-      });
-    })();
 
     // Function to get MCard API base URL
     const getMCardApiUrl = () => {
@@ -130,18 +104,75 @@ import UnknownRenderer from '../../../components/Mcard/UnknownRenderer.astro';
         : `<span class="align-middle">${titleText}</span>`;
     };
 
-    // Function to show loading state
+    // Show/hide loading state
     const showLoading = () => {
-      loadingState.classList.remove('hidden');
-      loadingState.style.display = 'flex';
-      loadingState.style.alignItems = 'center';
-      loadingState.style.justifyContent = 'center';
+      if (loadingState) {
+        loadingState.classList.remove('hidden');
+        loadingState.classList.add('flex', 'items-center', 'justify-center');
+      }
+    };
+    
+    const hideLoading = () => {
+      if (loadingState) {
+        loadingState.classList.add('hidden');
+        loadingState.classList.remove('flex', 'items-center', 'justify-center');
+      }
     };
 
-    // Function to hide loading state
-    const hideLoading = () => {
-      loadingState.classList.add('hidden');
-      loadingState.style.display = 'none';
+    // Update content metadata display
+    const updateContentMeta = (title, type, timestamp) => {
+      if (contentTitle) contentTitle.textContent = title || 'MCard Content';
+      if (contentType) contentType.textContent = type || 'Unknown type';
+      if (contentTimestamp && timestamp) {
+        contentTimestamp.textContent = timestamp;
+      }
+    };
+
+    // Main function to load MCard content
+    window.loadMCardContent = async (hash, title) => {
+      try {
+        showLoading();
+        updateContentMeta(title, 'Loading...', '');
+
+        const apiUrl = window.RUNTIME_ENV?.PUBLIC_MCARD_API_URL || 'http://localhost:49384/v1';
+        const response = await fetch(`${apiUrl}/card/${hash}/content`);
+        
+        if (!response.ok) {
+          throw new Error(`Failed to fetch content: ${response.statusText}`);
+        }
+
+        const contentTypeHeader = response.headers.get('content-type') || '';
+        const content = await response.text();
+        
+        // Update UI
+        updateContentMeta(title, contentTypeHeader, '');
+        
+        if (placeholder && rendererSlot) {
+          placeholder.classList.add('hidden');
+          rendererSlot.classList.remove('hidden');
+          rendererSlot.innerHTML = `<pre class="whitespace-pre-wrap font-mono text-sm p-4">${content}</pre>`;
+        }
+        
+        console.log('✅ Content loaded for:', hash);
+        
+      } catch (error) {
+        console.error('❌ Error loading content:', error);
+        updateContentMeta(title || 'Error', 'Error', '');
+        
+        if (placeholder && rendererSlot) {
+          placeholder.classList.add('hidden');
+          rendererSlot.classList.remove('hidden');
+          rendererSlot.innerHTML = `
+            <div class="text-center text-red-500 p-8">
+              <div class="text-4xl mb-4">⚠️</div>
+              <h3 class="text-lg font-semibold mb-2">Error Loading Content</h3>
+              <p class="text-sm">${error.message}</p>
+            </div>
+          `;
+        }
+      } finally {
+        hideLoading();
+      }
     };
 
     // Runtime library loader for Marked, DOMPurify, and KaTeX (auto-render)
@@ -605,48 +636,33 @@ import UnknownRenderer from '../../../components/Mcard/UnknownRenderer.astro';
       }
     }
 
-    // Debug Redux store availability
-    console.log('🔍 Checking Redux store availability...');
-    console.log('window.reduxStore:', window.reduxStore);
-    console.log('typeof window.reduxStore:', typeof window.reduxStore);
-    
-    // Wait for Redux store if not available yet
-    if (!window.reduxStore) {
-      console.log('⏳ Redux store not ready, waiting...');
-      let attempts = 0;
-      const checkStore = setInterval(() => {
-        attempts++;
-        console.log(`🔄 Attempt ${attempts}: Checking for Redux store...`);
-        if (window.reduxStore) {
-          console.log('✅ Redux store found, setting up subscription...');
-          clearInterval(checkStore);
-          setupReduxSubscription();
-        } else if (attempts > 10) {
-          console.error('❌ Redux store not available after 10 attempts');
-          clearInterval(checkStore);
-        }
-      }, 500);
-    } else {
-      setupReduxSubscription();
-    }
-    
+    // Setup Redux subscription for content loading
     function setupReduxSubscription() {
       console.log('🔗 Setting up Redux subscription...');
       let lastLoadedHash = null;
-      window.reduxStore.subscribe(() => {
-        console.log('🔔 Redux state changed in content viewer');
-        const state = window.reduxStore.getState();
-        console.log('📊 Current state:', state);
-        const { hash, title } = state.mcardSelection;
-        console.log('🎯 Selection data:', { hash, title, lastLoadedHash });
-        if (hash && hash !== lastLoadedHash) {
-          console.log('🚀 Loading new content:', hash, title);
-          lastLoadedHash = hash;
-          window.loadMCardContent(hash, title || 'MCard Content');
-        }
-      });
-      console.log('✅ Redux subscription established');
+      
+      if (window.reduxStore) {
+        window.reduxStore.subscribe(() => {
+          console.log('🔔 Redux state changed in content viewer');
+          const state = window.reduxStore.getState();
+          const { hash, title } = state.mcardSelection;
+          
+          if (hash && hash !== lastLoadedHash) {
+            console.log('🚀 Loading new content:', hash);
+            lastLoadedHash = hash;
+            window.loadMCardContent(hash, title || 'MCard Content');
+          }
+        });
+        console.log('✅ Redux subscription established');
+      } else {
+        console.warn('⚠️ Redux store not available');
+        // Retry after a delay
+        setTimeout(setupReduxSubscription, 1000);
+      }
     }
+    
+    // Initialize Redux subscription
+    setupReduxSubscription();
 
     console.log('🎯 Dynamic Content Viewer initialized');
   });
