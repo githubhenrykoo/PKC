@@ -1,0 +1,63 @@
+---
+// Text Content Renderer - Specialized component for rendering plain text MCards
+interface Props {
+  content: string;
+  hash: string;
+  metadata?: any;
+}
+
+const { content, hash, metadata } = Astro.props as Props;
+---
+
+<div class="text-renderer" data-hash={hash}>
+  <article class="prose dark:prose-invert max-w-none" id={`text-content-${hash}`}>
+    <!-- Content will be rendered by client-side script -->
+  </article>
+</div>
+
+<script is:inline define:vars={{ content, hash }}>
+  // Text rendering with basic markdown-like formatting
+  document.addEventListener('DOMContentLoaded', async () => {
+    const container = document.getElementById(`text-content-${hash}`);
+    if (!container) return;
+
+    try {
+      // Load rendering libraries for enhanced text formatting
+      const libs = await window.ensureRenderLibs?.() || {
+        marked: { parse: (text) => text.replace(/\n/g, '<br>') },
+        DOMPurify: { sanitize: (html) => html },
+        renderMathInElement: () => {}
+      };
+
+      // Treat plain text as markdown for better formatting
+      const raw = libs.marked.parse(content);
+      const safe = libs.DOMPurify.sanitize(raw, { USE_PROFILES: { html: true } });
+      container.innerHTML = safe;
+
+      // Render math if present
+      try {
+        libs.renderMathInElement(container, {
+          delimiters: [
+            {left: '$$', right: '$$', display: true},
+            {left: '$', right: '$', display: false},
+            {left: '\\(', right: '\\)', display: false},
+            {left: '\\[', right: '\\]', display: true}
+          ]
+        });
+      } catch (e) {
+        console.warn('Math rendering failed:', e);
+      }
+    } catch (error) {
+      console.error('Text rendering failed:', error);
+      container.innerHTML = `<pre class="whitespace-pre-wrap">${content}</pre>`;
+    }
+  });
+</script>
+
+<style>
+  .text-renderer {
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+  }
+</style>

@@ -1,0 +1,43 @@
+---
+// JSON Content Renderer - Specialized component for rendering JSON MCards
+interface Props {
+  content: string;
+  hash: string;
+  metadata?: any;
+}
+
+const { content, hash, metadata } = Astro.props as Props;
+---
+
+<div class="json-renderer" data-hash={hash}>
+  <div class="w-full h-full">
+    <pre id={`json-content-${hash}`} class="whitespace-pre-wrap font-mono text-sm bg-gray-50 dark:bg-gray-800 p-4 rounded-lg border overflow-auto h-full">
+      <!-- Content will be rendered by client-side script -->
+    </pre>
+  </div>
+</div>
+
+<script is:inline define:vars={{ content, hash }}>
+  // JSON formatting and rendering
+  document.addEventListener('DOMContentLoaded', () => {
+    const container = document.getElementById(`json-content-${hash}`);
+    if (!container) return;
+
+    try {
+      // Parse and pretty-print JSON
+      const parsed = JSON.parse(content);
+      const formatted = JSON.stringify(parsed, null, 2);
+      container.textContent = formatted;
+    } catch (error) {
+      console.warn('JSON parsing failed, displaying as plain text:', error);
+      container.textContent = content;
+    }
+  });
+</script>
+
+<style>
+  .json-renderer {
+    width: 100%;
+    height: 100%;
+  }
+</style>
