@@ -214,6 +214,32 @@ const { title = 'PKC', enableThemeToggle = true } = Astro.props as Props;
       /* Debug borders for development - Remove in production */
       /* Removed debug outlines for cleaner visual layout */
     </style>
+    <script type="module" src="/src/store/preload-state.ts"></script>
+    <script type="module" src="/src/store/initializer.ts"></script>
+
+    <!-- Preload MCards on initial load -->
+    <script>
+      import { preloadService } from '../services/preload-service';
+      document.addEventListener('DOMContentLoaded', async () => {
+        // Test API connection first
+        console.log('🧪 Testing MCard API connection...');
+        const apiUrl = window.RUNTIME_ENV?.PUBLIC_MCARD_API_URL || 'http://localhost:49384/v1';
+        try {
+          const testResponse = await fetch(`${apiUrl}/health`);
+          console.log('🏥 API Health check:', testResponse.status, testResponse.statusText);
+          if (testResponse.ok) {
+            const healthData = await testResponse.json();
+            console.log('🏥 API Health data:', healthData);
+          }
+        } catch (healthError) {
+          console.error('❌ API Health check failed:', healthError);
+        }
+        
+        // Start preload process
+        console.log('🚀 Starting preload process...');
+        preloadService.preloadAllMCards(true); // Force preload for testing
+      });
+    </script>
   </head>
   
   <body class="app-root">

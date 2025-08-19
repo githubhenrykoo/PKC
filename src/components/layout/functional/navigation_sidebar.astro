@@ -82,6 +82,99 @@ const totalPages = Math.ceil(totalItems / itemsPerPage);
 </aside>
 
 <script is:inline>
+  console.log('🔧 Navigation sidebar script starting...');
+  
+  // Test if basic JavaScript is working
+  document.addEventListener('DOMContentLoaded', () => {
+    console.log('🔧 DOM loaded, testing basic functionality...');
+    
+    // Test Clear button immediately
+    const clearBtn = document.getElementById('search-clear');
+    if (clearBtn) {
+      console.log('✅ Clear button found');
+      clearBtn.addEventListener('click', () => {
+        console.log('🔄 Clear button clicked!');
+        alert('Clear button works! Check console for API test.');
+        testAPIConnection();
+      });
+    } else {
+      console.error('❌ Clear button not found');
+    }
+  });
+  
+  async function testAPIConnection() {
+    try {
+      const apiUrl = 'http://localhost:49384/v1';
+      console.log('🧪 Testing API connection to:', apiUrl);
+      
+      const response = await fetch(`${apiUrl}/cards?page=1&page_size=5`);
+      console.log('📡 API Response:', response.status, response.statusText);
+      
+      if (response.ok) {
+        const data = await response.json();
+        console.log('📦 API Data:', data);
+        
+        // Update sidebar with real data
+        const navItems = document.getElementById('nav-items');
+        if (navItems && data.items && data.items.length > 0) {
+          navItems.innerHTML = data.items.map(item => `
+            <li>
+              <button 
+                class="nav-link w-full text-left px-2 py-1 rounded hover:bg-black/5 dark:hover:bg-white/10 transition-colors opacity-80 hover:opacity-100"
+                data-hash="${item.hash}"
+                data-title="${item.filename || item.hash.substring(0, 8)}"
+                data-content-type="${item.content_type || ''}"
+                data-g-time="${item.g_time || ''}"
+              >
+                • ${item.filename || item.hash.substring(0, 8)}
+              </button>
+            </li>
+          `).join('');
+          
+          // Add click listeners for selection
+          const navLinks = navItems.querySelectorAll('.nav-link');
+          navLinks.forEach(link => {
+            link.addEventListener('click', (e) => {
+              const button = e.currentTarget;
+              const hash = button.getAttribute('data-hash');
+              const title = button.getAttribute('data-title');
+              const contentType = button.getAttribute('data-content-type');
+              const gTime = button.getAttribute('data-g-time');
+              
+              console.log('🎯 MCard selected:', { hash, title, contentType, gTime });
+              
+              // Remove active state from other buttons
+              navLinks.forEach(l => l.classList.remove('bg-black/10', 'dark:bg-white/20'));
+              // Add active state to clicked button
+              button.classList.add('bg-black/10', 'dark:bg-white/20');
+              
+              // Dispatch Redux action for selection
+              try {
+                if (window.reduxStore && typeof window.reduxStore.dispatch === 'function') {
+                  window.reduxStore.dispatch({
+                    type: 'mcardSelection/setSelectedMCard',
+                    payload: { hash, title, gTime: gTime || '', contentType: contentType || '' }
+                  });
+                  console.log('✅ Redux dispatched for:', hash);
+                } else {
+                  console.warn('⚠️ Redux store not available');
+                }
+              } catch (error) {
+                console.error('❌ Redux error:', error);
+              }
+            });
+          });
+          
+          console.log('✅ Updated sidebar with', data.items.length, 'items and selection handlers');
+        }
+      } else {
+        console.error('❌ API Error:', response.status);
+      }
+    } catch (error) {
+      console.error('❌ Network Error:', error);
+    }
+  }
+
   // Enhanced navigation sidebar with IndexedDB caching and offline support
   document.addEventListener('DOMContentLoaded', async () => {
     let allItems = [];
@@ -94,7 +187,7 @@ const totalPages = Math.ceil(totalItems / itemsPerPage);
     let searchPageSize = 8;
     let searchTotalPages = 1;
     let searchTotalItems = 0;
-    
+
     // Load shared content-type utilities at runtime
     let inferContentTypeFromFilename, isBinary, getTypeLabel, getTypeIconSvg;
     try {
@@ -104,12 +197,12 @@ const totalPages = Math.ceil(totalItems / itemsPerPage);
     } catch (e) {
       console.warn('⚠️ Failed to load content-type utils:', e);
     }
-    
+
     // Function to get MCard API base URL
     const getMCardApiUrl = () => {
       return window.RUNTIME_ENV?.PUBLIC_MCARD_API_URL || 'http://localhost:49384/v1';
     };
-    
+
     // Initialize services dynamically
     const initializeServices = async () => {
       try {
@@ -122,25 +215,25 @@ const totalPages = Math.ceil(totalItems / itemsPerPage);
         console.warn('⚠️ Failed to initialize services:', error);
       }
     };
-    
+
     // Monitor online/offline status
     const setupOfflineDetection = () => {
       window.addEventListener('online', () => {
         isOffline = false;
         console.log('🌐 Back online - refreshing MCard data');
-        fetchMCardData(true); // Force refresh when back online
+        loadMCardData(true); // Force refresh when back online
       });
-      
+
       window.addEventListener('offline', () => {
         isOffline = true;
         console.log('📴 Offline mode - using cached data only');
       });
     };
-    
+
     // Wait for runtime environment to be loaded
     const waitForRuntimeEnv = () => {
       return new Promise((resolve) => {
-        if (window.RUNTIME_ENV) {
+        if (window.RUNTIME_ENV && Object.keys(window.RUNTIME_ENV).length > 0) {
           resolve();
         } else {
           const handler = () => {
@@ -152,93 +245,62 @@ const totalPages = Math.ceil(totalItems / itemsPerPage);
       });
     };
 
-    // Enhanced MCard data fetching with caching
-    const fetchMCardData = async (forceRefresh = false) => {
+    // Load MCard data from cache first, then fallback to API
+    const loadMCardData = async (forceRefresh = false) => {
       try {
-        // Initialize services first
         await initializeServices();
-        
-        // Check for cached data first (if not forcing refresh)
+
+        // 1. Try loading metadata from IndexedDB first
         if (!forceRefresh && indexedDBService) {
-          const cachedMCards = await indexedDBService.getAllCached();
-          if (cachedMCards.length > 0) {
-            console.log('📋 Using cached MCard data:', cachedMCards.length, 'items');
-            allItems = cachedMCards.map((cached, index) => {
-              const mcard = cached.metadata;
-              return {
-                title: getTitle(mcard, index),
-                content: mcard.hash,
-                id: `mcard-${mcard.hash.substring(0, 8)}`,
-                cached: true,
-                contentType: mcard.contentType,
-                filename: mcard.filename
-              };
-            });
-            return true; // Successfully loaded from cache
-          }
-        }
-        
-        // If offline and no cache, show offline message
-        if (isOffline) {
-          console.log('📴 Offline and no cached data available');
-          allItems = [{
-            title: "Offline Mode",
-            content: "No cached data available",
-            id: "offline-message"
-          }];
-          return false;
-        }
-        
-        // Wait for runtime environment
-        await waitForRuntimeEnv();
-        
-        console.log('🔄 Fetching MCard data from API...');
-        const baseUrl = getMCardApiUrl();
-        const response = await fetch(`${baseUrl}/cards?page=1&page_size=50`);
-        
-        if (response.ok) {
-          const data = await response.json();
-          console.log('✅ Fetched', data.items.length, 'MCard items');
-          
-          // Transform MCard data into navigation items
-          allItems = data.items.map((mcard, index) => {
-            return {
+          const cachedMetadata = await indexedDBService.getAllMCardMetadata();
+          if (cachedMetadata.length > 0) {
+            console.log('📋 Using cached MCard metadata:', cachedMetadata.length, 'items');
+            allItems = cachedMetadata.map((mcard, index) => ({
               title: getTitle(mcard, index),
               content: mcard.hash,
               id: `mcard-${mcard.hash.substring(0, 8)}`,
-              cached: false,
-              contentType: mcard.content_type,
-              filename: mcard.filename
-            };
-          });
-          
-          // Cache the metadata for offline use
-          if (mcardService && indexedDBService) {
-            data.items.forEach(async (mcard) => {
-              try {
-                const mappedMCard = {
-                  hash: mcard.hash,
-                  contentType: mcard.content_type,
-                  size: mcard.size_bytes,
-                  timestamp: mcard.g_time,
-                  metadata: mcard.metadata || {},
-                  filename: mcard.filename
-                };
-                // Cache just the metadata for quick sidebar loading
-                await indexedDBService.cacheMCard(mcard.hash, '', mappedMCard);
-              } catch (error) {
-                console.warn('⚠️ Failed to cache metadata for:', mcard.hash.substring(0, 8));
-              }
-            });
+              cached: true,
+              contentType: mcard.contentType,
+              filename: mcard.filename,
+              gTime: mcard.timestamp,
+            }));
+            return true; // Successfully loaded from cache
           }
-          
+        }
+
+        // 2. If offline and no cache, show offline message
+        if (isOffline) {
+          console.log('📴 Offline and no cached data available');
+          allItems = [{ title: "Offline Mode", content: "No cached data available", id: "offline-message" }];
+          return false;
+        }
+
+        // 3. Fallback to API if cache is empty or forceRefresh is true
+        await waitForRuntimeEnv();
+        console.log('🔄 Fetching MCard data from API...');
+        const response = await mcardService.fetchMCards({ page: 1, pageSize: 100 });
+        
+        if (response.items.length > 0) {
+          console.log('✅ Fetched', response.items.length, 'MCard items');
+          await indexedDBService.bulkCacheMCards(response.items);
+          allItems = response.items.map((mcard, index) => ({
+            title: getTitle(mcard, index),
+            content: mcard.hash,
+            id: `mcard-${mcard.hash.substring(0, 8)}`,
+            cached: false,
+            contentType: mcard.contentType,
+            filename: mcard.filename,
+            gTime: mcard.timestamp,
+          }));
           return true;
         } else {
-          console.error('❌ Failed to fetch MCard data:', response.statusText);
+          console.log('ℹ️ No MCard items found from API.');
+          allItems = [];
           return false;
         }
       } catch (error) {
-        console.error('❌ Error fetching MCard data:', error);
+        console.error('❌ Error loading MCard data:', error);
+        allItems = [{ title: "Error Loading Data", content: "Could not load MCards", id: "error-message" }];
         return false;
       }
     };
@@ -331,19 +393,53 @@ const totalPages = Math.ceil(totalItems / itemsPerPage);
     
     // Initialize and setup
     setupOfflineDetection();
-    const dataLoaded = await fetchMCardData();
     
-    // Fallback to server-side rendered items if fetch failed
-    if (!dataLoaded && allItems.length === 0) {
-      console.log('📋 Using fallback items');
-      const navItemsContainer = document.getElementById('nav-items');
-      const existingItems = navItemsContainer.querySelectorAll('.nav-link');
-      allItems = Array.from(existingItems).map(item => ({
-        title: item.textContent.replace('• ', ''),
-        content: item.getAttribute('data-content'),
-        id: item.getAttribute('data-id'),
-        cached: false
-      }));
+    // Simple direct API fetch without preload dependency
+    console.log('🚀 Starting sidebar data load...');
+    
+    try {
+      await initializeServices();
+      
+      // Direct API fetch
+      console.log('📡 Fetching MCards directly from API...');
+      const apiUrl = window.RUNTIME_ENV?.PUBLIC_MCARD_API_URL || 'http://localhost:49384/v1';
+      console.log('🔧 Using API URL:', apiUrl);
+      
+      const response = await fetch(`${apiUrl}/cards?page=1&page_size=50`);
+      console.log('📡 API Response status:', response.status);
+      
+      if (response.ok) {
+        const data = await response.json();
+        console.log('📦 API Response data:', data);
+        
+        if (data.items && data.items.length > 0) {
+          allItems = data.items.map((mcard, index) => ({
+            title: getTitle(mcard, index),
+            content: mcard.hash,
+            id: `mcard-${mcard.hash.substring(0, 8)}`,
+            cached: false,
+            contentType: mcard.content_type,
+            filename: mcard.filename,
+            gTime: mcard.g_time,
+          }));
+          console.log('✅ Loaded', allItems.length, 'MCard items');
+        } else {
+          console.log('ℹ️ No MCard items in response');
+          allItems = [{ title: "No MCards Found", content: "empty", id: "no-data" }];
+        }
+      } else {
+        console.error('❌ API request failed:', response.statusText);
+        allItems = [{ title: "API Error", content: "error", id: "api-error" }];
+      }
+    } catch (error) {
+      console.error('❌ Error loading MCards:', error);
+      allItems = [{ title: "Load Error", content: "error", id: "load-error" }];
+    }
+    
+    // Ensure we have some data to display
+    if (allItems.length === 0) {
+      console.log('📋 No data loaded, using fallback message');
+      allItems = [{ title: "No Data Available", content: "empty", id: "no-data" }];
     }
     
     const itemsPerPage = 8;
@@ -359,7 +455,7 @@ const totalPages = Math.ceil(totalItems / itemsPerPage);
         searchPage = 1;
         currentPage = 1;
         // Re-fetch items (use cache if available unless force requested)
-        await fetchMCardData(!!force);
+        await loadMCardData(!!force);
         renderPage(1);
       } catch (e) {
         console.warn('Failed to reset list:', e);
@@ -437,11 +533,20 @@ const totalPages = Math.ceil(totalItems / itemsPerPage);
           navLinks.forEach(l => l.classList.remove('bg-black/10', 'dark:bg-white/20'));
           if (el && el.classList) el.classList.add('bg-black/10', 'dark:bg-white/20');
           
-          // Trigger dynamic content viewer update
-          const contentViewerEvent = new CustomEvent('mcard-selected', {
-            detail: { hash: content, title }
-          });
-          document.dispatchEvent(contentViewerEvent);
+          // Find the full item from the allItems array to get all metadata
+          const fullItem = allItems.find(i => i.content === content);
+
+          if (fullItem && window.reduxStore) {
+            window.reduxStore.dispatch({
+              type: 'mcardSelection/setSelectedMCard',
+              payload: {
+                hash: fullItem.content,
+                title: fullItem.title,
+                gTime: fullItem.gTime || '',
+                contentType: fullItem.contentType || ''
+              }
+            });
+          }
           
           // Aggressive preloading: cache this content immediately
           if (content && content !== 'No cached data available') {
@@ -546,7 +651,56 @@ const totalPages = Math.ceil(totalItems / itemsPerPage);
     });
 
     searchClear.addEventListener('click', async () => {
-      await resetToFullList(false);
+      console.log('🔄 Clear button clicked - fetching fresh data...');
+      
+      try {
+        // Direct API fetch
+        console.log('📡 Fetching MCards directly from API...');
+        const apiUrl = window.RUNTIME_ENV?.PUBLIC_MCARD_API_URL || 'http://localhost:49384/v1';
+        console.log('🔧 Using API URL:', apiUrl);
+        
+        const response = await fetch(`${apiUrl}/cards?page=1&page_size=50`);
+        console.log('📡 API Response status:', response.status);
+        
+        if (response.ok) {
+          const data = await response.json();
+          console.log('📦 API Response data:', data);
+          
+          if (data.items && data.items.length > 0) {
+            allItems = data.items.map((mcard, index) => ({
+              title: getTitle(mcard, index),
+              content: mcard.hash,
+              id: `mcard-${mcard.hash.substring(0, 8)}`,
+              cached: false,
+              contentType: mcard.content_type,
+              filename: mcard.filename,
+              gTime: mcard.g_time,
+            }));
+            console.log('✅ Loaded', allItems.length, 'MCard items');
+          } else {
+            console.log('ℹ️ No MCard items in response');
+            allItems = [{ title: "No MCards Found", content: "empty", id: "no-data" }];
+          }
+        } else {
+          console.error('❌ API request failed:', response.statusText);
+          allItems = [{ title: "API Error", content: "error", id: "api-error" }];
+        }
+        
+        // Clear search and reset UI
+        searchInput.value = '';
+        lastQuery = '';
+        searchActive = false;
+        searchPage = 1;
+        currentPage = 1;
+        
+        // Render the updated data
+        renderPage(1);
+        
+      } catch (error) {
+        console.error('❌ Error fetching MCards:', error);
+        allItems = [{ title: "Load Error", content: "error", id: "load-error" }];
+        renderPage(1);
+      }
     });
     
     // Update the UI with fetched data and render initial page

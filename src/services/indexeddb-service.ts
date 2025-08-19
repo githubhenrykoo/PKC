@@ -237,6 +237,61 @@ export class IndexedDBService {
     }
   }
 
+  // Bulk cache multiple MCards into the normalized schema
+  async bulkCacheMCards(mcards: MCard[]): Promise<void> {
+    if (!mcards || mcards.length === 0) return;
+
+    try {
+      await this.db.transaction('rw', this.db.cards, this.db.card_cache, this.db.card_metadata, async () => {
+        const cardsToPut: Card[] = [];
+        const cacheMetasToPut: CardCacheMeta[] = [];
+        const metadataToPut: CardMetadata[] = [];
+
+        for (const mcard of mcards) {
+          // For bulk caching, we assume content is not available yet and will be fetched on demand.
+          const contentText = ''; 
+          const size = mcard.size || 0;
+
+          cardsToPut.push({ hash: mcard.hash, content: contentText, g_time: mcard.timestamp });
+          cacheMetasToPut.push({
+            hash: mcard.hash,
+            contentType: mcard.contentType,
+            size,
+            cachedAt: Date.now(),
+            lastAccessed: Date.now(),
+            isOfflineAvailable: false, // Content is not yet cached
+            filename: mcard.filename
+          });
+          metadataToPut.push({ hash: mcard.hash, metadata: mcard });
+        }
+
+        await this.db.cards.bulkPut(cardsToPut);
+        await this.db.card_cache.bulkPut(cacheMetasToPut);
+        await this.db.card_metadata.bulkPut(metadataToPut);
+      });
+
+      console.log(`📦 Bulk cached ${mcards.length} MCard metadata records.`);
+      await this.cleanupCache();
+
+    } catch (error) {
+      console.error('❌ Error bulk caching MCards:', error);
+    }
+  }
+
+  // Get all cached MCard metadata for list views
+  async getAllMCardMetadata(): Promise<MCard[]> {
+    try {
+      const metadataRows = await this.db.card_metadata.toArray();
+      return metadataRows.map(row => row.metadata).sort((a, b) => {
+        // Sort by timestamp descending
+        return (b.timestamp && a.timestamp) ? b.timestamp.localeCompare(a.timestamp) : 0;
+      });
+    } catch (error) {
+      console.error('❌ Error getting all cached MCard metadata:', error);
+      return [];
+    }
+  }
+
   // Get all cached MCards
   
 

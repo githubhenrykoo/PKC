@@ -119,29 +119,15 @@ import UnknownRenderer from '../../../components/Mcard/UnknownRenderer.astro';
       return gTime;
     };
 
-    // Minimal local fallback icon generator (used if shared utils are unavailable)
-    const getFallbackIconSvg = (ct) => {
-      const base = 'class="inline-block mr-2 -mt-0.5 align-middle opacity-80" width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"';
-      if (!ct) return `<svg ${base}><rect x="3" y="3" width="18" height="18" rx="2"/></svg>`;
-      const t = String(ct).toLowerCase();
-      if (t.startsWith('image/')) return `<svg ${base}><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="1.5"/><path d="M3 17l5-5 4 4 3-3 4 4"/></svg>`;
-      if (t.includes('pdf')) return `<svg ${base}><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M7 8h10M7 12h10M7 16h6"/></svg>`;
-      if (t.includes('json')) return `<svg ${base}><circle cx="8" cy="12" r="2"/><circle cx="16" cy="12" r="2"/><path d="M10 12h4"/></svg>`;
-      if (t.includes('html')) return `<svg ${base}><path d="M8 6l-4 6 4 6"/><path d="M16 6l4 6-4 6"/></svg>`;
-      if (t.startsWith('text/') || t.includes('markdown')) return `<svg ${base}><path d="M4 4h12l4 4v12H4z"/><path d="M16 4v4h4"/></svg>`;
-      if (t.startsWith('audio/')) return `<svg ${base}><path d="M9 18V6l10-2v12"/><circle cx="6" cy="18" r="3"/></svg>`;
-      if (t.startsWith('video/')) return `<svg ${base}><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M10 9l6 4-6 4z"/></svg>`;
-      return `<svg ${base}><rect x="3" y="3" width="18" height="18" rx="2"/></svg>`;
-    };
-
     // Helper: set title with icon using shared utils or fallback
     const setTitleWithIcon = (type, titleText) => {
       let iconSvg = '';
       try {
         if (typeof getTypeIconSvg === 'function') iconSvg = getTypeIconSvg(type);
       } catch {}
-      if (!iconSvg) iconSvg = getFallbackIconSvg(type);
-      contentTitle.innerHTML = `${iconSvg} <span class="align-middle">${titleText}</span>`;
+      contentTitle.innerHTML = iconSvg
+        ? `${iconSvg} <span class="align-middle">${titleText}</span>`
+        : `<span class="align-middle">${titleText}</span>`;
     };
 
     // Function to show loading state
@@ -557,11 +543,7 @@ import UnknownRenderer from '../../../components/Mcard/UnknownRenderer.astro';
                               'text/plain';
 
         // Update header info with icon and meta
-        if (typeof getTypeIconSvg === 'function') {
-          contentTitle.innerHTML = `${getTypeIconSvg(effectiveType)} <span class="align-middle">${title}</span>`;
-        } else {
-          contentTitle.textContent = title;
-        }
+        setTitleWithIcon(effectiveType, title);
         contentType.textContent = effectiveType;
         if (metadata.g_time) {
           contentTimestamp.textContent = formatTimestamp(metadata.g_time);
@@ -612,19 +594,6 @@ import UnknownRenderer from '../../../components/Mcard/UnknownRenderer.astro';
       }
     };
 
-    // Navigation clicks are now handled by the sidebar's custom event system
-
-    // Listen for explicit selection events from the navigation sidebar
-    document.addEventListener('mcard-selected', (e) => {
-      try {
-        const detail = (e && 'detail' in e) ? e.detail : {};
-        const hash = detail.hash;
-        const title = detail.title || 'MCard Content';
-        if (hash && typeof hash === 'string') {
-          window.loadMCardContent(hash, title);
-        }
-      } catch {}
-    });
 
     // If the container has initial data attributes, load immediately
     const root = document.querySelector('.dynamic-content-viewer');
@@ -634,6 +603,49 @@ import UnknownRenderer from '../../../components/Mcard/UnknownRenderer.astro';
       if (ih && ih.trim().length > 0) {
         window.loadMCardContent(ih, it);
       }
+    }
+
+    // Debug Redux store availability
+    console.log('🔍 Checking Redux store availability...');
+    console.log('window.reduxStore:', window.reduxStore);
+    console.log('typeof window.reduxStore:', typeof window.reduxStore);
+    
+    // Wait for Redux store if not available yet
+    if (!window.reduxStore) {
+      console.log('⏳ Redux store not ready, waiting...');
+      let attempts = 0;
+      const checkStore = setInterval(() => {
+        attempts++;
+        console.log(`🔄 Attempt ${attempts}: Checking for Redux store...`);
+        if (window.reduxStore) {
+          console.log('✅ Redux store found, setting up subscription...');
+          clearInterval(checkStore);
+          setupReduxSubscription();
+        } else if (attempts > 10) {
+          console.error('❌ Redux store not available after 10 attempts');
+          clearInterval(checkStore);
+        }
+      }, 500);
+    } else {
+      setupReduxSubscription();
+    }
+    
+    function setupReduxSubscription() {
+      console.log('🔗 Setting up Redux subscription...');
+      let lastLoadedHash = null;
+      window.reduxStore.subscribe(() => {
+        console.log('🔔 Redux state changed in content viewer');
+        const state = window.reduxStore.getState();
+        console.log('📊 Current state:', state);
+        const { hash, title } = state.mcardSelection;
+        console.log('🎯 Selection data:', { hash, title, lastLoadedHash });
+        if (hash && hash !== lastLoadedHash) {
+          console.log('🚀 Loading new content:', hash, title);
+          lastLoadedHash = hash;
+          window.loadMCardContent(hash, title || 'MCard Content');
+        }
+      });
+      console.log('✅ Redux subscription established');
     }
 
     console.log('🎯 Dynamic Content Viewer initialized');
