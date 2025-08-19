@@ -1,0 +1,35 @@
+---
+// Simple Topbar placeholder hosting login/logout and theme toggle proxy
+interface Props { title?: string }
+const { title = 'PKC' } = Astro.props as Props;
+---
+
+<nav class="w-full bg-[var(--surface)]/80 backdrop-blur supports-[backdrop-filter]:bg-[color-mix(in_oklab,var(--surface)_85%,transparent)] border-b border-black/5 dark:border-white/10">
+  <div class="w-full px-4 py-3 flex items-center justify-between gap-3">
+    <div class="flex items-center gap-3">
+      <div class="size-8 rounded bg-black/5 dark:bg-white/10 grid place-items-center font-semibold">PKC</div>
+      <span class="text-sm sm:text-base font-medium opacity-80">{title}</span>
+    </div>
+
+    <div class="flex items-center gap-2">
+      <button id="btnLogin" class="px-3 py-1.5 text-sm rounded-md border border-black/10 dark:border-white/10 hover:bg-black/5 dark:hover:bg-white/10">Login</button>
+      <button id="btnLogout" class="px-3 py-1.5 text-sm rounded-md border border-black/10 dark:border-white/10 hover:bg-black/5 dark:hover:bg-white/10">Logout</button>
+      <button id="btnThemeToggle" class="px-3 py-1.5 text-sm rounded-md border border-black/10 dark:border-white/10 hover:bg-black/5 dark:hover:bg-white/10" title="Toggle theme">🌓</button>
+    </div>
+  </div>
+</nav>
+
+<script is:inline>
+  (function(){
+    const q = (id) => document.getElementById(id);
+    const login = q('btnLogin');
+    const logout = q('btnLogout');
+    const theme = q('btnThemeToggle');
+    if (login) login.addEventListener('click', () => window.dispatchEvent(new CustomEvent('app-login')));
+    if (logout) logout.addEventListener('click', () => window.dispatchEvent(new CustomEvent('app-logout')));
+    if (theme) theme.addEventListener('click', () => {
+      const tog = document.getElementById('appThemeToggle');
+      if (tog) tog.dispatchEvent(new Event('click', { bubbles: true }));
+    });
+  })();
+  </script>

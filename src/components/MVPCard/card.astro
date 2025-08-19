@@ -1,0 +1,131 @@
+---
+/**
+ * src/components/MVPCard/card.astro
+ * Added: type 'splash' + prop `splash` to load a named splash component.
+ */
+
+interface Action { label: string; href?: string }
+type CardType = 'hero' | 'info' | 'cta' | 'link' | 'splash'
+type Align = 'left' | 'center' | 'right'
+type Tone = 'default' | 'muted' | 'primary'
+
+const {
+  type = 'info',
+  title,
+  description,
+  align = 'center',
+  tone = 'default',
+  primaryAction,
+  secondaryAction,
+  splash,
+  fullWidth = false,
+  containerClass = '',
+  cardClass = ''
+} = Astro.props as {
+  type?: CardType
+  title?: string
+  description?: string
+  align?: Align
+  tone?: Tone
+  primaryAction?: Action
+  secondaryAction?: Action
+  splash?: string
+  fullWidth?: boolean
+  containerClass?: string
+  cardClass?: string
+}
+
+const alignMap: Record<Align, string> = {
+  left: 'items-start text-left',
+  center: 'items-center text-center',
+  right: 'items-end text-right'
+}
+
+const justifyMap: Record<Align, string> = {
+  left: 'justify-start',
+  center: 'justify-center',
+  right: 'justify-end'
+}
+
+const toneMap: Record<Tone, string> = {
+  default: 'bg-background text-foreground border-border',
+  muted: 'bg-muted text-foreground border-border',
+  primary: 'bg-primary/5 text-foreground border-primary/30'
+}
+
+const isHero = type === 'hero'
+const isCta = type === 'cta'
+const isSplash = type === 'splash'
+
+// Dynamically import splash component by name when type === 'splash'
+let SplashComp: any = null
+if (isSplash && splash) {
+  try {
+    SplashComp = (await import(`../splash/${splash}.astro`)).default
+  } catch (e) {
+    console.error(`Splash component "${splash}" not found under components/splash/`, e)
+  }
+}
+
+// Compute classes for non-splash layout
+const containerClassName = `${fullWidth ? 'w-full p-0' : 'mx-auto w-full max-w-3xl p-6'} ${containerClass}`.trim()
+const cardClassName = `rounded-lg border shadow-sm ${toneMap[tone]} ${fullWidth ? 'p-4' : 'p-6'} ${cardClass}`.trim()
+
+---
+
+{isSplash
+  ? (
+    // Splash is rendered raw (no card wrapper) to preserve original layout & styles
+    <>
+      {SplashComp
+        ? <SplashComp />
+        : <div class="mx-auto w-full max-w-3xl p-6 text-center text-sm text-muted-foreground">
+            Splash component "{splash}" not found.
+          </div>}
+    </>
+  ) : (
+    <div class={containerClassName}>
+      <div class={cardClassName}>
+        <div class={`flex flex-col gap-4 ${alignMap[align]}`}>
+          {title && (
+            isHero ? (
+              <h1 class="text-4xl md:text-5xl font-bold tracking-tight">{title}</h1>
+            ) : (
+              <h2 class="text-2xl md:text-3xl font-semibold tracking-tight">{title}</h2>
+            )
+          )}
+
+          <div class="text-muted-foreground">
+            {Astro.slots.has('default') ? (
+              <slot />
+            ) : (
+              description && <p class={isHero ? 'text-lg md:text-xl' : 'text-base md:text-lg'} data-card-description>{description}</p>
+            )}
+          </div>
+
+          {(primaryAction || secondaryAction) && (
+            <div class={`flex flex-row gap-3 ${justifyMap[align]}`}>
+              {primaryAction?.href && (
+                <a
+                  href={primaryAction.href}
+                  class={`inline-flex items-center justify-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium shadow-sm transition-colors
+                    ${isCta ? 'bg-primary text-primary-foreground hover:bg-primary/90' : 'hover:bg-accent hover:text-accent-foreground'}`}
+                >
+                  {primaryAction.label}
+                </a>
+              )}
+              {secondaryAction?.href && (
+                <a
+                  href={secondaryAction.href}
+                  class="inline-flex items-center justify-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium shadow-sm hover:bg-accent hover:text-accent-foreground transition-colors"
+                >
+                  {secondaryAction.label}
+                </a>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}

@@ -1,13 +1,19 @@
 ---
-import MainLayout from "../layouts/MainLayout.astro";
+import AppShell from "../layouts/AppShell.astro";
+import Topbar from "../components/layout/topbar.astro";
+import NavigationSidebar from "../components/layout/functional/navigation_sidebar.astro";
+import RightPanel from "../components/layout/right-panel.astro";
+import Footer from "../components/layout/footer.astro";
+import DynamicContentViewer from "../components/layout/functional/dynamic-content-viewer.astro";
 ---
 
-<MainLayout title="Home">
-  <section class="min-h-[60vh] flex flex-col items-center justify-center text-center space-y-6">
-    <h1 class="text-4xl md:text-5xl font-bold tracking-tight">Home</h1>
-    <p class="text-lg text-muted-foreground">Hello World</p>
-    <a href="/" class="inline-flex items-center justify-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium shadow-sm hover:bg-accent hover:text-accent-foreground transition-colors">
-      ← Back to Start
-    </a>
-  </section>
-</MainLayout>
+<AppShell title="Epistemic Athenæum">
+  <Topbar slot="header" title="Epistemic Athenæum" />
+  <NavigationSidebar slot="sidebar" />
+  <RightPanel slot="right" />
+  <Footer slot="footer" />
+
+  <DynamicContentViewer 
+    initialTitle="Epistemic Athenæum"
+  />
+</AppShell>

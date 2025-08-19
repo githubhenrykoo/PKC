@@ -1,6 +1,6 @@
 import React from 'react';
 import { useSelector } from 'react-redux';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/MVPCard/card.tsx';
 import { Button } from '@/components/ui/button';
 import { Shield, Lock, AlertCircle } from 'lucide-react';
 import { LoginButton } from './login-button';

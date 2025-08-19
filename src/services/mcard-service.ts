@@ -1,4 +1,5 @@
 import type { MCard, SearchResult, SearchFilters, PaginationState } from '../store/types/data';
+import { indexedDBService } from './indexeddb-service';
 
 interface MCardListResponse {
   items: MCard[];
@@ -19,6 +20,7 @@ declare global {
 
 export class MCardService {
   private baseUrl: string;
+  private offlineMode: boolean = false;
 
   constructor() {
     // Use MCard API base URL from runtime environment (dynamically loaded) or fallback
@@ -33,6 +35,25 @@ export class MCardService {
     console.log('🔧 MCARD_API_URL configured as:', this.baseUrl);
     console.log('🔧 MCardService initialized with baseUrl:', this.baseUrl);
     console.log('🔧 Environment source:', source);
+    
+    // Monitor online/offline status
+    this.setupOfflineDetection();
+  }
+
+  private setupOfflineDetection(): void {
+    if (typeof window !== 'undefined') {
+      this.offlineMode = !navigator.onLine;
+      
+      window.addEventListener('online', () => {
+        this.offlineMode = false;
+        console.log('🌐 Back online - API requests enabled');
+      });
+      
+      window.addEventListener('offline', () => {
+        this.offlineMode = true;
+        console.log('📴 Offline mode - using cached data only');
+      });
+    }
   }
 
   /**
@@ -78,9 +99,22 @@ export class MCardService {
   }
 
   /**
-   * Get MCard content by hash
+   * Get MCard content by hash with offline caching
    */
   async getMCardContent(hash: string, asText: boolean = false): Promise<string | Blob> {
+    // Check cache first
+    const cached = await indexedDBService.getCachedMCard(hash);
+    if (cached) {
+      console.log(`📋 Using cached content for: ${hash}`);
+      return cached.content;
+    }
+
+    // If offline and not cached, throw error
+    if (this.offlineMode) {
+      throw new Error(`Content not available offline: ${hash}`);
+    }
+
+    // Fetch from API
     const url = `${this.baseUrl}/card/${hash}/content${asText ? '?as_text=true' : ''}`;
     const response = await fetch(url);
     
@@ -88,7 +122,23 @@ export class MCardService {
       throw new Error(`Failed to fetch MCard content: ${response.statusText}`);
     }
 
-    return asText ? await response.text() : await response.blob();
+    const content = asText ? await response.text() : await response.blob();
+    
+    // Cache the content for offline use
+    try {
+      const metadata = await this.getMCardMetadata(hash);
+      await indexedDBService.cacheMCard(hash, content, metadata);
+      
+      // Index text content for search
+      if (asText && typeof content === 'string') {
+        const title = metadata.filename || `Document ${hash.substring(0, 8)}`;
+        await indexedDBService.indexContent(hash, content, title, metadata.contentType);
+      }
+    } catch (error) {
+      console.warn('⚠️ Failed to cache content:', error);
+    }
+
+    return content;
   }
 
   /**
@@ -106,7 +156,7 @@ export class MCardService {
   }
 
   /**
-   * Search MCards
+   * Search MCards with offline fallback
    */
   async searchMCards(params: {
     query: string;
@@ -121,6 +171,32 @@ export class MCardService {
       pageSize = 20
     } = params;
 
+    // If offline, search cached content
+    if (this.offlineMode) {
+      const cachedResults = await indexedDBService.searchCached(query);
+      const startIndex = (page - 1) * pageSize;
+      const endIndex = startIndex + pageSize;
+      const paginatedResults = cachedResults.slice(startIndex, endIndex);
+      
+      return {
+        results: paginatedResults.map(item => ({
+          hash: item.hash,
+          relevanceScore: 0.8, // Default relevance for cached search
+          snippet: item.content.substring(0, 200) + '...',
+          metadata: {},
+        })),
+        pagination: {
+          page,
+          pageSize,
+          totalItems: cachedResults.length,
+          totalPages: Math.ceil(cachedResults.length / pageSize),
+          hasNextPage: endIndex < cachedResults.length,
+          hasPreviousPage: page > 1,
+        },
+      };
+    }
+
+    // Online search
     const searchParams = new URLSearchParams({
       query,
       page: page.toString(),
@@ -301,6 +377,53 @@ export class MCardService {
     }
 
     return await response.json();
+  }
+
+  /**
+   * Get offline cache statistics
+   */
+  async getCacheStats() {
+    return await indexedDBService.getCacheStats();
+  }
+
+  /**
+   * Clear offline cache
+   */
+  async clearCache(): Promise<void> {
+    await indexedDBService.clearCache();
+  }
+
+  /**
+   * Check if content is available offline
+   */
+  async isAvailableOffline(hash: string): Promise<boolean> {
+    return await indexedDBService.isCached(hash);
+  }
+
+  /**
+   * Get all cached MCards
+   */
+  async getCachedMCards() {
+    return await indexedDBService.getAllCached();
+  }
+
+  /**
+   * Force cache a specific MCard
+   */
+  async cacheForOffline(hash: string): Promise<void> {
+    try {
+      const metadata = await this.getMCardMetadata(hash);
+      const content = await this.getMCardContent(hash, true); // Get as text for indexing
+      await indexedDBService.cacheMCard(hash, content, metadata);
+      
+      if (typeof content === 'string') {
+        const title = metadata.filename || `Document ${hash.substring(0, 8)}`;
+        await indexedDBService.indexContent(hash, content, title, metadata.contentType);
+      }
+    } catch (error) {
+      console.error('❌ Failed to cache MCard for offline:', error);
+      throw error;
+    }
   }
 }
 

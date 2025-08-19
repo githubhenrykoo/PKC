@@ -1,0 +1,586 @@
+---
+// Navigation sidebar with direct MCard API integration
+interface NavigationItem {
+  title: string;
+  content: string;
+  id?: string;
+}
+
+interface Props {
+  items?: NavigationItem[];
+  title?: string;
+  itemsPerPage?: number;
+}
+
+// Fallback items for initial render
+const fallbackItems: NavigationItem[] = [
+  { title: "Loading MCard Data...", content: "Fetching MCard items from API", id: "loading" }
+];
+
+const { 
+  items = fallbackItems, 
+  title = "MCard Navigation",
+  itemsPerPage = 8
+} = Astro.props as Props;
+
+// Pagination logic
+const totalItems = items.length;
+const totalPages = Math.ceil(totalItems / itemsPerPage);
+---
+
+<aside class="rounded-lg bg-[var(--surface)] border border-black/5 dark:border-white/10 p-4">
+  <div class="flex justify-between items-center mb-2">
+    <h2 class="text-sm font-semibold opacity-70">{title}</h2>
+    <span class="text-xs opacity-50" id="page-indicator">1 / {totalPages}</span>
+  </div>
+  <!-- Search bar -->
+  <div class="mb-3 flex items-center gap-2">
+    <div class="relative flex-1">
+      <input
+        id="search-input"
+        type="text"
+        placeholder="Search documents..."
+        class="w-full px-3 py-2 rounded border border-black/5 dark:border-white/10 bg-transparent text-sm focus:outline-none focus:ring-2 focus:ring-black/10 dark:focus:ring-white/20"
+      />
+      <div id="search-spinner" class="hidden absolute right-2 top-1/2 -translate-y-1/2 text-xs opacity-60">⏳</div>
+    </div>
+    <button id="search-clear" class="px-2 py-1 text-xs rounded bg-black/5 dark:bg-white/10 hover:bg-black/10 dark:hover:bg-white/20 transition-colors">Clear</button>
+  </div>
+  
+  <ul class="space-y-1 text-sm min-h-[200px]" id="nav-items">
+    {items.slice(0, itemsPerPage).map((item) => (
+      <li>
+        <button 
+          class="nav-link w-full text-left px-2 py-1 rounded hover:bg-black/5 dark:hover:bg-white/10 transition-colors opacity-80 hover:opacity-100"
+          data-content={item.content}
+          data-id={item.id || item.title.toLowerCase().replace(/\s+/g, '-')}
+        >
+          • {item.title}
+        </button>
+      </li>
+    ))}
+  </ul>
+  
+  <div class="flex justify-between items-center mt-3 pt-3 border-t border-black/5 dark:border-white/10">
+    <button 
+      id="prev-page" 
+      class="px-3 py-1 text-xs rounded bg-black/5 dark:bg-white/10 hover:bg-black/10 dark:hover:bg-white/20 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+      disabled
+    >
+      ← Prev
+    </button>
+    <span class="text-xs opacity-70">
+      {totalItems} items
+    </span>
+    <button 
+      id="next-page" 
+      class="px-3 py-1 text-xs rounded bg-black/5 dark:bg-white/10 hover:bg-black/10 dark:hover:bg-white/20 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+    >
+      Next →
+    </button>
+  </div>
+</aside>
+
+<script is:inline>
+  // Enhanced navigation sidebar with IndexedDB caching and offline support
+  document.addEventListener('DOMContentLoaded', async () => {
+    let allItems = [];
+    let isOffline = !navigator.onLine;
+    let mcardService = null;
+    let indexedDBService = null;
+    let searchActive = false;
+    let lastQuery = '';
+    let searchPage = 1;
+    let searchPageSize = 8;
+    let searchTotalPages = 1;
+    let searchTotalItems = 0;
+    
+    // Function to get MCard API base URL
+    const getMCardApiUrl = () => {
+      return window.RUNTIME_ENV?.PUBLIC_MCARD_API_URL || 'http://localhost:49384/v1';
+    };
+    
+    // Initialize services dynamically
+    const initializeServices = async () => {
+      try {
+        const { mcardService: mcs } = await import('/src/services/mcard-service.ts');
+        const { indexedDBService: idbs } = await import('/src/services/indexeddb-service.ts');
+        mcardService = mcs;
+        indexedDBService = idbs;
+        console.log('📦 Services initialized successfully');
+      } catch (error) {
+        console.warn('⚠️ Failed to initialize services:', error);
+      }
+    };
+    
+    // Monitor online/offline status
+    const setupOfflineDetection = () => {
+      window.addEventListener('online', () => {
+        isOffline = false;
+        console.log('🌐 Back online - refreshing MCard data');
+        fetchMCardData(true); // Force refresh when back online
+      });
+      
+      window.addEventListener('offline', () => {
+        isOffline = true;
+        console.log('📴 Offline mode - using cached data only');
+      });
+    };
+    
+    // Wait for runtime environment to be loaded
+    const waitForRuntimeEnv = () => {
+      return new Promise((resolve) => {
+        if (window.RUNTIME_ENV) {
+          resolve();
+        } else {
+          const handler = () => {
+            window.removeEventListener('runtime-env-loaded', handler);
+            resolve();
+          };
+          window.addEventListener('runtime-env-loaded', handler);
+        }
+      });
+    };
+
+    // Enhanced MCard data fetching with caching
+    const fetchMCardData = async (forceRefresh = false) => {
+      try {
+        // Initialize services first
+        await initializeServices();
+        
+        // Check for cached data first (if not forcing refresh)
+        if (!forceRefresh && indexedDBService) {
+          const cachedMCards = await indexedDBService.getAllCached();
+          if (cachedMCards.length > 0) {
+            console.log('📋 Using cached MCard data:', cachedMCards.length, 'items');
+            allItems = cachedMCards.map((cached, index) => {
+              const mcard = cached.metadata;
+              return {
+                title: getTitle(mcard, index),
+                content: mcard.hash,
+                id: `mcard-${mcard.hash.substring(0, 8)}`,
+                cached: true,
+                contentType: mcard.contentType,
+                filename: mcard.filename
+              };
+            });
+            return true; // Successfully loaded from cache
+          }
+        }
+        
+        // If offline and no cache, show offline message
+        if (isOffline) {
+          console.log('📴 Offline and no cached data available');
+          allItems = [{
+            title: "Offline Mode",
+            content: "No cached data available",
+            id: "offline-message"
+          }];
+          return false;
+        }
+        
+        // Wait for runtime environment
+        await waitForRuntimeEnv();
+        
+        console.log('🔄 Fetching MCard data from API...');
+        const baseUrl = getMCardApiUrl();
+        const response = await fetch(`${baseUrl}/cards?page=1&page_size=50`);
+        
+        if (response.ok) {
+          const data = await response.json();
+          console.log('✅ Fetched', data.items.length, 'MCard items');
+          
+          // Transform MCard data into navigation items
+          allItems = data.items.map((mcard, index) => {
+            return {
+              title: getTitle(mcard, index),
+              content: mcard.hash,
+              id: `mcard-${mcard.hash.substring(0, 8)}`,
+              cached: false,
+              contentType: mcard.content_type,
+              filename: mcard.filename
+            };
+          });
+          
+          // Cache the metadata for offline use
+          if (mcardService && indexedDBService) {
+            data.items.forEach(async (mcard) => {
+              try {
+                const mappedMCard = {
+                  hash: mcard.hash,
+                  contentType: mcard.content_type,
+                  size: mcard.size_bytes,
+                  timestamp: mcard.g_time,
+                  metadata: mcard.metadata || {},
+                  filename: mcard.filename
+                };
+                // Cache just the metadata for quick sidebar loading
+                await indexedDBService.cacheMCard(mcard.hash, '', mappedMCard);
+              } catch (error) {
+                console.warn('⚠️ Failed to cache metadata for:', mcard.hash.substring(0, 8));
+              }
+            });
+          }
+          
+          return true;
+        } else {
+          console.error('❌ Failed to fetch MCard data:', response.statusText);
+          return false;
+        }
+      } catch (error) {
+        console.error('❌ Error fetching MCard data:', error);
+        return false;
+      }
+    };
+    
+    // Helper function to generate titles
+    const getTitle = (mcard, index) => {
+      if (mcard.filename) {
+        return mcard.filename.replace(/\.[^/.]+$/, "");
+      }
+      if (mcard.metadata?.title) {
+        return mcard.metadata.title;
+      }
+      const typeMap = {
+        'text/markdown': 'Markdown Document',
+        'text/plain': 'Text Document',
+        'application/pdf': 'PDF Document',
+        'application/json': 'JSON Data',
+        'image/png': 'PNG Image',
+        'image/jpeg': 'JPEG Image',
+        'application/javascript': 'JavaScript Code',
+        'text/html': 'HTML Document'
+      };
+      const baseTitle = typeMap[mcard.content_type] || 'Document';
+      return `${baseTitle} ${index + 1}`;
+    };
+
+    // Content-type helpers
+    const isBinary = (ct) => {
+      if (!ct) return false; // Unknown -> prefer TXT by default
+      if (ct.startsWith('text/')) return false;
+      // Known textual but not text/*
+      if (ct === 'application/json' || ct === 'application/javascript' || ct === 'text/html' || ct === 'text/markdown') return false;
+      // Everything else treat as binary
+      return true;
+    };
+    const getTypeLabel = (ct) => {
+      if (!ct) return 'TXT';
+      if (ct.startsWith('image/')) return 'IMG';
+      if (ct.startsWith('video/')) return 'VID';
+      if (ct.startsWith('audio/')) return 'AUD';
+      switch (ct) {
+        case 'application/pdf': return 'PDF';
+        case 'text/markdown': return 'MD';
+        case 'text/plain': return 'TXT';
+        case 'application/json': return 'JSON';
+        case 'application/javascript': return 'JS';
+        case 'text/html': return 'HTML';
+        default: return isBinary(ct) ? 'BLOB' : 'TXT';
+      }
+    };
+    const getTypeIconSvg = (ct) => {
+      const base = 'class="inline-block mr-2 -mt-0.5 align-middle opacity-80" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"';
+      if (!ct) {
+        return `<svg ${base}><rect x="3" y="3" width="18" height="18" rx="2"/></svg>`; // generic box
+      }
+      if (ct.startsWith('image/')) {
+        return `<svg ${base}><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="1.5"/><path d="M3 17l5-5 4 4 3-3 4 4"/></svg>`;
+      }
+      if (ct.startsWith('video/')) {
+        return `<svg ${base}><rect x="3" y="3" width="18" height="18" rx="2"/><polygon points="10,9 16,12 10,15"/></svg>`;
+      }
+      if (ct.startsWith('audio/')) {
+        return `<svg ${base}><path d="M12 5v8"/><circle cx="9" cy="15" r="2"/><circle cx="15" cy="13" r="2"/></svg>`;
+      }
+      switch (ct) {
+        case 'application/pdf':
+          return `<svg ${base}><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M8 13h2a2 2 0 0 1 0 4H8z"/><path d="M13 17v-4h2a2 2 0 0 1 0 4z"/></svg>`;
+        case 'text/markdown':
+          return `<svg ${base}><rect x="3" y="7" width="18" height="10" rx="2"/><path d="M7 15V9l2 2 2-2v6"/><path d="M15 15V9"/></svg>`;
+        case 'text/plain':
+          return `<svg ${base}><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M7 8h10M7 12h10M7 16h6"/></svg>`;
+        case 'application/json':
+          return `<svg ${base}><path d="M8 3H6a3 3 0 0 0-3 3v2"/><path d="M16 3h2a3 3 0 0 1 3 3v2"/><path d="M3 16v2a3 3 0 0 0 3 3h2"/><path d="M21 16v2a3 3 0 0 1-3 3h-2"/><circle cx="12" cy="12" r="2"/></svg>`;
+        case 'application/javascript':
+          return `<svg ${base}><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M8 16V8M16 16v-5a3 3 0 0 0-3-3h-1"/></svg>`;
+        case 'text/html':
+          return `<svg ${base}><path d="M10 3H4l2 14 6 4 6-4 2-14h-6"/><path d="M7 8h10M8 12h8"/></svg>`;
+        default:
+          return `<svg ${base}><rect x="3" y="3" width="18" height="18" rx="2"/></svg>`;
+      }
+    };
+    const formatItemTitle = (item) => {
+      const hash = (item.content || item.hash || '').toString();
+      const start = hash.slice(0, 3);
+      const end = hash.slice(-3);
+      const shortHash = hash.length >= 6 ? `${start}...${end}` : hash;
+      const ct = item.contentType || item.metadata?.contentType || item.metadata?.content_type;
+      const typeLabel = getTypeLabel(ct);
+      const typeIconSvg = getTypeIconSvg(ct);
+      return `${typeIconSvg} ${shortHash} ${typeLabel}`;
+    };
+    
+    // Smart preloading of MCard content
+    const preloadContent = async (hash) => {
+      if (!mcardService || !indexedDBService) return;
+      
+      try {
+        // Check if already cached
+        const isCached = await indexedDBService.isCached(hash);
+        if (isCached) return;
+        
+        // Preload content in background
+        console.log('🔄 Preloading content for:', hash.substring(0, 8));
+        await mcardService.cacheForOffline(hash);
+        console.log('✅ Content preloaded for:', hash.substring(0, 8));
+      } catch (error) {
+        console.warn('⚠️ Failed to preload content:', error);
+      }
+    };
+    
+    // Debounce utility
+    function debounce(fn, delay) {
+      let t;
+      return (...args) => {
+        clearTimeout(t);
+        t = setTimeout(() => fn.apply(null, args), delay);
+      };
+    }
+
+    // Map search results to sidebar items
+    const mapSearchResultsToItems = async (results) => {
+      return results.map((res, index) => ({
+        title: res.metadata?.title || (res.snippet ? res.snippet.slice(0, 60) + '…' : `Card ${res.hash.substring(0, 8)}`),
+        content: res.hash,
+        id: `mcard-${res.hash.substring(0, 8)}`,
+        cached: false,
+        contentType: res.metadata?.contentType || res.metadata?.content_type,
+        filename: res.metadata?.filename
+      }));
+    };
+
+    const navItemsContainer = document.getElementById('nav-items');
+    const pageIndicator = document.getElementById('page-indicator');
+    const prevButton = document.getElementById('prev-page');
+    const nextButton = document.getElementById('next-page');
+    const searchInput = document.getElementById('search-input');
+    const searchClear = document.getElementById('search-clear');
+    const searchSpinner = document.getElementById('search-spinner');
+    
+    // Initialize and setup
+    setupOfflineDetection();
+    const dataLoaded = await fetchMCardData();
+    
+    // Fallback to server-side rendered items if fetch failed
+    if (!dataLoaded && allItems.length === 0) {
+      console.log('📋 Using fallback items');
+      const navItemsContainer = document.getElementById('nav-items');
+      const existingItems = navItemsContainer.querySelectorAll('.nav-link');
+      allItems = Array.from(existingItems).map(item => ({
+        title: item.textContent.replace('• ', ''),
+        content: item.getAttribute('data-content'),
+        id: item.getAttribute('data-id'),
+        cached: false
+      }));
+    }
+    
+    const itemsPerPage = 8;
+    let currentPage = 1;
+    const totalPages = Math.ceil(allItems.length / itemsPerPage);
+    
+    function renderPage(page) {
+      let pageItems = [];
+      let total = 1;
+      let totalPagesLocal = 1;
+      if (searchActive) {
+        // In search mode, allItems already holds current page of results
+        pageItems = allItems;
+        total = searchTotalItems;
+        totalPagesLocal = searchTotalPages;
+      } else {
+        const startIndex = (page - 1) * itemsPerPage;
+        const endIndex = startIndex + itemsPerPage;
+        pageItems = allItems.slice(startIndex, endIndex);
+        total = allItems.length;
+        totalPagesLocal = Math.max(1, Math.ceil(allItems.length / itemsPerPage));
+      }
+      
+      navItemsContainer.innerHTML = pageItems.map(item => {
+        const displayTitle = formatItemTitle(item);
+        return `
+          <li>
+            <button 
+              class="nav-link w-full text-left px-2 py-1 rounded hover:bg-black/5 dark:hover:bg-white/10 transition-colors opacity-80 hover:opacity-100"
+              data-content="${item.content}"
+              data-id="${item.id}"
+              title="${item.cached ? 'Available offline' : 'Online only'}"
+            >
+              ${displayTitle}
+            </button>
+          </li>
+        `;
+      }).join('');
+      
+      // Update page indicator
+      pageIndicator.textContent = `${searchActive ? searchPage : page} / ${searchActive ? searchTotalPages : totalPagesLocal}`;
+      
+      // Update button states
+      prevButton.disabled = searchActive ? searchPage <= 1 : page === 1;
+      nextButton.disabled = searchActive ? searchPage >= searchTotalPages : page >= totalPagesLocal;
+      
+      // Re-attach event listeners to new nav links
+      attachNavLinkListeners();
+      
+      // Preload content for visible items (background task)
+      pageItems.forEach(item => {
+        if (item.content && item.content !== 'No cached data available') {
+          setTimeout(() => preloadContent(item.content), 100);
+        }
+      });
+    }
+    
+    function attachNavLinkListeners() {
+      const navLinks = document.querySelectorAll('.nav-link');
+      navLinks.forEach(link => {
+        link.addEventListener('click', (e) => {
+          const el = e.currentTarget;
+          const content = el && el.getAttribute ? el.getAttribute('data-content') : null;
+          const title = el && ('textContent' in el) ? el.textContent.trim() : '';
+          
+          // Find the card description element and update it
+          const cardDescription = document.querySelector('[data-card-description]');
+          if (cardDescription) {
+            cardDescription.textContent = content;
+          }
+          
+          // Add active state styling
+          navLinks.forEach(l => l.classList.remove('bg-black/10', 'dark:bg-white/20'));
+          if (el && el.classList) el.classList.add('bg-black/10', 'dark:bg-white/20');
+          
+          // Trigger dynamic content viewer update
+          const contentViewerEvent = new CustomEvent('mcard-selected', {
+            detail: { hash: content, title }
+          });
+          document.dispatchEvent(contentViewerEvent);
+          
+          // Aggressive preloading: cache this content immediately
+          if (content && content !== 'No cached data available') {
+            preloadContent(content);
+          }
+        });
+        
+        // Add hover preloading for better UX
+        link.addEventListener('mouseenter', (e) => {
+          const el = e.currentTarget;
+          const content = el && el.getAttribute ? el.getAttribute('data-content') : null;
+          if (content && content !== 'No cached data available') {
+            setTimeout(() => preloadContent(content), 200); // Small delay to avoid excessive requests
+          }
+        });
+      });
+    }
+    
+    // Pagination button handlers
+    prevButton.addEventListener('click', () => {
+      if (searchActive) {
+        if (searchPage > 1) {
+          searchPage--;
+          performSearch(lastQuery, searchPage);
+        }
+      } else {
+        if (currentPage > 1) {
+          currentPage--;
+          renderPage(currentPage);
+        }
+      }
+    });
+    
+    nextButton.addEventListener('click', () => {
+      if (searchActive) {
+        if (searchPage < searchTotalPages) {
+          searchPage++;
+          performSearch(lastQuery, searchPage);
+        }
+      } else {
+        const totalPagesLocal = Math.ceil(allItems.length / itemsPerPage);
+        if (currentPage < totalPagesLocal) {
+          currentPage++;
+          renderPage(currentPage);
+        }
+      }
+    });
+
+    // Perform search
+    const performSearch = async (query, page = 1) => {
+      lastQuery = query;
+      searchPage = page;
+      if (!mcardService) await initializeServices();
+      if (!query || query.trim().length === 0) {
+        // Exit search mode
+        searchActive = false;
+        currentPage = 1;
+        renderPage(currentPage);
+        return;
+      }
+      try {
+        searchSpinner.classList.remove('hidden');
+        const resp = await mcardService.searchMCards({ query, page, pageSize: searchPageSize });
+        searchActive = true;
+        searchTotalItems = resp.pagination.totalItems;
+        searchTotalPages = resp.pagination.totalPages || 1;
+        allItems = await mapSearchResultsToItems(resp.results);
+        if (allItems.length === 0) {
+          navItemsContainer.innerHTML = `<li class='opacity-70 text-xs px-2 py-1'>No results for "${query}"</li>`;
+          pageIndicator.textContent = `0 / 0`;
+          prevButton.disabled = true;
+          nextButton.disabled = true;
+        } else {
+          renderPage(currentPage);
+        }
+      } catch (err) {
+        console.warn('Search failed', err);
+        navItemsContainer.innerHTML = `<li class='opacity-70 text-xs px-2 py-1'>Search failed. Try again.</li>`;
+        pageIndicator.textContent = `0 / 0`;
+        prevButton.disabled = true;
+        nextButton.disabled = true;
+      } finally {
+        searchSpinner.classList.add('hidden');
+      }
+    };
+
+    const debouncedSearch = debounce((q) => performSearch(q, 1), 300);
+
+    // Search input interactions
+    searchInput.addEventListener('input', (e) => {
+      const q = e.target.value;
+      debouncedSearch(q);
+    });
+
+    searchInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        performSearch(e.target.value, 1);
+      }
+      if (e.key === 'Escape') {
+        searchInput.value = '';
+        performSearch('', 1);
+      }
+    });
+
+    searchClear.addEventListener('click', () => {
+      searchInput.value = '';
+      performSearch('', 1);
+    });
+    
+    // Update the UI with fetched data and render initial page
+    if (allItems.length > 0) {
+      console.log('🎨 Updating navigation UI with', allItems.length, 'items');
+      renderPage(1); // Render the first page with new data
+    } else {
+      // Initial render and attach listeners for fallback items
+      attachNavLinkListeners();
+    }
+  });
+</script>
+  

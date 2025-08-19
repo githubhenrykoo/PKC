@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Trash2, Edit, Save, FileText } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
-import { Card } from "@/components/ui/card";
+import { Card } from "@/components/MVPCard/card.tsx";
 import {
   AlertDialog,
   AlertDialogAction,

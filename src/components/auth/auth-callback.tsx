@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/MVPCard/card.tsx';
 import { Loader2, CheckCircle, XCircle } from 'lucide-react';
 import { handleAuthCallback, clearError } from '@/store/slices';
 import { selectIsLoading, selectError, selectIsAuthenticated } from '@/store/selectors';

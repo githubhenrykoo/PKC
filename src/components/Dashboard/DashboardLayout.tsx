@@ -3,6 +3,7 @@ import { TopBar } from './TopBar';
 import { Sidebar } from './Sidebar';
 import { Panels, type PanelType } from './Panels';
 import { ThemeProvider } from "@/context/ThemeContext";
+import { ReduxProvider } from '../app/redux-provider';
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
 import { useMediaQuery } from '@/hooks/useMediaQuery';
 import { Button } from "@/components/ui/button";
@@ -72,8 +73,9 @@ export function DashboardLayout({ title = "PKC Dashboard" }: DashboardLayoutProp
   };
 
   return (
-    <ThemeProvider>
-      <div className="flex flex-col h-screen bg-background">
+    <ReduxProvider>
+      <ThemeProvider>
+        <div className="flex flex-col h-screen bg-background">
         {/* Fixed TopBar */}
         <div className="fixed top-0 left-0 right-0 z-40 h-16 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
           <TopBar title="PKC" client:load>
@@ -143,7 +145,8 @@ export function DashboardLayout({ title = "PKC Dashboard" }: DashboardLayoutProp
             <Panels activePanel={activePanel} />
           </div>
         </div>
-      </div>
-    </ThemeProvider>
+        </div>
+      </ThemeProvider>
+    </ReduxProvider>
   );
 }

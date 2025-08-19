@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Card } from "@/components/ui/card";
+import { Card } from "@/components/MVPCard/card.tsx";
 import { AspectRatio } from "@/components/ui/aspect-ratio";
 import { ActionButton } from "@/components/ui/action-button";
 import { CountdownTimer } from "@/components/ui/countdown-timer";
