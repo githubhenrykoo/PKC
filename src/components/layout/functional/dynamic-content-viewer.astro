@@ -54,11 +54,6 @@ import UnknownRenderer from '../../../components/Mcard/UnknownRenderer.astro';
     </div>
   </div>
 </div>
-<script type="module">
-  import { inferContentTypeFromFilename, getTypeIconSvg } from '../../../utils/content-type-utils.ts';
-  window.CONTENT_TYPE_UTILS = { inferContentTypeFromFilename, getTypeIconSvg };
-  console.log('🧩 Content-type utils exposed on window (viewer)');
-</script>
 
 <script is:inline>
   // Dynamic Content Viewer - Redux sync functionality
@@ -93,15 +88,32 @@ import UnknownRenderer from '../../../components/Mcard/UnknownRenderer.astro';
       return gTime;
     };
 
-    // Helper: set title with icon using shared utils or fallback
-    const setTitleWithIcon = (type, titleText) => {
-      let iconSvg = '';
+    // Load content-type utilities for icons and labels
+    let getTypeIconSvg, getTypeLabel, inferContentTypeFromFilename;
+    
+    // Initialize content-type utils asynchronously
+    const initContentTypeUtils = async () => {
       try {
-        if (typeof getTypeIconSvg === 'function') iconSvg = getTypeIconSvg(type);
-      } catch {}
-      contentTitle.innerHTML = iconSvg
-        ? `${iconSvg} <span class="align-middle">${titleText}</span>`
-        : `<span class="align-middle">${titleText}</span>`;
+        const utils = await import('/src/utils/content-type-utils.ts');
+        ({ getTypeIconSvg, getTypeLabel, inferContentTypeFromFilename } = utils);
+        console.log('🧩 Content-type utils loaded in content viewer');
+      } catch (e) {
+        console.warn('⚠️ Failed to load content-type utils:', e);
+        // Fallback functions
+        getTypeIconSvg = (contentType) => '📄';
+        getTypeLabel = (contentType) => 'Document';
+        inferContentTypeFromFilename = (filename) => 'text/plain';
+      }
+    };
+    
+    // Initialize utils (call without await since we're not in async context)
+    initContentTypeUtils();
+
+    // Helper: set title with icon using shared utils
+    const setTitleWithIcon = (type, titleText) => {
+      const iconSvg = getTypeIconSvg(type);
+      const typeLabel = getTypeLabel(type);
+      contentTitle.innerHTML = `${iconSvg} <span class="align-middle">${titleText}</span> <span class="ml-2 text-xs px-2 py-1 rounded bg-black/5 dark:bg-white/10 opacity-70">${typeLabel}</span>`;
     };
 
     // Show/hide loading state
@@ -119,9 +131,14 @@ import UnknownRenderer from '../../../components/Mcard/UnknownRenderer.astro';
       }
     };
 
-    // Update content metadata display
+    // Update content metadata display with icons
     const updateContentMeta = (title, type, timestamp) => {
-      if (contentTitle) contentTitle.textContent = title || 'MCard Content';
+      if (contentTitle && type) {
+        // Use setTitleWithIcon for enhanced display
+        setTitleWithIcon(type, title || 'MCard Content');
+      } else if (contentTitle) {
+        contentTitle.textContent = title || 'MCard Content';
+      }
       if (contentType) contentType.textContent = type || 'Unknown type';
       if (contentTimestamp && timestamp) {
         contentTimestamp.textContent = timestamp;
