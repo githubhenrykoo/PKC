@@ -2,7 +2,7 @@
 
 ## Introduction
 
-"Langfuse is an open-source Large Language Models (LLMs) platform for debugging, analyzing, and monitoring. It provides powerful analytics to understand model behavior, costs, and performance."
+Directly shows the Langfuse feature.
 
 ### Main Page Interface
 
