@@ -1,17 +1,28 @@
 import Dexie, { type Table } from 'dexie';
 import type { MCard } from '../store/types/data';
 
-// IndexedDB schema for MCard offline storage
-export interface MCardCache {
-  hash: string;           // Primary key - MCard hash
-  content: string | Blob; // MCard content (text or binary)
-  metadata: MCard;        // Full MCard metadata
+// Shared SQL-like schema for MCard storage engines
+// CREATE TABLE card (hash TEXT PRIMARY KEY, content TEXT NOT NULL, g_time TEXT)
+export interface Card {
+  hash: string;      // Primary key - MCard hash
+  content: string;   // TEXT (human-readable). For binary, stored as base64 string
+  g_time?: string;   // g_time
+}
+
+// Additional attributes moved to separate tables keyed by hash
+export interface CardCacheMeta {
+  hash: string;           // PK and FK to Card.hash
   contentType: string;    // MIME type
-  size: number;          // Content size in bytes
-  timestamp: string;     // g_time from MCard
-  cachedAt: number;      // Local cache timestamp
-  lastAccessed: number;  // Last access time for LRU cleanup
+  size: number;           // Content size in bytes
+  cachedAt: number;       // Local cache timestamp
+  lastAccessed: number;   // Last access time for LRU cleanup
   isOfflineAvailable: boolean; // Flag for offline availability
+  filename?: string;      // Optional filename
+}
+
+export interface CardMetadata {
+  hash: string;           // PK and FK to Card.hash
+  metadata: MCard;        // Full MCard metadata object
 }
 
 export interface SearchIndex {
@@ -26,46 +37,97 @@ export interface SearchIndex {
 
 export interface UserPreferences {
   key: string;           // Preference key
-  value: any;           // Preference value
-  updatedAt: number;    // Last update timestamp
+  value: any;            // Preference value
+  updatedAt: number;     // Last update timestamp
 }
+
+// Public type for joined cached MCard records
+export type CachedMCard = {
+  hash: string;
+  content: string;
+  metadata: MCard;
+  contentType: string;
+  size: number;
+  timestamp: string;
+  cachedAt: number;
+  lastAccessed: number;
+  isOfflineAvailable: boolean;
+};
 
 // Dexie database class
 export class PKCDatabase extends Dexie {
-  // MCard cache table
-  mcards!: Table<MCardCache, string>;
-  
-  // Search index table
+  // Core MCard table (common schema)
+  cards!: Table<Card, string>;
+  // Separate attribute tables
+  card_cache!: Table<CardCacheMeta, string>;
+  card_metadata!: Table<CardMetadata, string>;
+  // Search index and preferences
   searchIndex!: Table<SearchIndex, number>;
-  
-  // User preferences table
   preferences!: Table<UserPreferences, string>;
 
   constructor() {
     super('PKCDatabase');
-    
-    // Database schema definition
+    // v1 schema (legacy): mcards table
     this.version(1).stores({
       mcards: 'hash, contentType, timestamp, cachedAt, lastAccessed, isOfflineAvailable',
       searchIndex: '++id, hash, contentType, title, lastIndexed',
       preferences: 'key, updatedAt'
     });
 
-    // Hooks for automatic timestamp updates
-    this.mcards.hook('creating', (primKey, obj, trans) => {
-      (obj as MCardCache).cachedAt = Date.now();
-      (obj as MCardCache).lastAccessed = Date.now();
+    // v2 schema: normalize to shared MCard schema
+    this.version(2).stores({
+      cards: 'hash, g_time',
+      card_cache: 'hash, contentType, cachedAt, lastAccessed',
+      card_metadata: 'hash',
+      searchIndex: '++id, hash, contentType, title, lastIndexed',
+      preferences: 'key, updatedAt'
+    }).upgrade(async (tx) => {
+      // Migrate from v1.mcards -> v2.cards + card_cache + card_metadata
+      try {
+        const oldMCards = await (tx.table('mcards') as Dexie.Table<any, string>).toArray().catch(() => []);
+        for (const old of oldMCards) {
+          const hash = old.hash as string;
+          const g_time = old.timestamp as string | undefined;
+          // Ensure content is string; old.content may be Blob or string
+          let contentText: string;
+          if (typeof old.content === 'string') contentText = old.content;
+          else if (old.content && typeof old.content.text === 'function') contentText = await old.content.text();
+          else contentText = '';
+
+          await (tx.table('cards') as Dexie.Table<Card, string>).put({ hash, content: contentText, g_time });
+          await (tx.table('card_cache') as Dexie.Table<CardCacheMeta, string>).put({
+            hash,
+            contentType: old.contentType || 'text/plain',
+            size: old.size || new Blob([contentText]).size,
+            cachedAt: old.cachedAt || Date.now(),
+            lastAccessed: old.lastAccessed || Date.now(),
+            isOfflineAvailable: old.isOfflineAvailable ?? true,
+            filename: old.metadata?.filename
+          });
+          if (old.metadata) {
+            await (tx.table('card_metadata') as Dexie.Table<CardMetadata, string>).put({ hash, metadata: old.metadata });
+          }
+        }
+      } catch (e) {
+        console.warn('⚠️ IndexedDB migration v1->v2 skipped or failed:', e);
+      }
     });
 
-    this.mcards.hook('updating', (modifications, primKey, obj, trans) => {
-      (modifications as Partial<MCardCache>).lastAccessed = Date.now();
+    // Hooks
+    this.card_cache.hook('creating', (_pk, obj) => {
+      (obj as CardCacheMeta).cachedAt = Date.now();
+      (obj as CardCacheMeta).lastAccessed = Date.now();
     });
 
-    this.preferences.hook('creating', (primKey, obj, trans) => {
+    this.card_cache.hook('updating', (modifications) => {
+      (modifications as Partial<CardCacheMeta>).lastAccessed = Date.now();
+    });
+
+    this.preferences.hook('creating', (_pk, obj) => {
       (obj as UserPreferences).updatedAt = Date.now();
     });
 
-    this.preferences.hook('updating', (modifications, primKey, obj, trans) => {
+    this.preferences.hook('updating', (modifications) => {
       (modifications as Partial<UserPreferences>).updatedAt = Date.now();
     });
   }
@@ -84,26 +146,31 @@ export class IndexedDBService {
     this.db = db;
   }
 
-  // Cache MCard content
+  // Cache MCard content into normalized schema
   async cacheMCard(hash: string, content: string | Blob, metadata: MCard): Promise<void> {
     try {
-      const size = typeof content === 'string' ? 
-        new Blob([content]).size : 
-        content.size;
+      // Convert content to TEXT per shared schema
+      const contentText = await this.ensureTextContent(content, metadata.contentType);
+      const size = new Blob([contentText]).size;
 
-      const cacheEntry: MCardCache = {
+      // Upsert cards row
+      const card: Card = { hash, content: contentText, g_time: metadata.timestamp };
+      await this.db.cards.put(card);
+
+      // Upsert attribute tables
+      const cacheMeta: CardCacheMeta = {
         hash,
-        content,
-        metadata,
         contentType: metadata.contentType,
         size,
-        timestamp: metadata.timestamp,
         cachedAt: Date.now(),
         lastAccessed: Date.now(),
-        isOfflineAvailable: true
+        isOfflineAvailable: true,
+        filename: metadata.filename
       };
+      await this.db.card_cache.put(cacheMeta);
 
-      await this.db.mcards.put(cacheEntry);
+      const metaRow: CardMetadata = { hash, metadata };
+      await this.db.card_metadata.put(metaRow);
       
       // Check cache size and cleanup if needed
       await this.cleanupCache();
@@ -115,18 +182,44 @@ export class IndexedDBService {
   }
 
   // Retrieve cached MCard content
-  async getCachedMCard(hash: string): Promise<MCardCache | null> {
+  async getCachedMCard(hash: string): Promise<{
+    hash: string;
+    content: string;
+    metadata: MCard;
+    contentType: string;
+    size: number;
+    timestamp: string;
+    cachedAt: number;
+    lastAccessed: number;
+    isOfflineAvailable: boolean;
+  } | null> {
     try {
-      const cached = await this.db.mcards.get(hash);
-      
-      if (cached) {
-        // Update last accessed time
-        await this.db.mcards.update(hash, { lastAccessed: Date.now() });
-        console.log(`📋 Retrieved cached MCard: ${hash}`);
-        return cached;
+      const card = await this.db.cards.get(hash);
+      if (!card) return null;
+
+      const [cacheMeta, metaRow] = await Promise.all([
+        this.db.card_cache.get(hash),
+        this.db.card_metadata.get(hash)
+      ]);
+
+      if (cacheMeta) {
+        await this.db.card_cache.update(hash, { lastAccessed: Date.now() });
       }
+
+      const result = {
+        hash,
+        content: card.content,
+        metadata: metaRow?.metadata || ({} as MCard),
+        contentType: cacheMeta?.contentType || 'text/plain',
+        size: cacheMeta?.size || new Blob([card.content]).size,
+        timestamp: card.g_time || '',
+        cachedAt: cacheMeta?.cachedAt || 0,
+        lastAccessed: cacheMeta?.lastAccessed || Date.now(),
+        isOfflineAvailable: cacheMeta?.isOfflineAvailable ?? true,
+      };
+      console.log(`📋 Retrieved cached MCard: ${hash}`);
+      return result;
       
-      return null;
     } catch (error) {
       console.error('❌ Error retrieving cached MCard:', error);
       return null;
@@ -136,8 +229,8 @@ export class IndexedDBService {
   // Check if MCard is cached
   async isCached(hash: string): Promise<boolean> {
     try {
-      const count = await this.db.mcards.where('hash').equals(hash).count();
-      return count > 0;
+      const exists = await this.db.cards.get(hash);
+      return !!exists;
     } catch (error) {
       console.error('❌ Error checking cache:', error);
       return false;
@@ -145,9 +238,31 @@ export class IndexedDBService {
   }
 
   // Get all cached MCards
-  async getAllCached(): Promise<MCardCache[]> {
+  
+
+  async getAllCached(): Promise<CachedMCard[]> {
     try {
-      return await this.db.mcards.orderBy('lastAccessed').reverse().toArray();
+      // Join cards with cache/meta
+      const cards = await this.db.cards.toArray();
+      const results = await Promise.all(cards.map(async (c) => {
+        const [cacheMeta, metaRow] = await Promise.all([
+          this.db.card_cache.get(c.hash),
+          this.db.card_metadata.get(c.hash)
+        ]);
+        return {
+          hash: c.hash,
+          content: c.content,
+          metadata: metaRow?.metadata || ({} as MCard),
+          contentType: cacheMeta?.contentType || 'text/plain',
+          size: cacheMeta?.size || new Blob([c.content]).size,
+          timestamp: c.g_time || '',
+          cachedAt: cacheMeta?.cachedAt || 0,
+          lastAccessed: cacheMeta?.lastAccessed || 0,
+          isOfflineAvailable: cacheMeta?.isOfflineAvailable ?? true
+        };
+      }));
+      // Sort by lastAccessed desc
+      return results.sort((a, b) => (b.lastAccessed || 0) - (a.lastAccessed || 0));
     } catch (error) {
       console.error('❌ Error getting all cached MCards:', error);
       return [];
@@ -198,19 +313,21 @@ export class IndexedDBService {
   async cleanupCache(): Promise<void> {
     try {
       const totalSize = await this.getCacheSize();
-      const totalItems = await this.db.mcards.count();
+      const totalItems = await this.db.cards.count();
 
       if (totalSize > this.maxCacheSize || totalItems > this.maxCacheItems) {
         // Get oldest items by last accessed time
-        const oldestItems = await this.db.mcards
+        const oldestMetas = await this.db.card_cache
           .orderBy('lastAccessed')
-          .limit(Math.max(50, Math.floor(totalItems * 0.1))) // Remove 10% or at least 50 items
+          .limit(Math.max(50, Math.floor(totalItems * 0.1)))
           .toArray();
 
-        const hashesToDelete = oldestItems.map(item => item.hash);
+        const hashesToDelete = oldestMetas.map(item => item.hash);
         
         // Remove from cache and search index
-        await this.db.mcards.bulkDelete(hashesToDelete);
+        await this.db.cards.bulkDelete(hashesToDelete);
+        await this.db.card_cache.bulkDelete(hashesToDelete);
+        await this.db.card_metadata.bulkDelete(hashesToDelete);
         await this.db.searchIndex.where('hash').anyOf(hashesToDelete).delete();
         
         console.log(`🧹 Cleaned up ${hashesToDelete.length} cached items`);
@@ -223,8 +340,8 @@ export class IndexedDBService {
   // Get total cache size
   async getCacheSize(): Promise<number> {
     try {
-      const items = await this.db.mcards.toArray();
-      return items.reduce((total, item) => total + item.size, 0);
+      const metas = await this.db.card_cache.toArray();
+      return metas.reduce((total, m) => total + (m.size || 0), 0);
     } catch (error) {
       console.error('❌ Error calculating cache size:', error);
       return 0;
@@ -240,13 +357,15 @@ export class IndexedDBService {
     newestItem: string | null;
   }> {
     try {
-      const items = await this.db.mcards.toArray();
-      const totalItems = items.length;
-      const totalSize = items.reduce((total, item) => total + item.size, 0);
-      
-      const sorted = items.sort((a, b) => a.cachedAt - b.cachedAt);
-      const oldestItem = sorted[0]?.timestamp || null;
-      const newestItem = sorted[sorted.length - 1]?.timestamp || null;
+      const metas = await this.db.card_cache.toArray();
+      const cards = await this.db.cards.toArray();
+      const totalItems = cards.length;
+      const totalSize = metas.reduce((total, m) => total + (m.size || 0), 0);
+      const sorted = metas.sort((a, b) => a.cachedAt - b.cachedAt);
+      const oldestCard = sorted[0] ? await this.db.cards.get(sorted[0].hash) : null;
+      const newestCard = sorted[sorted.length - 1] ? await this.db.cards.get(sorted[sorted.length - 1].hash) : null;
+      const oldestItem = oldestCard?.g_time || null;
+      const newestItem = newestCard?.g_time || null;
 
       return {
         totalItems,
@@ -289,7 +408,9 @@ export class IndexedDBService {
   // Clear all cached data
   async clearCache(): Promise<void> {
     try {
-      await this.db.mcards.clear();
+      await this.db.cards.clear();
+      await this.db.card_cache.clear();
+      await this.db.card_metadata.clear();
       await this.db.searchIndex.clear();
       console.log('🗑️ Cache cleared');
     } catch (error) {
@@ -311,6 +432,28 @@ export class IndexedDBService {
     const words = content.toLowerCase().match(/\b\w{3,}\b/g) || [];
     const uniqueWords = [...new Set(words)];
     return uniqueWords.slice(0, 20); // Limit to 20 tags
+  }
+
+  // Convert content to TEXT per shared schema (base64 for binary)
+  private async ensureTextContent(content: string | Blob, contentType: string): Promise<string> {
+    if (typeof content === 'string') return content;
+    // If textual content, decode as text; otherwise base64 encode
+    if (contentType && (contentType.includes('text/') || contentType.includes('json') || contentType.includes('markdown') || contentType.includes('html'))) {
+      return await content.text();
+    }
+    const arrayBuffer = await content.arrayBuffer();
+    const base64 = this.arrayBufferToBase64(arrayBuffer);
+    return `data:${contentType || 'application/octet-stream'};base64,${base64}`;
+  }
+
+  private arrayBufferToBase64(buffer: ArrayBuffer): string {
+    let binary = '';
+    const bytes = new Uint8Array(buffer);
+    const chunk = 0x8000;
+    for (let i = 0; i < bytes.length; i += chunk) {
+      binary += String.fromCharCode.apply(null, Array.from(bytes.subarray(i, i + chunk)) as any);
+    }
+    return btoa(binary);
   }
 }
 
