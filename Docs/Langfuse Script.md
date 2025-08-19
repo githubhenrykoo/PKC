@@ -10,7 +10,7 @@
 
 ### Organizations and Projects
 
-"You can create organizations and projects to manage your models and data. You can also add your members or other roles to your organization." (Open the Project --> Settings --> Members --> Add New Member)
+"You can create organizations and projects to manage your models and data. You can also add new member or other roles to your organization." (Open the Project --> Settings --> Members --> Add New Member)
 
 ### API
 
