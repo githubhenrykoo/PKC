@@ -1,3 +1,15 @@
+Metadata-Version: 2.4
+Name: pkc-py
+Version: 0.1.0
+Summary: Python tooling for PKC (MCard client, scripts)
+Author: PKC Maintainers
+License: MIT
+Keywords: pkc,mcard,knowledge,content-addressable
+Requires-Python: <3.10,>=3.9
+Description-Content-Type: text/markdown
+Requires-Dist: mcard==0.1.22
+Requires-Dist: pocketflow==0.0.3
+
 # PKC - Progressive Knowledge Container
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
