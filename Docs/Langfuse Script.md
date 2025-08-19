@@ -2,7 +2,7 @@
 
 ## Introduction
 
-**Directly shows the Langfuse feature.**
+"Recently, Henry has explained “What is Langfuse?”, now I will show you Langfuse's features."
 
 ### Main Page Interface
 
