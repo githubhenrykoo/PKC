@@ -54,6 +54,11 @@ import UnknownRenderer from '../../../components/Mcard/UnknownRenderer.astro';
     </div>
   </div>
 </div>
+<script type="module">
+  import { inferContentTypeFromFilename, getTypeIconSvg } from '../../../utils/content-type-utils.ts';
+  window.CONTENT_TYPE_UTILS = { inferContentTypeFromFilename, getTypeIconSvg };
+  console.log('🧩 Content-type utils exposed on window (viewer)');
+</script>
 
 <script is:inline>
   // Dynamic Content Viewer functionality
@@ -63,6 +68,35 @@ import UnknownRenderer from '../../../components/Mcard/UnknownRenderer.astro';
     const contentTimestamp = document.getElementById('content-timestamp');
     const contentDisplay = document.getElementById('content-display');
     const loadingState = document.getElementById('loading-state');
+
+    // Load shared content-type utils exposed by the module script
+    let inferContentTypeFromFilename, getTypeIconSvg;
+    const utilsReady = (async () => {
+      const getUtils = () => (window && window['CONTENT_TYPE_UTILS']) ? window['CONTENT_TYPE_UTILS'] : null;
+      let u = getUtils();
+      if (u) {
+        inferContentTypeFromFilename = u.inferContentTypeFromFilename;
+        getTypeIconSvg = u.getTypeIconSvg;
+        return;
+      }
+      await new Promise((resolve) => {
+        let attempts = 0;
+        const check = () => {
+          u = getUtils();
+          if (u) {
+            inferContentTypeFromFilename = u.inferContentTypeFromFilename;
+            getTypeIconSvg = u.getTypeIconSvg;
+            resolve(null);
+          } else if (attempts++ < 100) {
+            setTimeout(check, 50);
+          } else {
+            console.warn('⚠️ CONTENT_TYPE_UTILS not found on window after waiting');
+            resolve(null);
+          }
+        };
+        check();
+      });
+    })();
 
     // Function to get MCard API base URL
     const getMCardApiUrl = () => {
@@ -83,6 +117,31 @@ import UnknownRenderer from '../../../components/Mcard/UnknownRenderer.astro';
         console.error('Error parsing timestamp:', error);
       }
       return gTime;
+    };
+
+    // Minimal local fallback icon generator (used if shared utils are unavailable)
+    const getFallbackIconSvg = (ct) => {
+      const base = 'class="inline-block mr-2 -mt-0.5 align-middle opacity-80" width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"';
+      if (!ct) return `<svg ${base}><rect x="3" y="3" width="18" height="18" rx="2"/></svg>`;
+      const t = String(ct).toLowerCase();
+      if (t.startsWith('image/')) return `<svg ${base}><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="1.5"/><path d="M3 17l5-5 4 4 3-3 4 4"/></svg>`;
+      if (t.includes('pdf')) return `<svg ${base}><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M7 8h10M7 12h10M7 16h6"/></svg>`;
+      if (t.includes('json')) return `<svg ${base}><circle cx="8" cy="12" r="2"/><circle cx="16" cy="12" r="2"/><path d="M10 12h4"/></svg>`;
+      if (t.includes('html')) return `<svg ${base}><path d="M8 6l-4 6 4 6"/><path d="M16 6l4 6-4 6"/></svg>`;
+      if (t.startsWith('text/') || t.includes('markdown')) return `<svg ${base}><path d="M4 4h12l4 4v12H4z"/><path d="M16 4v4h4"/></svg>`;
+      if (t.startsWith('audio/')) return `<svg ${base}><path d="M9 18V6l10-2v12"/><circle cx="6" cy="18" r="3"/></svg>`;
+      if (t.startsWith('video/')) return `<svg ${base}><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M10 9l6 4-6 4z"/></svg>`;
+      return `<svg ${base}><rect x="3" y="3" width="18" height="18" rx="2"/></svg>`;
+    };
+
+    // Helper: set title with icon using shared utils or fallback
+    const setTitleWithIcon = (type, titleText) => {
+      let iconSvg = '';
+      try {
+        if (typeof getTypeIconSvg === 'function') iconSvg = getTypeIconSvg(type);
+      } catch {}
+      if (!iconSvg) iconSvg = getFallbackIconSvg(type);
+      contentTitle.innerHTML = `${iconSvg} <span class="align-middle">${titleText}</span>`;
     };
 
     // Function to show loading state
@@ -222,6 +281,8 @@ import UnknownRenderer from '../../../components/Mcard/UnknownRenderer.astro';
       
       return 'unknown';
     };
+
+    // (Removed local icon generator in favor of shared utils)
 
     // Dynamic component renderer using slot-based architecture
     const renderContentWithComponent = async (rendererType, content, hash, metadata, contentType) => {
@@ -477,6 +538,8 @@ import UnknownRenderer from '../../../components/Mcard/UnknownRenderer.astro';
 
     // Function to load and display MCard content
     window.loadMCardContent = async (hash, title = 'MCard Content') => {
+      // Ensure content-type utils are loaded before proceeding
+      try { await utilsReady; } catch {}
       try {
         showLoading();
         console.log('🔄 Loading MCard content for hash:', hash);
@@ -488,34 +551,26 @@ import UnknownRenderer from '../../../components/Mcard/UnknownRenderer.astro';
         if (!metaResponse.ok) {
           throw new Error(`Failed to fetch metadata: ${metaResponse.statusText}`);
         }
-        
         const metadata = await metaResponse.json();
-        console.log('📋 MCard metadata:', metadata);
+        const effectiveType = (metadata.content_type && String(metadata.content_type)) ||
+                              (inferContentTypeFromFilename ? inferContentTypeFromFilename(metadata.filename) : 'text/plain') ||
+                              'text/plain';
 
-        // Update header info
-        contentTitle.textContent = title;
-        // Infer content type if missing
-        const inferTypeFromFilename = (name = '') => {
-          const n = (name || '').toLowerCase();
-          if (n.endsWith('.md') || n.endsWith('.markdown')) return 'text/markdown';
-          if (n.endsWith('.html') || n.endsWith('.htm')) return 'text/html';
-          if (n.endsWith('.json')) return 'application/json';
-          if (n.endsWith('.png')) return 'image/png';
-          if (n.endsWith('.jpg') || n.endsWith('.jpeg')) return 'image/jpeg';
-          if (n.endsWith('.gif')) return 'image/gif';
-          if (n.endsWith('.pdf')) return 'application/pdf';
-          if (n.endsWith('.txt')) return 'text/plain';
-          return 'text/plain';
-        };
-        const effectiveType = (metadata.content_type && String(metadata.content_type)) || inferTypeFromFilename(metadata.filename) || 'text/plain';
+        // Update header info with icon and meta
+        if (typeof getTypeIconSvg === 'function') {
+          contentTitle.innerHTML = `${getTypeIconSvg(effectiveType)} <span class="align-middle">${title}</span>`;
+        } else {
+          contentTitle.textContent = title;
+        }
         contentType.textContent = effectiveType;
-        contentTimestamp.textContent = formatTimestamp(metadata.g_time);
+        if (metadata.g_time) {
+          contentTimestamp.textContent = formatTimestamp(metadata.g_time);
+        }
 
-        // Get content based on type
-        const isTextContent = effectiveType.includes('text/') || 
-                             effectiveType.includes('application/json') ||
-                             effectiveType.includes('markdown') ||
-                             effectiveType.includes('html');
+        const isTextContent = effectiveType.startsWith('text/') ||
+                              effectiveType.includes('application/json') ||
+                              effectiveType.includes('markdown') ||
+                              effectiveType.includes('html');
 
         // Determine renderer type and fetch content accordingly
         const rendererType = getRendererType(effectiveType);

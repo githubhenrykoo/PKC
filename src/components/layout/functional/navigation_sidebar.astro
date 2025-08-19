@@ -95,6 +95,16 @@ const totalPages = Math.ceil(totalItems / itemsPerPage);
     let searchTotalPages = 1;
     let searchTotalItems = 0;
     
+    // Load shared content-type utilities at runtime
+    let inferContentTypeFromFilename, isBinary, getTypeLabel, getTypeIconSvg;
+    try {
+      const utils = await import('/src/utils/content-type-utils.ts');
+      ({ inferContentTypeFromFilename, isBinary, getTypeLabel, getTypeIconSvg } = utils);
+      console.log('🧩 Content-type utils loaded');
+    } catch (e) {
+      console.warn('⚠️ Failed to load content-type utils:', e);
+    }
+    
     // Function to get MCard API base URL
     const getMCardApiUrl = () => {
       return window.RUNTIME_ENV?.PUBLIC_MCARD_API_URL || 'http://localhost:49384/v1';
@@ -242,83 +252,30 @@ const totalPages = Math.ceil(totalItems / itemsPerPage);
         return mcard.metadata.title;
       }
       const typeMap = {
-        'text/markdown': 'Markdown Document',
-        'text/plain': 'Text Document',
-        'application/pdf': 'PDF Document',
-        'application/json': 'JSON Data',
-        'image/png': 'PNG Image',
-        'image/jpeg': 'JPEG Image',
-        'application/javascript': 'JavaScript Code',
-        'text/html': 'HTML Document'
+        'text/markdown': 'Markdown',
+        'text/plain': 'Text',
+        'application/pdf': 'PDF',
+        'application/json': 'JSON',
+        'image/png': 'PNG',
+        'image/jpeg': 'JPEG',
+        'application/javascript': 'JavaScript',
+        'text/html': 'HTML'
       };
-      const baseTitle = typeMap[mcard.content_type] || 'Document';
+      const ct = mcard.content_type || mcard.contentType;
+      const baseTitle = typeMap[ct] || 'Document';
       return `${baseTitle} ${index + 1}`;
     };
 
-    // Content-type helpers
-    const isBinary = (ct) => {
-      if (!ct) return false; // Unknown -> prefer TXT by default
-      if (ct.startsWith('text/')) return false;
-      // Known textual but not text/*
-      if (ct === 'application/json' || ct === 'application/javascript' || ct === 'text/html' || ct === 'text/markdown') return false;
-      // Everything else treat as binary
-      return true;
-    };
-    const getTypeLabel = (ct) => {
-      if (!ct) return 'TXT';
-      if (ct.startsWith('image/')) return 'IMG';
-      if (ct.startsWith('video/')) return 'VID';
-      if (ct.startsWith('audio/')) return 'AUD';
-      switch (ct) {
-        case 'application/pdf': return 'PDF';
-        case 'text/markdown': return 'MD';
-        case 'text/plain': return 'TXT';
-        case 'application/json': return 'JSON';
-        case 'application/javascript': return 'JS';
-        case 'text/html': return 'HTML';
-        default: return isBinary(ct) ? 'BLOB' : 'TXT';
-      }
-    };
-    const getTypeIconSvg = (ct) => {
-      const base = 'class="inline-block mr-2 -mt-0.5 align-middle opacity-80" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"';
-      if (!ct) {
-        return `<svg ${base}><rect x="3" y="3" width="18" height="18" rx="2"/></svg>`; // generic box
-      }
-      if (ct.startsWith('image/')) {
-        return `<svg ${base}><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="1.5"/><path d="M3 17l5-5 4 4 3-3 4 4"/></svg>`;
-      }
-      if (ct.startsWith('video/')) {
-        return `<svg ${base}><rect x="3" y="3" width="18" height="18" rx="2"/><polygon points="10,9 16,12 10,15"/></svg>`;
-      }
-      if (ct.startsWith('audio/')) {
-        return `<svg ${base}><path d="M12 5v8"/><circle cx="9" cy="15" r="2"/><circle cx="15" cy="13" r="2"/></svg>`;
-      }
-      switch (ct) {
-        case 'application/pdf':
-          return `<svg ${base}><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M8 13h2a2 2 0 0 1 0 4H8z"/><path d="M13 17v-4h2a2 2 0 0 1 0 4z"/></svg>`;
-        case 'text/markdown':
-          return `<svg ${base}><rect x="3" y="7" width="18" height="10" rx="2"/><path d="M7 15V9l2 2 2-2v6"/><path d="M15 15V9"/></svg>`;
-        case 'text/plain':
-          return `<svg ${base}><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M7 8h10M7 12h10M7 16h6"/></svg>`;
-        case 'application/json':
-          return `<svg ${base}><path d="M8 3H6a3 3 0 0 0-3 3v2"/><path d="M16 3h2a3 3 0 0 1 3 3v2"/><path d="M3 16v2a3 3 0 0 0 3 3h2"/><path d="M21 16v2a3 3 0 0 1-3 3h-2"/><circle cx="12" cy="12" r="2"/></svg>`;
-        case 'application/javascript':
-          return `<svg ${base}><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M8 16V8M16 16v-5a3 3 0 0 0-3-3h-1"/></svg>`;
-        case 'text/html':
-          return `<svg ${base}><path d="M10 3H4l2 14 6 4 6-4 2-14h-6"/><path d="M7 8h10M8 12h8"/></svg>`;
-        default:
-          return `<svg ${base}><rect x="3" y="3" width="18" height="18" rx="2"/></svg>`;
-      }
-    };
+    // (Removed local content-type helpers in favor of shared utils)
     const formatItemTitle = (item) => {
-      const hash = (item.content || item.hash || '').toString();
-      const start = hash.slice(0, 3);
-      const end = hash.slice(-3);
-      const shortHash = hash.length >= 6 ? `${start}...${end}` : hash;
-      const ct = item.contentType || item.metadata?.contentType || item.metadata?.content_type;
+      const ctRaw = item.contentType || item.metadata?.contentType || item.metadata?.content_type || inferContentTypeFromFilename(item.filename);
+      const ct = ctRaw || 'text/plain';
       const typeLabel = getTypeLabel(ct);
       const typeIconSvg = getTypeIconSvg(ct);
-      return `${typeIconSvg} ${shortHash} ${typeLabel}`;
+      const baseTitle = (item.title && item.title.trim().length > 0)
+        ? item.title
+        : (item.filename ? item.filename.replace(/\.[^/.]+$/, '') : ((item.content || item.hash || '').toString()));
+      return `${typeIconSvg} ${baseTitle} <span class="ml-1 text-[10px] px-1 py-0.5 rounded bg-black/5 dark:bg-white/10 align-middle">${typeLabel}</span>`;
     };
     
     // Smart preloading of MCard content
@@ -350,14 +307,18 @@ const totalPages = Math.ceil(totalItems / itemsPerPage);
 
     // Map search results to sidebar items
     const mapSearchResultsToItems = async (results) => {
-      return results.map((res, index) => ({
-        title: res.metadata?.title || (res.snippet ? res.snippet.slice(0, 60) + '…' : `Card ${res.hash.substring(0, 8)}`),
-        content: res.hash,
-        id: `mcard-${res.hash.substring(0, 8)}`,
-        cached: false,
-        contentType: res.metadata?.contentType || res.metadata?.content_type,
-        filename: res.metadata?.filename
-      }));
+      return results.map((res, index) => {
+        const filename = res.metadata?.filename;
+        const contentType = res.metadata?.contentType || res.metadata?.content_type || inferContentTypeFromFilename(filename);
+        return {
+          title: res.metadata?.title || (res.snippet ? res.snippet.slice(0, 60) + '…' : `Card ${res.hash.substring(0, 8)}`),
+          content: res.hash,
+          id: `mcard-${res.hash.substring(0, 8)}`,
+          cached: false,
+          contentType,
+          filename
+        };
+      });
     };
 
     const navItemsContainer = document.getElementById('nav-items');
@@ -388,6 +349,24 @@ const totalPages = Math.ceil(totalItems / itemsPerPage);
     const itemsPerPage = 8;
     let currentPage = 1;
     const totalPages = Math.ceil(allItems.length / itemsPerPage);
+
+    // Reset search and refresh full list
+    const resetToFullList = async (force = false) => {
+      try {
+        searchInput.value = '';
+        lastQuery = '';
+        searchActive = false;
+        searchPage = 1;
+        currentPage = 1;
+        // Re-fetch items (use cache if available unless force requested)
+        await fetchMCardData(!!force);
+        renderPage(1);
+      } catch (e) {
+        console.warn('Failed to reset list:', e);
+        // Fallback to rendering whatever is present
+        renderPage(1);
+      }
+    };
     
     function renderPage(page) {
       let pageItems = [];
@@ -517,10 +496,8 @@ const totalPages = Math.ceil(totalItems / itemsPerPage);
       searchPage = page;
       if (!mcardService) await initializeServices();
       if (!query || query.trim().length === 0) {
-        // Exit search mode
-        searchActive = false;
-        currentPage = 1;
-        renderPage(currentPage);
+        // Exit search mode and refresh full list
+        await resetToFullList(false);
         return;
       }
       try {
@@ -557,20 +534,19 @@ const totalPages = Math.ceil(totalItems / itemsPerPage);
       debouncedSearch(q);
     });
 
-    searchInput.addEventListener('keydown', (e) => {
+    searchInput.addEventListener('keydown', async (e) => {
       if (e.key === 'Enter') {
         e.preventDefault();
         performSearch(e.target.value, 1);
       }
       if (e.key === 'Escape') {
-        searchInput.value = '';
-        performSearch('', 1);
+        e.preventDefault();
+        await resetToFullList(false);
       }
     });
 
-    searchClear.addEventListener('click', () => {
-      searchInput.value = '';
-      performSearch('', 1);
+    searchClear.addEventListener('click', async () => {
+      await resetToFullList(false);
     });
     
     // Update the UI with fetched data and render initial page
