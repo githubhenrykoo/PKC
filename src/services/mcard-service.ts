@@ -19,25 +19,85 @@ declare global {
 }
 
 export class MCardService {
-  private baseUrl: string;
+  private _baseUrl: string;
   private offlineMode: boolean = false;
 
   constructor() {
-    // Use MCard API base URL from runtime environment (dynamically loaded) or fallback
-    this.baseUrl = window.RUNTIME_ENV?.PUBLIC_MCARD_API_URL || 
-                   (typeof import.meta !== 'undefined' ? import.meta.env?.PUBLIC_MCARD_API_URL : undefined) ||
-                   'http://localhost:49384/v1';
+    // Initialize with fallback, but will be updated when runtime env loads
+    this._baseUrl = this.getApiUrl();
     
     // Debug: Log the configured URL and source
-    const source = window.RUNTIME_ENV?.PUBLIC_MCARD_API_URL ? 'window.RUNTIME_ENV' : 
-                   (typeof import.meta !== 'undefined' && import.meta.env?.PUBLIC_MCARD_API_URL) ? 'import.meta.env' : 
-                   'fallback';
-    console.log('🔧 MCARD_API_URL configured as:', this.baseUrl);
-    console.log('🔧 MCardService initialized with baseUrl:', this.baseUrl);
-    console.log('🔧 Environment source:', source);
+    console.log('🔧 MCardService initialized with baseUrl:', this._baseUrl);
+    console.log('🔧 Environment source:', this.getUrlSource());
+    
+    // Listen for runtime environment updates
+    this.setupRuntimeEnvListener();
     
     // Monitor online/offline status
     this.setupOfflineDetection();
+  }
+
+  // Dynamic API URL getter that always checks current runtime environment
+  private getApiUrl(): string {
+    return window.RUNTIME_ENV?.PUBLIC_MCARD_API_URL || 
+           (typeof import.meta !== 'undefined' ? import.meta.env?.PUBLIC_MCARD_API_URL : undefined) ||
+           'http://localhost:49384/v1';
+  }
+
+  // Get current URL source for debugging
+  private getUrlSource(): string {
+    if (window.RUNTIME_ENV?.PUBLIC_MCARD_API_URL) return 'window.RUNTIME_ENV';
+    if (typeof import.meta !== 'undefined' && import.meta.env?.PUBLIC_MCARD_API_URL) return 'import.meta.env';
+    return 'fallback';
+  }
+
+  // Setup listener for runtime environment changes
+  private setupRuntimeEnvListener(): void {
+    if (typeof window !== 'undefined') {
+      // Listen for custom event when runtime env is loaded
+      window.addEventListener('runtime-env-loaded', () => {
+        const newUrl = this.getApiUrl();
+        if (newUrl !== this._baseUrl) {
+          console.log('🔄 Runtime environment updated, changing API URL from', this._baseUrl, 'to', newUrl);
+          this._baseUrl = newUrl;
+        }
+      });
+      
+      // Also periodically check if runtime env has been loaded
+      const checkRuntimeEnv = () => {
+        const newUrl = this.getApiUrl();
+        if (newUrl !== this._baseUrl && newUrl !== 'http://localhost:49384/v1') {
+          console.log('🔄 Runtime environment detected, updating API URL from', this._baseUrl, 'to', newUrl);
+          this._baseUrl = newUrl;
+        }
+      };
+      
+      // Check every second for first 10 seconds, then every 5 seconds for 30 seconds
+      let checks = 0;
+      const interval = setInterval(() => {
+        checkRuntimeEnv();
+        checks++;
+        if (checks >= 10) {
+          clearInterval(interval);
+          // Less frequent checks for late-loading env
+          const slowInterval = setInterval(() => {
+            checkRuntimeEnv();
+            checks++;
+            if (checks >= 16) clearInterval(slowInterval); // Total 40 seconds
+          }, 5000);
+        }
+      }, 1000);
+    }
+  }
+
+  // Getter for current base URL (always fresh)
+  private get baseUrl(): string {
+    // Always return fresh URL to handle runtime env changes
+    const currentUrl = this.getApiUrl();
+    if (currentUrl !== this._baseUrl) {
+      this._baseUrl = currentUrl;
+    }
+    return this._baseUrl;
   }
 
   private setupOfflineDetection(): void {

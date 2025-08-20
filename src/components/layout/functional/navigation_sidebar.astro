@@ -138,9 +138,40 @@ const {
       };
     }
     
-    // Single source of truth for API base URL - prioritize runtime injection for Docker
-    const API_URL = window.RUNTIME_ENV?.PUBLIC_MCARD_API_URL || 'http://localhost:49384/v1';
-    console.log('🔗 MCard API URL:', API_URL);
+    // Dynamic API URL getter that always checks current runtime environment
+    const getApiUrl = () => {
+      const url = window.RUNTIME_ENV?.PUBLIC_MCARD_API_URL || 'http://localhost:49384/v1';
+      return url;
+    };
+    
+    // Initial API URL
+    let API_URL = getApiUrl();
+    console.log('🔗 MCard API URL (initial):', API_URL);
+    
+    // Setup periodic check for runtime environment updates
+    const setupApiUrlUpdater = () => {
+      let lastUrl = API_URL;
+      const checkForUpdates = () => {
+        const newUrl = getApiUrl();
+        if (newUrl !== lastUrl && newUrl !== 'http://localhost:49384/v1') {
+          console.log('🔄 Navigation: API URL updated from', lastUrl, 'to', newUrl);
+          API_URL = newUrl;
+          lastUrl = newUrl;
+          // Reload data with new URL
+          loadMCardData().then(() => renderPage(1));
+        }
+      };
+      
+      // Check every second for first 10 seconds
+      let checks = 0;
+      const interval = setInterval(() => {
+        checkForUpdates();
+        checks++;
+        if (checks >= 10) clearInterval(interval);
+      }, 1000);
+    };
+    
+    setupApiUrlUpdater();
     
     // Helper: fetch per-card metadata (filename, title, content_type, etc.)
     const fetchCardMetadata = async (hash) => {

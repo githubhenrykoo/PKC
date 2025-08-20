@@ -67,12 +67,37 @@ import UnknownRenderer from '../../../components/Mcard/UnknownRenderer.astro';
     const rendererSlot = document.getElementById('renderer-slot');
     const loadingState = document.getElementById('loading-state');
 
-    // Function to get MCard API base URL - prioritize runtime injection for Docker
+    // Function to get MCard API base URL - reactive to runtime environment changes
     const getMCardApiUrl = () => {
-      const url = window.RUNTIME_ENV?.PUBLIC_MCARD_API_URL || 'http://localhost:49384/v1';
-      console.log('🔗 MCard API URL:', url);
-      return url;
+      return window.RUNTIME_ENV?.PUBLIC_MCARD_API_URL || 'http://localhost:49384/v1';
     };
+    
+    // Track API URL changes
+    let currentApiUrl = getMCardApiUrl();
+    console.log('🔗 Content Viewer API URL (initial):', currentApiUrl);
+    
+    // Setup periodic check for runtime environment updates
+    const setupApiUrlUpdater = () => {
+      let lastUrl = currentApiUrl;
+      const checkForUpdates = () => {
+        const newUrl = getMCardApiUrl();
+        if (newUrl !== lastUrl && newUrl !== 'http://localhost:49384/v1') {
+          console.log('🔄 Content Viewer: API URL updated from', lastUrl, 'to', newUrl);
+          currentApiUrl = newUrl;
+          lastUrl = newUrl;
+        }
+      };
+      
+      // Check every second for first 10 seconds
+      let checks = 0;
+      const interval = setInterval(() => {
+        checkForUpdates();
+        checks++;
+        if (checks >= 10) clearInterval(interval);
+      }, 1000);
+    };
+    
+    setupApiUrlUpdater();
 
     // Function to format timestamp
     const formatTimestamp = (gTime) => {
