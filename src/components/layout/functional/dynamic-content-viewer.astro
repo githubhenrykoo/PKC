@@ -67,9 +67,11 @@ import UnknownRenderer from '../../../components/Mcard/UnknownRenderer.astro';
     const rendererSlot = document.getElementById('renderer-slot');
     const loadingState = document.getElementById('loading-state');
 
-    // Function to get MCard API base URL
+    // Function to get MCard API base URL - prioritize runtime injection for Docker
     const getMCardApiUrl = () => {
-      return window.RUNTIME_ENV?.PUBLIC_MCARD_API_URL || 'http://localhost:49384/v1';
+      const url = window.RUNTIME_ENV?.PUBLIC_MCARD_API_URL || 'http://localhost:49384/v1';
+      console.log('🔗 MCard API URL:', url);
+      return url;
     };
 
     // Function to format timestamp

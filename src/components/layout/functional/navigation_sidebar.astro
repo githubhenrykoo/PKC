@@ -138,8 +138,9 @@ const {
       };
     }
     
-    // Single source of truth for API base URL
+    // Single source of truth for API base URL - prioritize runtime injection for Docker
     const API_URL = window.RUNTIME_ENV?.PUBLIC_MCARD_API_URL || 'http://localhost:49384/v1';
+    console.log('🔗 MCard API URL:', API_URL);
     
     // Helper: fetch per-card metadata (filename, title, content_type, etc.)
     const fetchCardMetadata = async (hash) => {
