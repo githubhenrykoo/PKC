@@ -2,7 +2,95 @@
 
 ## Overview
 
-This document outlines the Redux state management implementation for the PKC (Personal Knowledge Container) project, with a focus on user authentication state management integrated with Authentik.
+This document outlines state management in PKC and how traditional Redux usage relates to the project’s PocketFlow event bus and PCard’s token-conservation model.
+
+We introduce a bridge pattern — the Flux-to-Flow Bridge (short: "flux2flow") — that maps familiar Redux/Flux concepts onto PocketFlow’s minimal pub/sub and Petri-style token flows.
+
+References in code:
+- `src/pocketflow/bus.ts` provides a small pub/sub bus (`pocketflow.publish/subscribe`).
+- `src/pocketflow/events.ts` declares canonical event topics like `PF_RUNTIME_ENV_LOADED`, `PF_MCARD_SELECTED`.
+
+Why this matters now:
+- PCard.md reframes control as token flows (Petri Nets) with conservation invariants. Redux-style actions fit naturally as “transition firings” on the PocketFlow bus.
+- The bridge preserves developer ergonomics (actions, reducers, selectors) while encouraging event-first, token-conservation-aligned flows for UI panels and MCard-driven state.
+
+---
+
+## Flux-to-Flow Bridge (flux2flow)
+
+Goal: keep Redux where it adds value (auth flows, derived selectors, persistence) while shifting interaction to PocketFlow events as the primary control-plane. The bridge offers naming, conventions, and a migration path.
+
+Suggested name: "Flux-to-Flow Bridge" (package alias: `flux2flow`).
+
+Key ideas
+- __Actions → Events__: Redux actions correspond to PocketFlow topics; dispatch becomes `pocketflow.publish(topic, payload)`.
+- __Reducers → Stores__: Instead of a single global reducer tree, maintain small focused stores fed by PocketFlow subscriptions. Redux slices can subscribe to PocketFlow.
+- __Selectors → Views__: Keep memoized selectors but source from stores populated by PocketFlow tokens.
+- __Middleware → Listeners__: Side-effects move to PocketFlow listeners (subscribe/effect), aligned with transition firings.
+- __State → Markings__: Think of state as token markings in places (e.g., `sidebar`, `content`, `right` panels in `src/layouts/AppShell.astro`).
+
+Canonical topics (see `src/pocketflow/events.ts`)
+- `pocketflow/runtime/envLoaded` with `RuntimeEnvPayload`
+- `pocketflow/mcard/selected` with `MCardSelectedPayload`
+- `pocketflow/mcard/selectionChanged`
+
+Mapping (Redux → PocketFlow/PCard)
+- __Action type__ → event topic string (e.g., `auth/loginFulfilled` → `pocketflow/auth/loggedIn`).
+- __Action payload__ → event payload (hashes, minimal descriptors).
+- __Reducer update__ → listener that writes to a local store (Redux slice or lightweight store) representing place markings.
+- __Thunk/epic__ → listener/effect that may emit further events (transition chaining) while preserving conservation constraints.
+- __Store state__ → token counts/records keyed by MCard hashes (hash-first storage per MCard rules).
+
+Design rules
+- __Hash-first__: payloads carry MCard hashes; resolve content via MCard service on demand.
+- __Small, panel-scoped stores__: align stores with UI places/panels; avoid monolith global state except for auth.
+- __Event-first contracts__: new features define PocketFlow topics before reducers.
+- __Conservation checks__: listeners should be idempotent and conservative (no untracked loss/duplication of tokens).
+
+---
+
+## Implementation plan (incremental)
+
+Phase 1 — Bridge foundation
+- __Create a tiny bridge utility (`flux2flow`)__ wrapping `pocketflow` with helpers:
+  - `dispatch(topic, payload)` → calls `pocketflow.publish`.
+  - `listen(topic, handler)` → calls `pocketflow.subscribe` and returns `unsubscribe`.
+  - Optional: namespace helpers `topic('auth','loggedIn') => 'pocketflow/auth/loggedIn'`.
+- __Define a minimal event catalog__ in `src/pocketflow/events.ts` (keep the existing constants, add auth/ui/data topics as needed).
+
+Phase 2 — Redux slices subscribe to PocketFlow
+- __Auth slice__: besides async thunks, subscribe to `pocketflow/auth/loggedIn`, `pocketflow/auth/loggedOut` to hydrate/reset.
+- __UI slice__: subscribe to selection events (`pocketflow/mcard/selected`) to drive panel content.
+- __Data slice__: subscribe to `pocketflow/mcard/selectionChanged` to lazy-load MCard content via API.
+
+Phase 3 — Prefer events over dispatch
+- Replace internal `store.dispatch` usages in components with `dispatch(topic, payload)` where appropriate. Keep Redux where memoized selectors and persistence help.
+- Move side-effects from middleware to event listeners where it simplifies flow.
+
+Phase 4 — Token-conservation alignment
+- Ensure event flows are reversible/checkable: log token ingress/egress by hash; assert invariants in dev.
+- Adopt “place” scoping: e.g., `pocketflow/ui/sidebar/selectedHash` vs `.../content/selectedHash` to keep flows explicit per panel.
+
+Phase 5 — Documentation and patterns
+- Document event contracts next to features (topic, payload schema, invariants).
+- Provide examples for MCard-driven navigation and Auth session lifecycle.
+
+Deliverables checklist
+- Bridge helpers in `src/pocketflow/flux2flow.ts` (thin wrappers around `pocketflow`).
+- Extended `events.ts` with namespaced topics for auth/ui/data.
+- Subscriptions registered on app startup (e.g., in a bootstrap file or root layout island).
+- Updated component examples using event-first patterns.
+
+---
+
+## Why keep Redux at all?
+
+Redux still adds value for:
+- __Authentication__: structured async, persistence, and selectors (see below). 
+- __Derived state__: complex memoization across panels.
+- __Debugging__: devtools and time-travel for local stores.
+
+Use the bridge to avoid centralizing all state in Redux and to align with PCard’s Petri-style execution.
 
 ## Why Redux for PKC?
 
