@@ -45,6 +45,7 @@ export default defineConfig({
     // Suppress CSS minification warnings for Radix UI components
     build: {
       rollupOptions: {
+        external: ['dexie'],
         onwarn(warning, warn) {
           // Suppress radix CSS warnings
           if (warning.code === 'CSS_SYNTAX_ERROR' && warning.message.includes('radix')) {
