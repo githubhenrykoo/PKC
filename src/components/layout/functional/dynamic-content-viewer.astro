@@ -126,8 +126,8 @@ import UnknownRenderer from '../../../components/Mcard/UnknownRenderer.astro';
       }
     };
     
-    // Initialize utils (call without await since we're not in async context)
-    initContentTypeUtils();
+    // Initialize utils and keep a promise to await before usage elsewhere
+    const utilsReady = initContentTypeUtils();
 
     // Helper: set title with icon using shared utils
     const setTitleWithIcon = (type, titleText) => {
@@ -165,52 +165,7 @@ import UnknownRenderer from '../../../components/Mcard/UnknownRenderer.astro';
       }
     };
 
-    // Main function to load MCard content
-    window.loadMCardContent = async (hash, title) => {
-      try {
-        showLoading();
-        updateContentMeta(title, 'Loading...', '');
-
-        const apiUrl = window.RUNTIME_ENV?.PUBLIC_MCARD_API_URL || 'http://localhost:49384/v1';
-        const response = await fetch(`${apiUrl}/card/${hash}/content`);
-        
-        if (!response.ok) {
-          throw new Error(`Failed to fetch content: ${response.statusText}`);
-        }
-
-        const contentTypeHeader = response.headers.get('content-type') || '';
-        const content = await response.text();
-        
-        // Update UI
-        updateContentMeta(title, contentTypeHeader, '');
-        
-        if (placeholder && rendererSlot) {
-          placeholder.classList.add('hidden');
-          rendererSlot.classList.remove('hidden');
-          rendererSlot.innerHTML = `<pre class="whitespace-pre-wrap font-mono text-sm p-4">${content}</pre>`;
-        }
-        
-        console.log('✅ Content loaded for:', hash);
-        
-      } catch (error) {
-        console.error('❌ Error loading content:', error);
-        updateContentMeta(title || 'Error', 'Error', '');
-        
-        if (placeholder && rendererSlot) {
-          placeholder.classList.add('hidden');
-          rendererSlot.classList.remove('hidden');
-          rendererSlot.innerHTML = `
-            <div class="text-center text-red-500 p-8">
-              <div class="text-4xl mb-4">⚠️</div>
-              <h3 class="text-lg font-semibold mb-2">Error Loading Content</h3>
-              <p class="text-sm">${error.message}</p>
-            </div>
-          `;
-        }
-      } finally {
-        hideLoading();
-      }
-    };
+    // Note: Single loadMCardContent implementation is defined later with full rendering pipeline
 
     // Runtime library loader for Marked, DOMPurify, and KaTeX (auto-render)
     // Prefer local vendor files served from /public/vendor, fallback to CDN.

@@ -138,6 +138,21 @@ const {
       };
     }
     
+    // Single source of truth for API base URL
+    const API_URL = window.RUNTIME_ENV?.PUBLIC_MCARD_API_URL || 'http://localhost:49384/v1';
+    
+    // Helper: fetch per-card metadata (filename, title, content_type, etc.)
+    const fetchCardMetadata = async (hash) => {
+      if (!hash) return null;
+      try {
+        const metaResp = await fetch(`${API_URL}/card/${hash}/metadata`);
+        if (metaResp.ok) {
+          return await metaResp.json();
+        }
+      } catch {}
+      return null;
+    };
+    
     // Initialize services
     let mcardService = null;
     try {
@@ -183,8 +198,7 @@ const {
       console.log('🔄 Fetching MCards from API...');
       
       try {
-        const apiUrl = window.RUNTIME_ENV?.PUBLIC_MCARD_API_URL || 'http://localhost:49384/v1';
-        const response = await fetch(`${apiUrl}/cards?page=1&page_size=100`);
+        const response = await fetch(`${API_URL}/cards?page=1&page_size=100`);
         
         if (response.ok) {
           const data = await response.json();
@@ -196,13 +210,10 @@ const {
               let md = null;
               let effectiveType = resolveEffectiveContentType({ content_type: item.content_type, filename: item.filename });
               if (item.hash) {
-                try {
-                  const metaResp = await fetch(`${apiUrl}/card/${item.hash}/metadata`);
-                  if (metaResp.ok) {
-                    md = await metaResp.json();
-                    effectiveType = resolveEffectiveContentType({ content_type: md.content_type, filename: md.filename });
-                  }
-                } catch {}
+                md = await fetchCardMetadata(item.hash);
+                if (md) {
+                  effectiveType = resolveEffectiveContentType({ content_type: md.content_type, filename: md.filename });
+                }
               }
               const titleSource = {
                 filename: (md && md.filename) || item.filename,
@@ -307,19 +318,15 @@ const {
         searchTotalPages = resp.pagination.totalPages || 1;
         
         // Map search results; always fetch per-card metadata so titles match viewer
-        const apiUrl = window.RUNTIME_ENV?.PUBLIC_MCARD_API_URL || 'http://localhost:49384/v1';
         allItems = await Promise.all(
           resp.results.map(async (res, index) => {
             let md = null;
             let effectiveType = resolveEffectiveContentType({ content_type: res.metadata?.content_type, filename: res.metadata?.filename });
             if (res.hash) {
-              try {
-                const metaResp = await fetch(`${apiUrl}/card/${res.hash}/metadata`);
-                if (metaResp.ok) {
-                  md = await metaResp.json();
-                  effectiveType = resolveEffectiveContentType({ content_type: md.content_type, filename: md.filename });
-                }
-              } catch {}
+              md = await fetchCardMetadata(res.hash);
+              if (md) {
+                effectiveType = resolveEffectiveContentType({ content_type: md.content_type, filename: md.filename });
+              }
             }
             const titleSource = {
               filename: (md && md.filename) || res.metadata?.filename,

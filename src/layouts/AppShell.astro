@@ -178,7 +178,7 @@ const { title = 'PKC', enableThemeToggle = true } = Astro.props as Props;
       @media (min-width: 768px) {
         .app-container {
           grid-template-rows: 1fr;
-          grid-template-columns: clamp(180px, 20vw, 250px) 1fr clamp(180px, 20vw, 250px);
+          grid-template-columns: clamp(200px, 20vw, 270px) 1fr clamp(180px, 20vw, 250px);
         }
         
         /* All panels to row 1 for horizontal layout */
@@ -200,7 +200,8 @@ const { title = 'PKC', enableThemeToggle = true } = Astro.props as Props;
         }
         
         .app-container:has(.app-sidebar:not(:empty)):has(.app-right:empty) {
-          grid-template-columns: clamp(180px, 20vw, 250px) 1fr 0;
+          /* Sidebar +20px (min and max) when right panel is hidden */
+          grid-template-columns: clamp(200px, 20vw, 270px) 1fr 0;
         }
         
         .app-container:has(.app-sidebar:empty):has(.app-right:empty) {
