@@ -294,7 +294,7 @@ const { title = 'PKC', enableThemeToggle = true } = Astro.props as Props;
         const key = 'theme';
         const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
         const saved = localStorage.getItem(key);
-        const initial = saved || (prefersDark ? 'dark' : 'light');
+        const initial = saved || 'dark';
         if (initial === 'dark') document.documentElement.classList.add('dark-theme');
         const btn = document.getElementById('appThemeToggle');
         if (btn) {

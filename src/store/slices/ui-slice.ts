@@ -3,7 +3,7 @@ import type { PayloadAction } from '@reduxjs/toolkit';
 import type { UIState, Notification, ModalState, SidebarState, LoadingState } from '../types/ui';
 
 const initialState: UIState = {
-  theme: 'system',
+  theme: 'dark',
   modals: {
     login: false,
     profile: false,
