@@ -70,19 +70,65 @@
     }
   </script>
   
-  <!-- Initialize Redux store -->
-  <script>
-    // Load Redux store during page initialization
-    document.addEventListener('DOMContentLoaded', async () => {
-      try {
-        await import('../store/initializer.ts');
-        console.log('✅ Redux store initialized and attached to window');
-        
-        // Dispatch event to notify waiting components
-        window.dispatchEvent(new CustomEvent('redux-store-ready'));
-      } catch (error) {
-        console.error('❌ Failed to initialize Redux store:', error);
+  <!-- Simple Redux Alternative - Direct State Management -->
+  <script is:inline>
+    // Simple state management without Redux dependency
+    console.log('🔄 Initializing simple state management...');
+    
+    // Create a simple store alternative
+    const simpleStore = {
+      state: {
+        mcardSelection: {
+          hash: null,
+          title: null,
+          gTime: null,
+          contentType: null
+        }
+      },
+      listeners: [],
+      subscribe: function(listener) {
+        this.listeners.push(listener);
+        return () => {
+          const index = this.listeners.indexOf(listener);
+          if (index > -1) this.listeners.splice(index, 1);
+        };
+      },
+      dispatch: function(action) {
+        console.log('📡 Dispatching action:', action);
+        if (action.type === 'mcardSelection/setSelectedMCard') {
+          this.state.mcardSelection = {
+            hash: action.payload.hash,
+            title: action.payload.title,
+            gTime: action.payload.gTime || null,
+            contentType: action.payload.contentType || null
+          };
+          console.log('📊 Updated state:', this.state);
+          this.listeners.forEach(listener => listener());
+        } else if (action.type === 'mcardSelection/clearSelectedMCard') {
+          this.state.mcardSelection = {
+            hash: null,
+            title: null,
+            gTime: null,
+            contentType: null
+          };
+          this.listeners.forEach(listener => listener());
+        }
+      },
+      getState: function() {
+        return this.state;
       }
+    };
+    
+    // Expose to window
+    window.reduxStore = simpleStore;
+    
+    console.log('✅ Simple Redux store initialized and attached to window');
+    console.log('📊 Initial state:', simpleStore.getState());
+    
+    // Dispatch ready event
+    document.addEventListener('DOMContentLoaded', () => {
+      window.dispatchEvent(new CustomEvent('redux-store-ready'));
+      console.log('🚀 Redux store ready event dispatched');
     });
   </script>
   
