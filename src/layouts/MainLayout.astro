@@ -70,6 +70,22 @@
     }
   </script>
   
+  <!-- Initialize Redux store -->
+  <script>
+    // Load Redux store during page initialization
+    document.addEventListener('DOMContentLoaded', async () => {
+      try {
+        await import('../store/initializer.ts');
+        console.log('✅ Redux store initialized and attached to window');
+        
+        // Dispatch event to notify waiting components
+        window.dispatchEvent(new CustomEvent('redux-store-ready'));
+      } catch (error) {
+        console.error('❌ Failed to initialize Redux store:', error);
+      }
+    });
+  </script>
+  
   <!-- Slot for head content from child layouts -->
   <slot name="head"/>
 </head>

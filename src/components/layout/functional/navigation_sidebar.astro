@@ -195,6 +195,35 @@ const {
       console.warn('⚠️ Failed to initialize MCard service:', error);
     }
     
+    // Setup Redux subscription with retry limit
+    function setupReduxSubscription() {
+      console.log('🔗 Setting up Redux subscription...');
+      let retryCount = 0;
+      const maxRetries = 10;
+      
+      const trySetup = () => {
+        if (window.reduxStore) {
+          console.log('✅ Redux store found, setting up subscription');
+          // Implementation for Redux subscription would go here
+          // For now, just log that it's available
+          return true;
+        } else {
+          retryCount++;
+          if (retryCount < maxRetries) {
+            console.warn(`⚠️ Redux store not available (attempt ${retryCount}/${maxRetries})`);
+            setTimeout(trySetup, 1000);
+          } else {
+            console.error('❌ Redux store failed to initialize after', maxRetries, 'attempts. Continuing without Redux.');
+          }
+          return false;
+        }
+      };
+      
+      trySetup();
+    }
+    
+    setupReduxSubscription();
+    
     // DOM elements
     const navItemsContainer = document.getElementById('nav-items');
     const pageIndicator = document.getElementById('page-indicator');

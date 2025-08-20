@@ -644,32 +644,45 @@ import UnknownRenderer from '../../../components/Mcard/UnknownRenderer.astro';
       }
     }
 
-    // Setup Redux subscription for content loading
+    // Setup Redux subscription with retry limit
     function setupReduxSubscription() {
       console.log('🔗 Setting up Redux subscription...');
+      let retryCount = 0;
+      const maxRetries = 10;
       let lastLoadedHash = null;
       
-      if (window.reduxStore) {
-        window.reduxStore.subscribe(() => {
-          console.log('🔔 Redux state changed in content viewer');
-          const state = window.reduxStore.getState();
-          const { hash, title } = state.mcardSelection;
-          
-          if (hash && hash !== lastLoadedHash) {
-            console.log('🚀 Loading new content:', hash);
-            lastLoadedHash = hash;
-            window.loadMCardContent(hash, title || 'MCard Content');
+      const trySetup = () => {
+        if (window.reduxStore) {
+          console.log('✅ Redux store found, setting up subscription');
+          window.reduxStore.subscribe(() => {
+            console.log('🔔 Redux state changed in content viewer');
+            const state = window.reduxStore.getState();
+            const { hash, title } = state.mcardSelection;
+            
+            if (hash && hash !== lastLoadedHash) {
+              console.log('🚀 Loading new content:', hash);
+              lastLoadedHash = hash;
+              window.loadMCardContent(hash, title || 'MCard Content');
+            }
+          });
+          console.log('✅ Redux subscription established');
+          return true;
+        } else {
+          retryCount++;
+          if (retryCount < maxRetries) {
+            console.warn(`⚠️ Redux store not available (attempt ${retryCount}/${maxRetries})`);
+            setTimeout(trySetup, 1000);
+          } else {
+            console.error('❌ Redux store failed to initialize after', maxRetries, 'attempts. Continuing without Redux.');
           }
-        });
-        console.log('✅ Redux subscription established');
-      } else {
-        console.warn('⚠️ Redux store not available');
-        // Retry after a delay
-        setTimeout(setupReduxSubscription, 1000);
-      }
+          return false;
+        }
+      };
+      
+      trySetup();
     }
     
-    // Initialize Redux subscription
+    // Initialize Redux subscription (with retry limit)
     setupReduxSubscription();
 
     console.log('🎯 Dynamic Content Viewer initialized');
