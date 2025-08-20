@@ -84,6 +84,45 @@ This **triple-P convergence** achieves:
 - **Implementation Simplicity**: PocketFlow reduces complexity through token-based processing
 - **Formal Verification**: Petri Nets ensure correctness through conservation laws
 
+### P as Place and Panel: State and Dynamics by Position
+
+In addition to Polynomial, Program, and Process, the letter **P** also emphasizes two foundational representational ideas used throughout PKC:
+
+- **Place (Positional Semantics)**
+  - **Place Value System (numbers)**: In decimal notation, the same digit means different magnitudes by its place (ones, tens, hundreds). Position imparts semantics. Similarly, in PCard, the position of tokens/terms within a structure conveys meaning without duplicating data.
+  - **Place in Place-Transition (PT) Nets**: A Petri Net Place represents a state (marking) that constrains possible transitions. Token counts at Places are the minimal, discrete representation of system state—aligning with PCard’s token conservation viewpoint.
+
+- **Panel (Web UI Panels)**
+  - In our layouts (e.g., `src/layouts/AppShell.astro`), panels like `sidebar`, `content`, and `right` are fixed “places” on the page. What appears in each panel can change (tokens flow), but the panel’s place provides stable semantics for interaction, composition, and responsiveness.
+  - Panels act like UI Places: they hold stateful views while transitions (user actions, protocol events) move tokens (data, selections) between them.
+
+Together, **Place** (in mathematics and PT nets) and **Panel** (in UI) underscore a unifying principle: represent the system with minimal, positional structures whose token markings evolve over time. PCard leverages this to keep state/dynamics explicit, discrete, and verifiable via hash-addressed tokens, while UI panels provide predictable containers for observing and directing those token flows.
+
+### Place–Transition Semantics and Strategic Notation by Placement
+
+Mathematicians routinely encode deep structure in the placement of symbols. This mirrors Place–Transition (PT) Nets, where meaning emerges from where tokens are held and how they are allowed to flow:
+
+- **Places (State Holders)**: In a PT Net, a Place is a state container; its token count (marking) is the minimal discrete description of “what currently holds.” Constraints and invariants are expressed as conservation relations over Places.
+- **Transitions (Dynamics)**: Legal moves are encoded as arcs and firing rules. Dynamics are not global state rewrites but local, typed flows between Places.
+- **Invariants (Strategy)**: Linear invariants (P-invariants, T-invariants) provide concise, verifiable guarantees about “what cannot change,” guiding correct system design.
+
+Mathematical notation uses position to achieve the same economy of expression:
+
+- **Place Value (…10^2, 10^1, 10^0…)**: A digit’s value is determined by its place; placement encodes magnitude without extra symbols. This is a canonical example of compressing semantics into position.
+- **Superscripts (Exponents, Variants)**: Superscripts convey iteration, scaling, and algebraic structure (e.g., powers, duals, perturbation orders). In PCard’s polynomial view, exponents reflect execution contexts/counts and thus encode dynamic emphasis compactly.
+- **Subscripts (Indices, Coordinates, Versions)**: Subscripts mark membership, indexing, or versioning (e.g., a_i, x_j). They localize identity and selection without verbose prose. In PCard, indices/selectors map cleanly to hash-addressed coefficients and implementation versions.
+
+These patterns are strategic: by encoding state and dynamics into placement, mathematicians achieve high information-density with provable manipulability. PCard adopts this strategy in two complementary ways:
+
+1. **Token Conservation (PT Net lens)**: What is “in place” are cryptographic tokens (MCard hashes). Allowed transitions are protocol rules (Pocketflow/Redux events) that move tokens while preserving conservation invariants. System behavior is reasoned about by markings, not by mutating hidden state.
+2. **Polynomial Position (Functor lens)**: What is “in position” are terms of a polynomial—coefficients (hashes of semantic decorations A_i) and exponents (execution context counts B_i). Algebra on positions (add, compare, differentiate) corresponds to controlled evolution of process models.
+
+Result: positions (places, panels, indices, exponents) become first-class carriers of meaning. This yields systems that are:
+
+- **Readable** (meaning is where the symbol sits),
+- **Composable** (local placements compose to global structure), and
+- **Verifiable** (invariants follow from counts and conservation, not from ad-hoc narratives).
+
 **The Comonoid Structure: The Soul of the Category**
 
 For a polynomial functor to represent a category, it must be endowed with a **comonoid structure**, which provides the essential categorical operations of **identity** and **composition**.

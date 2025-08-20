@@ -9,6 +9,7 @@ The PKC (Personal/Progressive Knowledge Container) layout system implements a tr
 ### Core Components
 
 - **AppShell.astro** - Main layout container with responsive grid system
+- **MainLayout.astro** - Root layout wrapper that initializes runtime environment, Redux store boot, and Pocketflow bridge
 - **Topbar.astro** - Header component with authentication and theme controls
 - **Sidebar.astro** - Left navigation panel (optional)
 - **RightPanel.astro** - Right utility panel (optional)  
@@ -141,6 +142,23 @@ The PKC (Personal/Progressive Knowledge Container) layout system implements a tr
 
 ## Usage Guidelines
 
+### Root Layout Integration (MainLayout.astro)
+
+The root layout `MainLayout.astro` (same directory) is responsible for:
+
+- Initializing runtime environment and dispatching a `runtime-env-loaded` event with `window.RUNTIME_ENV`.
+- Bootstrapping the single Redux Toolkit store.
+- Initializing the Pocketflow bus ↔ Redux bridge so components can publish/subscribe protocol events and/or dispatch Redux actions deterministically.
+
+The following module scripts are included by `MainLayout.astro`:
+
+```html
+<script type="module" src="/src/store/boot.ts"></script>
+<script type="module" src="/src/pocketflow/bridge-init.ts"></script>
+```
+
+You should not add additional global stores or duplicate initializers in pages/components. Keep the store and bridge singletons managed by `MainLayout.astro`.
+
 ### Basic Implementation
 
 ```astro
@@ -164,6 +182,8 @@ import Footer from '../components/layout/footer.astro';
   </section>
 </AppShell>
 ```
+
+If your page uses `MainLayout.astro` directly (for non-AppShell pages), ensure it remains the outermost wrapper so the runtime environment and bridges are available to all child components.
 
 ### Optional Panels
 
@@ -228,6 +248,40 @@ Or apply it inline for specific pages:
 </style>
 ```
 
+### Pocketflow + Redux Usage
+
+- Publish selection intent via Pocketflow:
+
+```ts
+import { pocketflow } from '@/pocketflow/bus';
+import { PF_MCARD_SELECTED } from '@/pocketflow/events';
+
+pocketflow.publish(PF_MCARD_SELECTED, { hash: '...hash...', title: 'MCard' });
+```
+
+- Listen for selection changes (Redux → Pocketflow):
+
+```ts
+import { pocketflow } from '@/pocketflow/bus';
+import { PF_MCARD_SELECTION_CHANGED } from '@/pocketflow/events';
+
+const unsub = pocketflow.subscribe(PF_MCARD_SELECTION_CHANGED, (state) => {
+  console.log('Selection changed:', state);
+});
+```
+
+During migration, components may still dispatch Redux actions directly; the bridge maintains deterministic state while enabling protocol-first flows.
+
+### Runtime Environment in Client
+
+`MainLayout.astro` loads runtime variables at startup and exposes them as `window.RUNTIME_ENV`, then fires a `runtime-env-loaded` event. Client code should prefer listening for that event or reading `window.RUNTIME_ENV` after it fires.
+
+Environment variable rules:
+
+- Client-accessible values must be prefixed with `PUBLIC_` (see `Environment Variable Management Rules`).
+- Docker Compose should inject variables via `.env` and `env_file`; avoid hardcoding values.
+- Server-side code may use `import.meta.env`, but browser code should use the runtime injection from `MainLayout.astro`.
+
 ## Debug Features
 
 ### Visual Boundaries
@@ -241,7 +295,7 @@ Temporary debug borders are included for development:
 .app-footer { outline: 2px dashed #ef444466; }  /* Red */
 ```
 
-Remove these outlines in production by deleting the debug section in `AppShell.astro`.
+Remove these outlines in production by deleting the debug section in `AppShell.astro`. Keep `MainLayout.astro` initialization scripts intact as they are required for runtime env, Redux, and Pocketflow.
 
 ## Performance Considerations
 
