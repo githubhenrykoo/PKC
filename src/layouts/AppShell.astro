@@ -65,6 +65,9 @@ const { title = 'PKC', enableThemeToggle = true } = Astro.props as Props;
       })();
     </script>
 
+    <!-- Load Redux Store from external file -->
+    <script src="/redux-store.js" is:inline></script>
+
     <style is:inline>
       /* CSS Custom Properties for Theming */
       :root { 

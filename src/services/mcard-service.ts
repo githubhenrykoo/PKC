@@ -39,9 +39,12 @@ export class MCardService {
 
   // Dynamic API URL getter that always checks current runtime environment
   private getApiUrl(): string {
-    return window.RUNTIME_ENV?.PUBLIC_MCARD_API_URL || 
-           (typeof import.meta !== 'undefined' ? import.meta.env?.PUBLIC_MCARD_API_URL : undefined) ||
-           'http://localhost:49384/v1';
+    const url = window.RUNTIME_ENV?.PUBLIC_MCARD_API_URL || 
+                (typeof import.meta !== 'undefined' ? import.meta.env?.PUBLIC_MCARD_API_URL : undefined) ||
+                'http://localhost:49384/v1';
+    
+    // Remove trailing slash to avoid double slashes in API calls
+    return url.endsWith('/') ? url.slice(0, -1) : url;
   }
 
   // Get current URL source for debugging

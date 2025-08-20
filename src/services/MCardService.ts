@@ -30,7 +30,9 @@ export class MCardService {
 
   constructor(baseUrl?: string) {
     // Use provided baseUrl or get it dynamically from config
-    this.baseUrl = baseUrl || getMcardApiUrl();
+    let url = baseUrl || getMcardApiUrl();
+    // Remove trailing slash to avoid double slashes in API calls
+    this.baseUrl = url.endsWith('/') ? url.slice(0, -1) : url;
     console.log('MCardService initialized with baseUrl:', this.baseUrl);
   }
   
