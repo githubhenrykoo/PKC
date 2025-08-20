@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
-import { LogIn, User, LogOut } from 'lucide-react';
+import { LogIn, LogOut } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,

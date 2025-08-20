@@ -15,8 +15,9 @@
 }
 
 /* Override specific tab elements by their attributes */
-#radix-\:r\:*-trigger-content,
-#radix-\:r\:*-trigger-hash {
+/* Replace invalid wildcard ID selectors with attribute selectors */
+[id^="radix-:r:"][id$="-trigger-content"],
+[id^="radix-:r:"][id$="-trigger-hash"] {
   color: var(--foreground) !important;
 }
 
