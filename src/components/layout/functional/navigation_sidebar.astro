@@ -104,11 +104,11 @@ const {
     let searchTotalPages = 1;
     let searchTotalItems = 0;
     
-    // Load content-type utilities for icons, labels, and type resolution
-    let inferContentTypeFromFilename, getTypeLabel, getTypeIconSvg, resolveEffectiveContentType, getRendererTypeFromContentType;
+    // Load content-type utilities for icons, labels, title generation, and type resolution
+    let inferContentTypeFromFilename, getTypeLabel, getTypeIconSvg, resolveEffectiveContentType, getRendererTypeFromContentType, generateDisplayTitle;
     try {
       const utils = await import('/src/utils/content-type-utils.ts');
-      ({ inferContentTypeFromFilename, getTypeLabel, getTypeIconSvg, resolveEffectiveContentType, getRendererTypeFromContentType } = utils);
+      ({ inferContentTypeFromFilename, getTypeLabel, getTypeIconSvg, resolveEffectiveContentType, getRendererTypeFromContentType, generateDisplayTitle } = utils);
       console.log('🧩 Content-type utils loaded');
     } catch (e) {
       console.warn('⚠️ Failed to load content-type utils:', e);
@@ -126,6 +126,15 @@ const {
         if (t.includes('application/pdf')) return 'pdf';
         if (t.startsWith('text/')) return 'text';
         return 'unknown';
+      };
+      generateDisplayTitle = (src, index) => {
+        const name = src?.filename?.replace(/\.[^/.]+$/, '');
+        if (name) return name;
+        if (src?.metadata?.title) return src.metadata.title;
+        const base = 'Document';
+        if (typeof index === 'number') return `${base} ${index + 1}`;
+        if (src?.hash) return `${base} ${src.hash.substring(0, 8)}`;
+        return base;
       };
     }
     
@@ -158,28 +167,7 @@ const {
       };
     }
     
-    // Generate dynamic title for MCard items
-    const generateTitle = (mcard, index) => {
-      if (mcard.filename) {
-        return mcard.filename.replace(/\.[^/.]+$/, "");
-      }
-      if (mcard.metadata?.title) {
-        return mcard.metadata.title;
-      }
-      const typeMap = {
-        'text/markdown': 'Markdown',
-        'text/plain': 'Text',
-        'application/pdf': 'PDF',
-        'application/json': 'JSON',
-        'image/png': 'PNG',
-        'image/jpeg': 'JPEG',
-        'application/javascript': 'JavaScript',
-        'text/html': 'HTML'
-      };
-      const ct = mcard.content_type || mcard.contentType;
-      const baseTitle = typeMap[ct] || 'Document';
-      return `${baseTitle} ${index + 1}`;
-    };
+    // Titles are now generated via shared utils: generateDisplayTitle()
     
     // Format item with type icon and label
     const formatItemTitle = (item, contentType) => {
@@ -202,28 +190,32 @@ const {
           const data = await response.json();
           console.log('✅ Loaded', data.items.length, 'MCard items');
           
-          // Build with possible metadata refinement for inconclusive types
+          // Always fetch per-card metadata so title and type match viewer exactly
           const itemsWithTypes = await Promise.all(
             data.items.map(async (item, index) => {
+              let md = null;
               let effectiveType = resolveEffectiveContentType({ content_type: item.content_type, filename: item.filename });
-              const inferred = inferContentTypeFromFilename(item.filename);
-              const inconclusive = (!item.content_type && !inferred);
-              if (inconclusive && item.hash) {
+              if (item.hash) {
                 try {
                   const metaResp = await fetch(`${apiUrl}/card/${item.hash}/metadata`);
                   if (metaResp.ok) {
-                    const md = await metaResp.json();
+                    md = await metaResp.json();
                     effectiveType = resolveEffectiveContentType({ content_type: md.content_type, filename: md.filename });
                   }
                 } catch {}
               }
-              // Debug logging removed
+              const titleSource = {
+                filename: (md && md.filename) || item.filename,
+                metadata: { title: (md && md.title) || (item.metadata && item.metadata.title) },
+                content_type: (md && md.content_type) || item.content_type,
+                hash: item.hash
+              };
               return {
-                title: generateTitle(item, index),
+                title: generateDisplayTitle(titleSource),
                 content: item.hash,
                 id: `mcard-${item.hash.substring(0, 8)}`,
                 contentType: effectiveType,
-                filename: item.filename,
+                filename: titleSource.filename,
                 gTime: item.g_time,
                 hash: item.hash
               };
@@ -314,29 +306,33 @@ const {
         searchTotalItems = resp.pagination.totalItems;
         searchTotalPages = resp.pagination.totalPages || 1;
         
-        // Map search results to items with possible metadata refinement
+        // Map search results; always fetch per-card metadata so titles match viewer
         const apiUrl = window.RUNTIME_ENV?.PUBLIC_MCARD_API_URL || 'http://localhost:49384/v1';
         allItems = await Promise.all(
           resp.results.map(async (res, index) => {
+            let md = null;
             let effectiveType = resolveEffectiveContentType({ content_type: res.metadata?.content_type, filename: res.metadata?.filename });
-            const inferred = inferContentTypeFromFilename(res.metadata?.filename);
-            const inconclusive = (!res.metadata?.content_type && !inferred);
-            if (inconclusive && res.hash) {
+            if (res.hash) {
               try {
                 const metaResp = await fetch(`${apiUrl}/card/${res.hash}/metadata`);
                 if (metaResp.ok) {
-                  const md = await metaResp.json();
+                  md = await metaResp.json();
                   effectiveType = resolveEffectiveContentType({ content_type: md.content_type, filename: md.filename });
                 }
               } catch {}
             }
-            // Debug logging removed
+            const titleSource = {
+              filename: (md && md.filename) || res.metadata?.filename,
+              metadata: { title: (md && md.title) || res.metadata?.title },
+              content_type: (md && md.content_type) || res.metadata?.content_type,
+              hash: res.hash
+            };
             return {
-              title: res.metadata?.title || (res.snippet ? res.snippet.slice(0, 60) + '…' : `Card ${res.hash.substring(0, 8)}`),
+              title: generateDisplayTitle(titleSource),
               content: res.hash,
               id: `mcard-${res.hash.substring(0, 8)}`,
               contentType: effectiveType,
-              filename: res.metadata?.filename,
+              filename: titleSource.filename,
               gTime: res.metadata?.g_time,
               hash: res.hash
             };

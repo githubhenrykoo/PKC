@@ -88,14 +88,14 @@ import UnknownRenderer from '../../../components/Mcard/UnknownRenderer.astro';
       return gTime;
     };
 
-    // Load content-type utilities for icons, labels, and type resolution
-    let getTypeIconSvg, getTypeLabel, inferContentTypeFromFilename, resolveEffectiveContentType, getRendererTypeFromContentType;
+    // Load content-type utilities for icons, labels, title generation, and type resolution
+    let getTypeIconSvg, getTypeLabel, inferContentTypeFromFilename, resolveEffectiveContentType, getRendererTypeFromContentType, generateDisplayTitle;
     
     // Initialize content-type utils asynchronously
     const initContentTypeUtils = async () => {
       try {
         const utils = await import('/src/utils/content-type-utils.ts');
-        ({ getTypeIconSvg, getTypeLabel, inferContentTypeFromFilename, resolveEffectiveContentType, getRendererTypeFromContentType } = utils);
+        ({ getTypeIconSvg, getTypeLabel, inferContentTypeFromFilename, resolveEffectiveContentType, getRendererTypeFromContentType, generateDisplayTitle } = utils);
         console.log('🧩 Content-type utils loaded in content viewer');
       } catch (e) {
         console.warn('⚠️ Failed to load content-type utils:', e);
@@ -113,6 +113,15 @@ import UnknownRenderer from '../../../components/Mcard/UnknownRenderer.astro';
           if (t.includes('application/pdf')) return 'pdf';
           if (t.startsWith('text/')) return 'text';
           return 'unknown';
+        };
+        generateDisplayTitle = (src, index) => {
+          const name = src?.filename?.replace(/\.[^/.]+$/, '');
+          if (name) return name;
+          if (src?.metadata?.title) return src.metadata.title;
+          const base = 'Document';
+          if (typeof index === 'number') return `${base} ${index + 1}`;
+          if (src?.hash) return `${base} ${src.hash.substring(0, 8)}`;
+          return base;
         };
       }
     };
@@ -588,8 +597,10 @@ import UnknownRenderer from '../../../components/Mcard/UnknownRenderer.astro';
         const metadata = await metaResponse.json();
         const effectiveType = resolveEffectiveContentType({ content_type: metadata.content_type, filename: metadata.filename });
 
+        // Compute unified display title from metadata
+        const displayTitle = generateDisplayTitle({ filename: metadata.filename, metadata: { title: metadata.title }, content_type: metadata.content_type, hash }, undefined);
         // Update header info with icon and meta
-        setTitleWithIcon(effectiveType, title);
+        setTitleWithIcon(effectiveType, displayTitle);
         contentType.textContent = effectiveType;
         if (metadata.g_time) {
           contentTimestamp.textContent = formatTimestamp(metadata.g_time);

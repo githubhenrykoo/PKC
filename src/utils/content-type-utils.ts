@@ -1,5 +1,6 @@
 // Shared content type utilities for icons, labels, and inference
 // Keeps UI consistent across components and minimizes duplication.
+// NOTE: Public exports and behavior preserved. Internals refactored for reuse.
 
 export type IconOptions = {
   width?: number;
@@ -8,101 +9,136 @@ export type IconOptions = {
   strokeWidth?: number;
 };
 
-export const inferContentTypeFromFilename = (filename?: string): string | undefined => {
-  if (!filename || typeof filename !== 'string') return undefined;
-  const ext = filename.toLowerCase().split('.').pop() || '';
-  switch (ext) {
-    case 'md':
-    case 'markdown':
-      return 'text/markdown';
-    case 'txt':
-      return 'text/plain';
-    case 'json':
-      return 'application/json';
-    case 'js':
-      return 'application/javascript';
-    case 'html':
-    case 'htm':
-      return 'text/html';
-    case 'pdf':
-      return 'application/pdf';
-    case 'png':
-      return 'image/png';
-    case 'jpg':
-    case 'jpeg':
-      return 'image/jpeg';
-    case 'gif':
-      return 'image/gif';
-    case 'mp3':
-      return 'audio/mpeg';
-    case 'wav':
-      return 'audio/wav';
-    case 'mp4':
-      return 'video/mp4';
-    default:
-      return undefined;
-  }
+// Strip file extension from filename
+const stripExtension = (name?: string): string | undefined => {
+  if (!name) return undefined;
+  return name.replace(/\.[^/.]+$/, '');
 };
 
-export const isBinary = (ct?: string): boolean => {
-  if (!ct) return false; // Unknown -> treat as text for safety
-  if (ct.startsWith('text/')) return false;
-  if (
-    ct === 'application/json' ||
-    ct === 'application/javascript' ||
-    ct === 'text/html' ||
-    ct === 'text/markdown'
-  )
-    return false;
-  return true;
+// -------------------------
+// Internal helpers and maps
+// -------------------------
+
+// Central extension -> MIME map for easy extension in one place
+export const EXT_TO_MIME: Record<string, string> = {
+  md: 'text/markdown',
+  markdown: 'text/markdown',
+  txt: 'text/plain',
+  json: 'application/json',
+  js: 'application/javascript',
+  html: 'text/html',
+  htm: 'text/html',
+  pdf: 'application/pdf',
+  png: 'image/png',
+  jpg: 'image/jpeg',
+  jpeg: 'image/jpeg',
+  gif: 'image/gif',
+  mp3: 'audio/mpeg',
+  wav: 'audio/wav',
+  mp4: 'video/mp4'
 };
 
-export const getTypeLabel = (ct?: string): string => {
-  if (!ct) return 'TXT';
-  if (ct.startsWith('image/')) return 'IMG';
-  if (ct.startsWith('video/')) return 'VID';
-  if (ct.startsWith('audio/')) return 'AUD';
-  switch (ct) {
-    case 'application/pdf':
-      return 'PDF';
-    case 'text/markdown':
-      return 'MD';
-    case 'text/plain':
-      return 'TXT';
-    case 'application/json':
-      return 'JSON';
-    case 'application/javascript':
-      return 'JS';
-    case 'text/html':
-      return 'HTML';
-    default:
-      return isBinary(ct) ? 'BLOB' : 'TXT';
-  }
+// Content-types that should be treated as text (not binary) besides text/*
+const NON_BINARY_CT = new Set([
+  'application/json',
+  'application/javascript',
+  'text/html',
+  'text/markdown'
+]);
+
+// Label mapping for exact content types
+export const MIMETYPE_LABELS: Record<string, string> = {
+  'application/pdf': 'PDF',
+  'text/markdown': 'MD',
+  'text/plain': 'TXT',
+  'application/json': 'JSON',
+  'application/javascript': 'JS',
+  'text/html': 'HTML'
 };
 
-export const getTypeIconSvg = (ct?: string, opts: IconOptions = {}): string => {
+// Human-friendly names for common content-types
+const MIMETYPE_FRIENDLY: Record<string, string> = {
+  'application/pdf': 'PDF',
+  'text/markdown': 'Markdown',
+  'text/plain': 'Text',
+  'application/json': 'JSON',
+  'application/javascript': 'JavaScript',
+  'text/html': 'HTML',
+  'image/png': 'PNG',
+  'image/jpeg': 'JPEG'
+};
+
+// Normalize and sanitize a content-type value
+const normalizeContentType = (ct?: string): string | undefined => {
+  if (!ct || typeof ct !== 'string') return undefined;
+  return ct.toLowerCase();
+};
+
+// Build SVG base attributes consistently
+const makeSvgBase = (opts: IconOptions = {}): string => {
   const width = opts.width ?? 21;
   const height = opts.height ?? 21;
   const strokeWidth = opts.strokeWidth ?? 1.8;
   const cls = opts.className ?? 'inline-block mr-2 -mt-0.5 align-middle opacity-80';
-  const base = `class="${cls}" width="${width}" height="${height}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${strokeWidth}" stroke-linecap="round" stroke-linejoin="round"`;
+  return `class="${cls}" width="${width}" height="${height}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${strokeWidth}" stroke-linecap="round" stroke-linejoin="round"`;
+};
 
-  if (!ct) {
+/**
+ * Best-effort content-type inference from a filename's extension.
+ */
+export const inferContentTypeFromFilename = (filename?: string): string | undefined => {
+  if (!filename || typeof filename !== 'string') return undefined;
+  const ext = filename.toLowerCase().split('.').pop() || '';
+  return EXT_TO_MIME[ext];
+};
+
+/**
+ * Heuristic check if a content-type should be treated as binary in our UI.
+ * Unknown treats as text for safer rendering.
+ */
+export const isBinary = (ct?: string): boolean => {
+  const n = normalizeContentType(ct);
+  if (!n) return false;
+  if (n.startsWith('text/')) return false;
+  if (NON_BINARY_CT.has(n)) return false;
+  return true;
+};
+
+/**
+ * Short label string used in chips/badges.
+ */
+export const getTypeLabel = (ct?: string): string => {
+  const n = normalizeContentType(ct);
+  if (!n) return 'TXT';
+  if (n.startsWith('image/')) return 'IMG';
+  if (n.startsWith('video/')) return 'VID';
+  if (n.startsWith('audio/')) return 'AUD';
+  return MIMETYPE_LABELS[n] ?? (isBinary(n) ? 'BLOB' : 'TXT');
+};
+
+/**
+ * Small inline SVG icon representing a content-type.
+ */
+export const getTypeIconSvg = (ct?: string, opts: IconOptions = {}): string => {
+  const base = makeSvgBase(opts);
+  const n = normalizeContentType(ct);
+
+  if (!n) {
     return `<svg ${base}><rect x="3" y="3" width="18" height="18" rx="2"/></svg>`;
   }
 
-  if (ct.startsWith('image/')) {
+  if (n.startsWith('image/')) {
     return `<svg ${base}><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="1.5"/><path d="M3 17l5-5 4 4 3-3 4 4"/></svg>`;
   }
-  if (ct.startsWith('video/')) {
+  if (n.startsWith('video/')) {
     return `<svg ${base}><rect x="3" y="3" width="18" height="18" rx="2"/><polygon points="10,9 16,12 10,15"/></svg>`;
   }
-  if (ct.startsWith('audio/')) {
+  if (n.startsWith('audio/')) {
     // Use the sidebar's audio icon variant for consistency
     return `<svg ${base}><path d="M12 5v8"/><circle cx="9" cy="15" r="2"/><circle cx="15" cy="13" r="2"/></svg>`;
   }
 
-  switch (ct) {
+  switch (n) {
     case 'application/pdf':
       return `<svg ${base}><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M8 13h2a2 2 0 0 1 0 4H8z"/><path d="M13 17v-4h2a2 2 0 0 1 0 4z"/></svg>`;
     case 'text/markdown':
@@ -122,11 +158,15 @@ export const getTypeIconSvg = (ct?: string, opts: IconOptions = {}): string => {
 
 // Resolve a single, effective content-type from available metadata and filename
 // Falls back to filename inference, then to provided default (text/plain)
+/**
+ * Resolve a single, effective content-type from available metadata and filename.
+ * Falls back to filename inference, then to provided default (text/plain).
+ */
 export const resolveEffectiveContentType = (
   meta?: { content_type?: string; contentType?: string; filename?: string },
   defaultType: string = 'text/plain'
 ): string => {
-  const ct = meta?.content_type || meta?.contentType;
+  const ct = normalizeContentType(meta?.content_type || meta?.contentType);
   const inferred = inferContentTypeFromFilename(meta?.filename);
   return (ct && String(ct)) || inferred || defaultType;
 };
@@ -134,7 +174,7 @@ export const resolveEffectiveContentType = (
 // Normalize a content-type to a renderer key used by UI renderers
 export type RendererType = 'markdown' | 'html' | 'json' | 'image' | 'pdf' | 'text' | 'unknown';
 export const getRendererTypeFromContentType = (contentType?: string): RendererType => {
-  const type = (contentType || '').toLowerCase();
+  const type = normalizeContentType(contentType) || '';
   if (type.includes('markdown')) return 'markdown';
   if (type.includes('html')) return 'html';
   if (type.includes('application/json')) return 'json';
@@ -142,4 +182,35 @@ export const getRendererTypeFromContentType = (contentType?: string): RendererTy
   if (type.includes('application/pdf')) return 'pdf';
   if (type.startsWith('text/')) return 'text';
   return 'unknown';
+};
+
+// -------------------------
+// Shared title generation
+// -------------------------
+
+export type TitleSource = {
+  filename?: string;
+  metadata?: { title?: string } | null;
+  content_type?: string;
+  contentType?: string;
+  hash?: string;
+};
+
+/**
+ * Generate a consistent display title from metadata/filename/content-type.
+ * Priority: filename (no ext) > metadata.title > friendly type + ordinal/hash fallback
+ */
+export const generateDisplayTitle = (src: TitleSource, index?: number): string => {
+  const byFilename = stripExtension(src?.filename);
+  if (byFilename) return byFilename;
+
+  const byMetaTitle = src?.metadata?.title;
+  if (byMetaTitle && typeof byMetaTitle === 'string') return byMetaTitle;
+
+  const ct = normalizeContentType(src?.content_type || src?.contentType);
+  const friendly = (ct && MIMETYPE_FRIENDLY[ct]) || 'Document';
+
+  if (typeof index === 'number') return `${friendly} ${index + 1}`;
+  if (src?.hash) return `${friendly} ${src.hash.substring(0, 8)}`;
+  return friendly;
 };
