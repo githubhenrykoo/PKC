@@ -119,3 +119,27 @@ export const getTypeIconSvg = (ct?: string, opts: IconOptions = {}): string => {
       return `<svg ${base}><rect x="3" y="3" width="18" height="18" rx="2"/></svg>`;
   }
 };
+
+// Resolve a single, effective content-type from available metadata and filename
+// Falls back to filename inference, then to provided default (text/plain)
+export const resolveEffectiveContentType = (
+  meta?: { content_type?: string; contentType?: string; filename?: string },
+  defaultType: string = 'text/plain'
+): string => {
+  const ct = meta?.content_type || meta?.contentType;
+  const inferred = inferContentTypeFromFilename(meta?.filename);
+  return (ct && String(ct)) || inferred || defaultType;
+};
+
+// Normalize a content-type to a renderer key used by UI renderers
+export type RendererType = 'markdown' | 'html' | 'json' | 'image' | 'pdf' | 'text' | 'unknown';
+export const getRendererTypeFromContentType = (contentType?: string): RendererType => {
+  const type = (contentType || '').toLowerCase();
+  if (type.includes('markdown')) return 'markdown';
+  if (type.includes('html')) return 'html';
+  if (type.includes('application/json')) return 'json';
+  if (type.startsWith('image/')) return 'image';
+  if (type.includes('application/pdf')) return 'pdf';
+  if (type.startsWith('text/')) return 'text';
+  return 'unknown';
+};

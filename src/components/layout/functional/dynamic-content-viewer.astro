@@ -88,21 +88,32 @@ import UnknownRenderer from '../../../components/Mcard/UnknownRenderer.astro';
       return gTime;
     };
 
-    // Load content-type utilities for icons and labels
-    let getTypeIconSvg, getTypeLabel, inferContentTypeFromFilename;
+    // Load content-type utilities for icons, labels, and type resolution
+    let getTypeIconSvg, getTypeLabel, inferContentTypeFromFilename, resolveEffectiveContentType, getRendererTypeFromContentType;
     
     // Initialize content-type utils asynchronously
     const initContentTypeUtils = async () => {
       try {
         const utils = await import('/src/utils/content-type-utils.ts');
-        ({ getTypeIconSvg, getTypeLabel, inferContentTypeFromFilename } = utils);
+        ({ getTypeIconSvg, getTypeLabel, inferContentTypeFromFilename, resolveEffectiveContentType, getRendererTypeFromContentType } = utils);
         console.log('🧩 Content-type utils loaded in content viewer');
       } catch (e) {
         console.warn('⚠️ Failed to load content-type utils:', e);
-        // Fallback functions
+        // Fallback functions (minimal)
         getTypeIconSvg = (contentType) => '📄';
         getTypeLabel = (contentType) => 'Document';
-        inferContentTypeFromFilename = (filename) => 'text/plain';
+        inferContentTypeFromFilename = (filename) => undefined;
+        resolveEffectiveContentType = (meta) => (meta?.content_type || meta?.contentType || inferContentTypeFromFilename(meta?.filename) || 'text/plain');
+        getRendererTypeFromContentType = (ct) => {
+          const t = (ct || '').toLowerCase();
+          if (t.includes('markdown')) return 'markdown';
+          if (t.includes('html')) return 'html';
+          if (t.includes('application/json')) return 'json';
+          if (t.startsWith('image/')) return 'image';
+          if (t.includes('application/pdf')) return 'pdf';
+          if (t.startsWith('text/')) return 'text';
+          return 'unknown';
+        };
       }
     };
     
@@ -302,19 +313,8 @@ import UnknownRenderer from '../../../components/Mcard/UnknownRenderer.astro';
       return window.__renderLibs;
     };
 
-    // Content type detection and renderer mapping
-    const getRendererType = (contentType) => {
-      const type = (contentType || '').toLowerCase();
-      
-      if (type.includes('markdown')) return 'markdown';
-      if (type.includes('html')) return 'html';
-      if (type.includes('application/json')) return 'json';
-      if (type.includes('image/')) return 'image';
-      if (type.includes('application/pdf')) return 'pdf';
-      if (type.includes('text/')) return 'text';
-      
-      return 'unknown';
-    };
+    // Content type detection delegates to shared utility
+    const getRendererType = (contentType) => getRendererTypeFromContentType(contentType);
 
     // (Removed local icon generator in favor of shared utils)
 
@@ -586,9 +586,7 @@ import UnknownRenderer from '../../../components/Mcard/UnknownRenderer.astro';
           throw new Error(`Failed to fetch metadata: ${metaResponse.statusText}`);
         }
         const metadata = await metaResponse.json();
-        const effectiveType = (metadata.content_type && String(metadata.content_type)) ||
-                              (inferContentTypeFromFilename ? inferContentTypeFromFilename(metadata.filename) : 'text/plain') ||
-                              'text/plain';
+        const effectiveType = resolveEffectiveContentType({ content_type: metadata.content_type, filename: metadata.filename });
 
         // Update header info with icon and meta
         setTitleWithIcon(effectiveType, title);

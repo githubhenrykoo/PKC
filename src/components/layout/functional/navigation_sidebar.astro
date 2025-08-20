@@ -104,18 +104,29 @@ const {
     let searchTotalPages = 1;
     let searchTotalItems = 0;
     
-    // Load content-type utilities for icons and labels
-    let inferContentTypeFromFilename, getTypeLabel, getTypeIconSvg;
+    // Load content-type utilities for icons, labels, and type resolution
+    let inferContentTypeFromFilename, getTypeLabel, getTypeIconSvg, resolveEffectiveContentType, getRendererTypeFromContentType;
     try {
       const utils = await import('/src/utils/content-type-utils.ts');
-      ({ inferContentTypeFromFilename, getTypeLabel, getTypeIconSvg } = utils);
+      ({ inferContentTypeFromFilename, getTypeLabel, getTypeIconSvg, resolveEffectiveContentType, getRendererTypeFromContentType } = utils);
       console.log('🧩 Content-type utils loaded');
     } catch (e) {
       console.warn('⚠️ Failed to load content-type utils:', e);
       // Fallback functions
-      inferContentTypeFromFilename = (filename) => 'text/plain';
+      inferContentTypeFromFilename = (filename) => undefined;
       getTypeLabel = (contentType) => 'Document';
       getTypeIconSvg = (contentType) => '📄';
+      resolveEffectiveContentType = (meta) => (meta?.content_type || meta?.contentType || inferContentTypeFromFilename(meta?.filename) || 'text/plain');
+      getRendererTypeFromContentType = (ct) => {
+        const t = (ct || '').toLowerCase();
+        if (t.includes('markdown')) return 'markdown';
+        if (t.includes('html')) return 'html';
+        if (t.includes('application/json')) return 'json';
+        if (t.startsWith('image/')) return 'image';
+        if (t.includes('application/pdf')) return 'pdf';
+        if (t.startsWith('text/')) return 'text';
+        return 'unknown';
+      };
     }
     
     // Initialize services
@@ -191,15 +202,34 @@ const {
           const data = await response.json();
           console.log('✅ Loaded', data.items.length, 'MCard items');
           
-          allItems = data.items.map((item, index) => ({
-            title: generateTitle(item, index),
-            content: item.hash,
-            id: `mcard-${item.hash.substring(0, 8)}`,
-            contentType: item.content_type,
-            filename: item.filename,
-            gTime: item.g_time,
-            hash: item.hash
-          }));
+          // Build with possible metadata refinement for inconclusive types
+          const itemsWithTypes = await Promise.all(
+            data.items.map(async (item, index) => {
+              let effectiveType = resolveEffectiveContentType({ content_type: item.content_type, filename: item.filename });
+              const inferred = inferContentTypeFromFilename(item.filename);
+              const inconclusive = (!item.content_type && !inferred);
+              if (inconclusive && item.hash) {
+                try {
+                  const metaResp = await fetch(`${apiUrl}/card/${item.hash}/metadata`);
+                  if (metaResp.ok) {
+                    const md = await metaResp.json();
+                    effectiveType = resolveEffectiveContentType({ content_type: md.content_type, filename: md.filename });
+                  }
+                } catch {}
+              }
+              // Debug logging removed
+              return {
+                title: generateTitle(item, index),
+                content: item.hash,
+                id: `mcard-${item.hash.substring(0, 8)}`,
+                contentType: effectiveType,
+                filename: item.filename,
+                gTime: item.g_time,
+                hash: item.hash
+              };
+            })
+          );
+          allItems = itemsWithTypes;
           
           return true;
         } else {
@@ -284,16 +314,34 @@ const {
         searchTotalItems = resp.pagination.totalItems;
         searchTotalPages = resp.pagination.totalPages || 1;
         
-        // Map search results to items
-        allItems = resp.results.map((res, index) => ({
-          title: res.metadata?.title || (res.snippet ? res.snippet.slice(0, 60) + '…' : `Card ${res.hash.substring(0, 8)}`),
-          content: res.hash,
-          id: `mcard-${res.hash.substring(0, 8)}`,
-          contentType: res.metadata?.contentType || res.metadata?.content_type || inferContentTypeFromFilename(res.metadata?.filename),
-          filename: res.metadata?.filename,
-          gTime: res.metadata?.g_time,
-          hash: res.hash
-        }));
+        // Map search results to items with possible metadata refinement
+        const apiUrl = window.RUNTIME_ENV?.PUBLIC_MCARD_API_URL || 'http://localhost:49384/v1';
+        allItems = await Promise.all(
+          resp.results.map(async (res, index) => {
+            let effectiveType = resolveEffectiveContentType({ content_type: res.metadata?.content_type, filename: res.metadata?.filename });
+            const inferred = inferContentTypeFromFilename(res.metadata?.filename);
+            const inconclusive = (!res.metadata?.content_type && !inferred);
+            if (inconclusive && res.hash) {
+              try {
+                const metaResp = await fetch(`${apiUrl}/card/${res.hash}/metadata`);
+                if (metaResp.ok) {
+                  const md = await metaResp.json();
+                  effectiveType = resolveEffectiveContentType({ content_type: md.content_type, filename: md.filename });
+                }
+              } catch {}
+            }
+            // Debug logging removed
+            return {
+              title: res.metadata?.title || (res.snippet ? res.snippet.slice(0, 60) + '…' : `Card ${res.hash.substring(0, 8)}`),
+              content: res.hash,
+              id: `mcard-${res.hash.substring(0, 8)}`,
+              contentType: effectiveType,
+              filename: res.metadata?.filename,
+              gTime: res.metadata?.g_time,
+              hash: res.hash
+            };
+          })
+        );
         
         renderPage(currentPage);
       } catch (err) {
