@@ -87,6 +87,12 @@ PKC implements a sophisticated **triadic architecture** where every component wo
   - MCP tool providers
   - External APIs and distributed computing resources
 
+#### Flux-to-Flow (Control Plane Coordination)
+- See the Flux-to-Flow design: [Docs/flux2flow_state-management.md](./Docs/flux2flow_state-management.md)
+- PocketFlow bus (`src/pocketflow/bus.ts`) and topics (`src/pocketflow/events.ts`) coordinate UI/data flows
+- Panels/places align with `src/layouts/AppShell.astro` and `src/layouts/MainLayout.astro`
+- Event-first, hash-first payloads; reducers subscribe to events; selectors remain for derived views
+
 ### 🔐 VCard: Security & Collaboration Layer
 **The Application Plane** - Secure boundaries for collaborative knowledge sharing:
 - Distributed authentication with JWT and hash-based signatures
@@ -144,6 +150,11 @@ npm run dev
 - **Curry-Howard-Lambek Correspondence**: Unified approach to proofs and programs
 - **Contract Upgradability**: Safe evolution through proxy pattern implementation
 
+### 🎛️ State & Agents
+- **Flux-to-Flow (flux2flow)**: Event-first coordination with PocketFlow bus; reducers become listeners
+- **Agents**: Composable event-driven workers for Auth, Theme, Selection, Data, Networking, DevTools
+- **Redux DevTools**: Kept for Redux-managed slices (e.g., authentication)
+
 ### 🌐 Distributed Architecture
 - **Local-First Operation**: Full functionality without network connectivity
 - **libP2P Networking**: Universal connectivity across any network topology
@@ -155,6 +166,7 @@ npm run dev
 - **Progressive Web App**: Full offline capabilities and native-like experience
 - **Component-Based Design**: Modular, reusable interface components
 - **Hash-Based Composition**: Cryptographically secure component references
+ - **PocketFlow Bus**: Minimal pub/sub backbone to coordinate islands and panels
 
 ## 📁 Project Structure
 
@@ -167,6 +179,8 @@ PKC/
 │   ├── layouts/               # Astro layouts
 │   └── (services, store, etc.)
 ├── Docs/                      # Architecture & specs (PKC, MCard, PCard, VCard, RAG)
+│   ├── Agents.md              # Agent taxonomy and contracts
+│   └── flux2flow_state-management.md  # Flux-to-Flow design for state coordination
 ├── public/                    # Static assets (icons, images, manifest)
 ├── docker-compose.yml         # One-step deployment of all services
 ├── Dockerfile                 # Multi-stage build for pkc-app image
@@ -199,6 +213,11 @@ PKC/
 - **Progressive Enhancement** - Graceful degradation across devices
 - **Responsive Design** - Optimized for all screen sizes
 
+### Coordination & State
+- **PocketFlow bus**: `src/pocketflow/bus.ts` with canonical topics in `src/pocketflow/events.ts`
+- **Flux-to-Flow bridge**: see [Docs/flux2flow_state-management.md](./Docs/flux2flow_state-management.md)
+- **Agents**: see [Docs/Agents.md](./Docs/Agents.md)
+
 ## 🔢 Versions
 
 - **MCard library (Python)**: 0.1.22 (detected in local virtualenv)
@@ -214,6 +233,8 @@ You can verify the MCard service at `http://localhost:49384/v1/status` once Dock
 - **[PKC.md](./Docs/PKC.md)** - Complete implementation guide and architecture
 - **[PCard.md](./Docs/PCard.md)** - Conversational programming engine specification
 - **[PCard Architecture.md](./Docs/PCard%20Architecture.md)** - Detailed architectural patterns
+ - **[flux2flow_state-management.md](./Docs/flux2flow_state-management.md)** - Event-first state design
+ - **[Agents.md](./Docs/Agents.md)** - Agent taxonomy and event contracts
 
 ### Component Documentation  
 - **[MCard.md](./Docs/MCard.md)** - Universal atomic storage system
@@ -228,7 +249,7 @@ This repository follows our Docker Build & Deployment Rules:
 
 - Pre-built images only in `docker-compose.yml` (no build directives)
 - One-step deployment using Docker Compose
-- Environment variables loaded from `.env`
+ - Environment variables loaded from `.env` (client uses only `PUBLIC_*` at runtime)
 
 ```
 # 1) Create your environment file from the example
@@ -254,7 +275,7 @@ docker compose down
 ### Environment Configuration
 
 - Use `.env` (see `exmaple.env`) as the single source of truth.
-- Client-side variables must use the `PUBLIC_` prefix.
+- Client-side variables must use the `PUBLIC_` prefix (see `.windsurf/rules/environment-variables.md`).
 
 Key variables you may want to set:
 
