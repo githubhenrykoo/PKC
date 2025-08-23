@@ -23,7 +23,8 @@ export interface RendererRegistry {
 
 // Helper function to get renderer for content type
 export function getRendererForContentType(contentType: string): RendererInfo {
-  return rendererRegistry.renderers[contentType] || rendererRegistry.fallback;
+  const renderers = rendererRegistry.renderers as Record<string, RendererInfo>;
+  return renderers[contentType] || rendererRegistry.fallback;
 }
 
 // Helper function to get all supported content types
