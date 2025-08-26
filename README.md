@@ -166,7 +166,42 @@ npm run dev
 - **Progressive Web App**: Full offline capabilities and native-like experience
 - **Component-Based Design**: Modular, reusable interface components
 - **Hash-Based Composition**: Cryptographically secure component references
- - **PocketFlow Bus**: Minimal pub/sub backbone to coordinate islands and panels
+  - **PocketFlow Bus**: Minimal pub/sub backbone to coordinate islands and panels
+
+## 🆕 What's New (Aug 2025)
+
+The UI and utilities were refactored to reduce duplication, improve consistency, and centralize content-type logic.
+
+- **Centralized content-type utilities**
+  - Introduced `loadContentTypeUtils()` loader in `src/utils/load-content-type-utils.ts` for dynamic, unified access to:
+    - `inferContentTypeFromFilename()`, `getTypeLabel()`, `getTypeIconSvg()`, `getTypePillHTML()`
+    - `resolveEffectiveContentType()`, `getRendererTypeFromContentType()`, `generateDisplayTitle()`
+  - Consumers updated:
+    - `src/components/layout/functional/navigation_sidebar.astro`
+    - `src/components/layout/functional/dynamic-content-viewer.astro`
+
+- **Reusable SSR UI components**
+  - `src/components/ui/type-badge.astro` — SSR content-type pill/badge
+  - `src/components/ui/nav-item.astro` — SSR navigation list item with icon + badge
+  - `src/components/ui/pagination-controls.astro` — Encapsulated pagination UI (Prev/Next + count)
+
+- **Shared list utilities**
+  - `src/utils/list-format.ts` now provides:
+    - `debounce()` for input handling
+    - `paginate(items, page, pageSize)` to unify page slicing
+    - `formatNavItemHTML()` for client-side fallback HTML composition
+  - Sidebar updated to prefer shared helpers with safe local fallbacks
+
+- **Navigation Sidebar updates**
+  - SSR rendering with `<NavItem />` for each list entry
+  - `<PaginationControls />` replaces inline pagination markup
+  - Client script keeps existing selectors/IDs (`#prev-page`, `#next-page`, `#item-count`)
+  - Uses `paginate()` for non-search paging
+
+- **Dynamic Content Viewer**
+  - Uses `loadContentTypeUtils()` to compute header icon and pill consistently
+
+These changes standardize UI and logic across components, reduce duplication, and make later extensions (e.g., timestamps, more metadata) straightforward.
 
 ## 📁 Project Structure
 
@@ -174,9 +209,17 @@ npm run dev
 PKC/
 ├── src/
 │   ├── components/            # UI components (Astro islands)
+│   │   └── ui/
+│   │       ├── type-badge.astro           # SSR content-type badge
+│   │       ├── nav-item.astro             # SSR navigation list item
+│   │       └── pagination-controls.astro  # SSR pagination controls
 │   ├── context/               # App contexts (e.g., theme)
 │   ├── hooks/                 # React/Preact hooks (file upload, card content)
 │   ├── layouts/               # Astro layouts
+│   ├── utils/
+│   │   ├── content-type-utils.ts          # Content-type helpers
+│   │   ├── load-content-type-utils.ts     # Standardized dynamic loader with fallbacks
+│   │   └── list-format.ts                 # debounce, paginate, formatNavItemHTML
 │   └── (services, store, etc.)
 ├── Docs/                      # Architecture & specs (PKC, MCard, PCard, VCard, RAG)
 │   ├── Agents.md              # Agent taxonomy and contracts
@@ -240,6 +283,16 @@ You can verify the MCard service at `http://localhost:49384/v1/status` once Dock
 - **[MCard.md](./Docs/MCard.md)** - Universal atomic storage system
 - **[VCard.md](./Docs/VCard.md)** - Security and collaboration framework
 - **[MVP Cards for PKC.md](./Docs/MVP%20Cards%20for%20PKC.md)** - Implementation strategy
+
+### UI/Utils References
+- `src/components/layout/functional/navigation_sidebar.astro`
+- `src/components/layout/functional/dynamic-content-viewer.astro`
+- `src/components/ui/type-badge.astro`
+- `src/components/ui/nav-item.astro`
+- `src/components/ui/pagination-controls.astro`
+- `src/utils/content-type-utils.ts`
+- `src/utils/load-content-type-utils.ts`
+- `src/utils/list-format.ts`
 
 ## 🌐 Deployment
 

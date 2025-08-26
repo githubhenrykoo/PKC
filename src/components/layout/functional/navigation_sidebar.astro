@@ -1,6 +1,8 @@
 ---
 // Navigation sidebar with direct MCard API integration
 import { getTypeIconSvg, getTypeLabel, getTypePillHTML } from '../../../utils/content-type-utils.ts';
+import NavItem from '../../../components/ui/nav-item.astro';
+import PaginationControls from '../../../components/ui/pagination-controls.astro';
 interface NavigationItem {
   title: string;
   content: string;
@@ -58,39 +60,16 @@ const {
   </div>
   <ul class="space-y-1 text-sm min-h-[200px]" id="nav-items">
     {items.map((item) => (
-      <li>
-        <button 
-          class="nav-link w-full text-left px-2 py-1 rounded hover:bg-black/5 dark:hover:bg-white/10 transition-colors opacity-80 hover:opacity-100"
-          data-content={item.content}
-          data-id={item.id || item.title.toLowerCase().replace(/\s+/g, '-')}
-        >
-          <span class="align-middle mr-1" set:html={getTypeIconSvg(undefined)} />
-          <span class="align-middle">{item.title}</span>
-          <span class="align-middle" set:html={getTypePillHTML(undefined)} />
-        </button>
-      </li>
+      <NavItem 
+        title={item.title}
+        contentType={undefined}
+        id={item.id || item.title.toLowerCase().replace(/\s+/g, '-')}
+      />
     ))}
   </ul>
   
   <!-- Pagination controls -->
-  <div class="flex justify-between items-center mt-3 pt-3 border-t border-black/5 dark:border-white/10">
-    <button 
-      id="prev-page" 
-      class="px-3 py-1 text-xs rounded bg-black/5 dark:bg-white/10 hover:bg-black/10 dark:hover:bg-white/20 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-      disabled
-    >
-      ← Prev
-    </button>
-    <span class="text-xs opacity-70" id="item-count">
-      0 items
-    </span>
-    <button 
-      id="next-page" 
-      class="px-3 py-1 text-xs rounded bg-black/5 dark:bg-white/10 hover:bg-black/10 dark:hover:bg-white/20 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-    >
-      Next →
-    </button>
-  </div>
+  <PaginationControls prevDisabled={true} />
 </aside>
 
 <script is:inline>
@@ -107,47 +86,30 @@ const {
     let searchTotalPages = 1;
     let searchTotalItems = 0;
     
-    // Load content-type utilities for icons, labels, title generation, and type resolution
+    // Load content-type utilities via standardized loader with unified fallbacks
     let inferContentTypeFromFilename, getTypeLabel, getTypeIconSvg, getTypePillHTML, resolveEffectiveContentType, getRendererTypeFromContentType, generateDisplayTitle;
     try {
-      // Use explicit absolute path to ensure correct client chunk resolution
-      const utils = await import('/src/utils/content-type-utils.ts');
-      ({ inferContentTypeFromFilename, getTypeLabel, getTypeIconSvg, getTypePillHTML, resolveEffectiveContentType, getRendererTypeFromContentType, generateDisplayTitle } = utils);
-      console.log('🧩 Content-type utils loaded');
+      const { loadContentTypeUtils } = await import('/src/utils/load-content-type-utils.ts');
+      ({
+        inferContentTypeFromFilename,
+        getTypeLabel,
+        getTypeIconSvg,
+        getTypePillHTML,
+        resolveEffectiveContentType,
+        getRendererTypeFromContentType,
+        generateDisplayTitle,
+      } = await loadContentTypeUtils());
+      console.log('🧩 Content-type utils loaded (standard loader)');
     } catch (e) {
-      console.warn('⚠️ Failed to load content-type utils:', e);
-      // Fallback functions
-      inferContentTypeFromFilename = (filename) => undefined;
-      getTypeLabel = (contentType) => 'PKC NOTES';
-      getTypeIconSvg = (contentType) => '📄';
+      console.warn('⚠️ Failed to initialize content-type utils loader:', e);
+      // Minimal hard fallback to avoid runtime breakage
+      inferContentTypeFromFilename = () => undefined;
+      getTypeLabel = () => 'Document';
+      getTypeIconSvg = () => '📄';
       getTypePillHTML = (contentType) => `<span class="ml-1 text-[10px] px-1 py-0.5 rounded bg-black/5 dark:bg-white/10 align-middle">${getTypeLabel(contentType)}</span>`;
-      resolveEffectiveContentType = (meta) => (meta?.content_type || meta?.contentType || inferContentTypeFromFilename(meta?.filename) || 'text/plain');
-      getRendererTypeFromContentType = (ct) => {
-        const t = (ct || '').toLowerCase();
-        if (t.includes('markdown')) return 'markdown';
-        if (t.includes('html')) return 'html';
-        if (t.includes('application/json')) return 'json';
-        if (t.startsWith('image/')) return 'image';
-        if (t.includes('application/pdf')) return 'pdf';
-        if (t.startsWith('text/')) return 'text';
-        return 'unknown';
-      };
-      generateDisplayTitle = (src, index) => {
-        // Fallback now mirrors utils format: icon + label + short hash
-        const icon = '📄';
-        const label = 'PKC NOTES';
-        const h = src?.hash || '';
-        const shorten = (s, max = 10) => {
-          if (!s) return '';
-          if (s.length <= max) return s;
-          const keep = max - 3;
-          const front = Math.ceil(keep / 2);
-          const back = Math.floor(keep / 2);
-          return `${s.slice(0, front)}...${s.slice(-back)}`;
-        };
-        const shortHash = h ? shorten(h, 10) : (typeof index === 'number' ? `${index + 1}` : '');
-        return shortHash ? `${icon} ${label} ${shortHash}` : `${icon} ${label}`;
-      };
+      resolveEffectiveContentType = (meta) => meta?.content_type || meta?.contentType || 'text/plain';
+      getRendererTypeFromContentType = (ct) => (ct && ct.startsWith('text/')) ? 'text' : 'unknown';
+      generateDisplayTitle = (src) => src?.filename?.replace(/\.[^/.]+$/, '') || src?.hash?.substring(0, 8) || 'Document';
     }
     
     // Dynamic API URL getter that always checks current runtime environment
@@ -249,13 +211,41 @@ const {
     // Remove dev-time overrides; rely on content-type utils for display
     // (This block intentionally left minimal.)
 
-    // Debounce utility for smooth interactions
-    function debounce(fn, delay) {
+    // Debounce utility: prefer shared helper, fallback locally
+    let debounce = (fn, delay = 300) => {
       let timeoutId;
       return (...args) => {
         clearTimeout(timeoutId);
         timeoutId = setTimeout(() => fn.apply(null, args), delay);
       };
+    };
+    let formatNavItemHTML = null;
+    let paginate = (items, page, pageSize) => {
+      const totalItems = items.length;
+      const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
+      const start = (page - 1) * pageSize;
+      const end = start + pageSize;
+      return {
+        items: items.slice(start, end),
+        page,
+        pageSize,
+        totalItems,
+        totalPages,
+      };
+    };
+    try {
+      const mod = await import('/src/utils/list-format.ts');
+      if (mod && typeof mod.debounce === 'function') {
+        debounce = mod.debounce;
+      }
+      if (mod && typeof mod.formatNavItemHTML === 'function') {
+        formatNavItemHTML = mod.formatNavItemHTML;
+      }
+      if (mod && typeof mod.paginate === 'function') {
+        paginate = mod.paginate;
+      }
+    } catch (e) {
+      console.warn('⚠️ Using local debounce/format/paginate fallback:', e);
     }
     
     // Titles are now generated via shared utils: generateDisplayTitle()
@@ -332,31 +322,39 @@ const {
         total = searchTotalItems;
         totalPages = searchTotalPages;
       } else {
-        const startIndex = (page - 1) * itemsPerPage;
-        const endIndex = startIndex + itemsPerPage;
-        pageItems = allItems.slice(startIndex, endIndex);
-        total = allItems.length;
-        totalPages = Math.max(1, Math.ceil(allItems.length / itemsPerPage));
+        const result = paginate(allItems, page, itemsPerPage);
+        pageItems = result.items;
+        total = result.totalItems;
+        totalPages = result.totalPages;
       }
       
-      navItemsContainer.innerHTML = pageItems.map(item => {
-        const icon = getTypeIconSvg(item.contentType || '');
-        const displayTitle = item.title || '';
-        const pill = getTypePillHTML(item.contentType || '');
-        return `
-          <li>
-            <button 
-              class="nav-link w-full text-left px-2 py-1 rounded hover:bg-black/5 dark:hover:bg-white/10 transition-colors opacity-80 hover:opacity-100"
-              data-hash="${item.hash || ''}"
-              data-title="${displayTitle}"
-              data-content-type="${item.contentType || ''}"
-              data-g-time="${item.gTime || ''}"
-            >
-              ${icon} ${displayTitle} ${pill}
-            </button>
-          </li>
-        `;
-      }).join('');
+      if (formatNavItemHTML) {
+        navItemsContainer.innerHTML = pageItems.map(item =>
+          formatNavItemHTML(
+            { title: item.title || '', contentType: item.contentType || '', hash: item.hash || '', gTime: item.gTime || '' },
+            { getTypeIconSvg, getTypePillHTML }
+          )
+        ).join('');
+      } else {
+        navItemsContainer.innerHTML = pageItems.map(item => {
+          const icon = getTypeIconSvg(item.contentType || '');
+          const displayTitle = item.title || '';
+          const pill = getTypePillHTML(item.contentType || '');
+          return `
+            <li>
+              <button 
+                class="nav-link w-full text-left px-2 py-1 rounded hover:bg-black/5 dark:hover:bg-white/10 transition-colors opacity-80 hover:opacity-100"
+                data-hash="${item.hash || ''}"
+                data-title="${displayTitle}"
+                data-content-type="${item.contentType || ''}"
+                data-g-time="${item.gTime || ''}"
+              >
+                ${icon} ${displayTitle} ${pill}
+              </button>
+            </li>
+          `;
+        }).join('');
+      }
       
       // Update UI indicators
       pageIndicator.textContent = `${searchActive ? searchPage : page} / ${totalPages}`;

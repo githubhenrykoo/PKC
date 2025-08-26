@@ -1,0 +1,28 @@
+---
+import TypeBadge from './type-badge.astro';
+import { getTypeIconSvg } from '../../utils/content-type-utils.ts';
+
+interface Props {
+  title: string;
+  contentType?: string;
+  hash?: string;
+  gTime?: string;
+  id?: string;
+}
+
+const { title, contentType, hash, gTime, id } = Astro.props as Props;
+---
+<li>
+  <button 
+    class="nav-link w-full text-left px-2 py-1 rounded hover:bg-black/5 dark:hover:bg-white/10 transition-colors opacity-80 hover:opacity-100"
+    data-hash={hash || ''}
+    data-title={title || ''}
+    data-content-type={contentType || ''}
+    data-g-time={gTime || ''}
+    data-id={id || ''}
+  >
+    <span class="align-middle mr-1" set:html={getTypeIconSvg(contentType)} />
+    <span class="align-middle">{title}</span>
+    <TypeBadge contentType={contentType} class="align-middle" />
+  </button>
+</li>

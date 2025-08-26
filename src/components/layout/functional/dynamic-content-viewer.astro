@@ -118,33 +118,30 @@ import UnknownRenderer from '../../../components/Mcard/content_type_viewer/Unkno
       return gTime;
     };
 
-    // Load content-type utilities for icons, labels, title generation, and type resolution
+    // Load content-type utilities via standardized loader with unified fallbacks
     let getTypeIconSvg, getTypeLabel, getTypePillHTML, inferContentTypeFromFilename, resolveEffectiveContentType, getRendererTypeFromContentType, generateDisplayTitle;
-    
-    // Initialize content-type utils asynchronously
     const initContentTypeUtils = async () => {
       try {
-        const utils = await import('/src/utils/content-type-utils.ts');
-        ({ getTypeIconSvg, getTypeLabel, getTypePillHTML, inferContentTypeFromFilename, resolveEffectiveContentType, getRendererTypeFromContentType, generateDisplayTitle } = utils);
-        console.log('🧩 Content-type utils loaded in content viewer');
+        const { loadContentTypeUtils } = await import('/src/utils/load-content-type-utils.ts');
+        ({
+          getTypeIconSvg,
+          getTypeLabel,
+          getTypePillHTML,
+          inferContentTypeFromFilename,
+          resolveEffectiveContentType,
+          getRendererTypeFromContentType,
+          generateDisplayTitle,
+        } = await loadContentTypeUtils());
+        console.log('🧩 Content-type utils loaded in content viewer (standard loader)');
       } catch (e) {
-        console.warn('⚠️ Failed to load content-type utils:', e);
-        // Fallback functions (minimal)
-        getTypeIconSvg = (contentType) => '📄';
-        getTypePillHTML = (contentType) => `<span class=\"ml-2 text-xs px-2 py-1 rounded bg-black/5 dark:bg-white/10 opacity-70\">${getTypeLabel(contentType)}</span>`;
-        getTypeLabel = (contentType) => 'Document';
-        inferContentTypeFromFilename = (filename) => undefined;
-        resolveEffectiveContentType = (meta) => (meta?.content_type || meta?.contentType || inferContentTypeFromFilename(meta?.filename) || 'text/plain');
-        getRendererTypeFromContentType = (ct) => {
-          const t = (ct || '').toLowerCase();
-          if (t.includes('markdown')) return 'markdown';
-          if (t.includes('html')) return 'html';
-          if (t.includes('application/json')) return 'json';
-          if (t.startsWith('image/')) return 'image';
-          if (t.includes('application/pdf')) return 'pdf';
-          if (t.startsWith('text/')) return 'text';
-          return 'unknown';
-        };
+        console.warn('⚠️ Failed to initialize content-type utils loader:', e);
+        // Minimal hard fallback
+        getTypeIconSvg = () => '📄';
+        getTypeLabel = () => 'Document';
+        getTypePillHTML = (ct) => `<span class=\"ml-2 text-xs px-2 py-1 rounded bg-black/5 dark:bg-white/10 opacity-70\">${getTypeLabel(ct)}</span>`;
+        inferContentTypeFromFilename = () => undefined;
+        resolveEffectiveContentType = (meta) => meta?.content_type || meta?.contentType || 'text/plain';
+        getRendererTypeFromContentType = (ct) => (ct && ct.startsWith('text/')) ? 'text' : 'unknown';
         generateDisplayTitle = (src, index) => {
           const name = src?.filename?.replace(/\.[^/.]+$/, '');
           if (name) return name;
