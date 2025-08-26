@@ -313,23 +313,9 @@ const preloadEntryUrl = '/src/services/preload-entry.ts';
       /* Debug borders for development - Remove in production */
       /* Removed debug outlines for cleaner visual layout */
     </style>
-    <!-- PKC initialization - simplified approach -->
+    <!-- PKC initialization - inline module import so Vite rewrites graph -->
     <script is:inline type="module">
-      // Use static imports so Vite rewrites and resolves aliases correctly
-      import '/src/utils/pkcutils-init.ts';
-      import '/src/store/preload-state.ts';
-      import '/src/store/initializer.ts';
-      import '/src/services/preload-entry.ts';
-
-      // Bridge: ensure shared content-type utilities are available on window.PKCUtils.content
-      import * as ContentUtils from '/src/utils/content-type-utils.ts';
-      window.PKCUtils = window.PKCUtils || {};
-      window.PKCUtils.content = window.PKCUtils.content || {
-        ...ContentUtils
-      };
-
-      console.log('✅ All modules loaded successfully');
-      window.dispatchEvent(new CustomEvent('pkg-ready'));
+      import '@/entries/app-init.ts';
     </script>
   </head>
   

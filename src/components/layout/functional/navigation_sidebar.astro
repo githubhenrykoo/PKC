@@ -98,14 +98,22 @@ const {
         }, 50);
       });
     };
-    const contentUtils = await waitForContentUtils();
+    let contentUtils = await waitForContentUtils();
     if (!contentUtils) {
-      console.warn('⚠️ Content utils not available; using minimal fallbacks');
+      console.warn('⚠️ Content utils not available; attempting direct import');
+      try {
+        // Load the shared utils directly so we can use real getTypeIconSvg
+        contentUtils = await import('@/utils/content-type-utils.ts');
+        console.log('✅ Loaded content utils module directly');
+      } catch (e) {
+        console.warn('⚠️ Failed to import content-type-utils.ts, using minimal fallbacks', e);
+      }
     }
     const {
       inferContentTypeFromFilename = (f) => f?.split('.').pop() || 'unknown',
       getTypeLabel = (t) => t || 'unknown',
-      getTypeIconSvg = () => '<span>📄</span>',
+      // Use real util when available; only fall back to a basic icon as last resort
+      getTypeIconSvg = contentUtils?.getTypeIconSvg || ((/* ct */) => '<span>📄</span>'),
       getTypePillHTML = (t) => `<span class="type-pill">${t || 'unknown'}</span>`,
       resolveEffectiveContentType = (meta) => meta?.content_type || inferContentTypeFromFilename(meta?.filename),
       getRendererTypeFromContentType = (ct) => ct || 'text',
@@ -138,7 +146,7 @@ const {
     // Initialize services (best-effort)
     let mcardService = null;
     try {
-      const { mcardService: mcs } = await import('/src/services/mcard-service.ts');
+      const { mcardService: mcs } = await import('@/services/mcard-service.ts');
       mcardService = mcs;
       console.log('📦 MCard service initialized');
     } catch (error) {
