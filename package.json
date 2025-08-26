@@ -3,12 +3,16 @@
   "type": "module",
   "version": "0.0.1",
   "scripts": {
+    "predev": "node scripts/generate-icons.js && node scripts/generate-runtime-env.cjs",
     "dev": "astro dev",
+    "prebuild": "node scripts/generate-icons.js && node scripts/generate-runtime-env.cjs",
     "build": "astro build",
     "preview": "astro preview",
     "start": "node ./dist/server/entry.mjs",
     "astro": "astro",
-    "fetch:render-libs": "node scripts/fetch-render-libs.js"
+    "fetch:render-libs": "node scripts/fetch-render-libs.js",
+    "postinstall": "node scripts/generate-icons.js || true",
+    "generate:env": "node scripts/generate-runtime-env.cjs"
   },
   "dependencies": {
     "@astrojs/mdx": "^4.3.4",
@@ -44,7 +48,8 @@
     "react-resizable-panels": "^3.0.3",
     "redux-persist": "^6.0.0",
     "sonner": "^2.0.6",
-    "tailwind-merge": "^3.3.1"
+    "tailwind-merge": "^3.3.1",
+    "dotenv": "^16.4.5"
   },
   "devDependencies": {
     "@astrojs/node": "^9.4.2",

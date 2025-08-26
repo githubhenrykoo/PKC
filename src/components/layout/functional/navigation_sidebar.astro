@@ -1,6 +1,5 @@
 ---
 // Navigation sidebar with direct MCard API integration
-import { getTypeIconSvg, getTypeLabel, getTypePillHTML } from '../../../utils/content-type-utils.ts';
 import NavItem from '../../../components/ui/nav-item.astro';
 import PaginationControls from '../../../components/ui/pagination-controls.astro';
 interface NavigationItem {
@@ -72,7 +71,7 @@ const {
   <PaginationControls prevDisabled={true} />
 </aside>
 
-<script is:inline>
+<script type="module" is:inline>
   document.addEventListener('DOMContentLoaded', async () => {
     console.log('🔧 Navigation sidebar initializing...');
     
@@ -86,31 +85,33 @@ const {
     let searchTotalPages = 1;
     let searchTotalItems = 0;
     
-    // Load content-type utilities via standardized loader with unified fallbacks
-    let inferContentTypeFromFilename, getTypeLabel, getTypeIconSvg, getTypePillHTML, resolveEffectiveContentType, getRendererTypeFromContentType, generateDisplayTitle;
-    try {
-      const { loadContentTypeUtils } = await import('/src/utils/load-content-type-utils.ts');
-      ({
-        inferContentTypeFromFilename,
-        getTypeLabel,
-        getTypeIconSvg,
-        getTypePillHTML,
-        resolveEffectiveContentType,
-        getRendererTypeFromContentType,
-        generateDisplayTitle,
-      } = await loadContentTypeUtils());
-      console.log('🧩 Content-type utils loaded (standard loader)');
-    } catch (e) {
-      console.warn('⚠️ Failed to initialize content-type utils loader:', e);
-      // Minimal hard fallback to avoid runtime breakage
-      inferContentTypeFromFilename = () => undefined;
-      getTypeLabel = () => 'Document';
-      getTypeIconSvg = () => '📄';
-      getTypePillHTML = (contentType) => `<span class="ml-1 text-[10px] px-1 py-0.5 rounded bg-black/5 dark:bg-white/10 align-middle">${getTypeLabel(contentType)}</span>`;
-      resolveEffectiveContentType = (meta) => meta?.content_type || meta?.contentType || 'text/plain';
-      getRendererTypeFromContentType = (ct) => (ct && ct.startsWith('text/')) ? 'text' : 'unknown';
-      generateDisplayTitle = (src) => src?.filename?.replace(/\.[^/.]+$/, '') || src?.hash?.substring(0, 8) || 'Document';
+    // Use PKCUtils if available, otherwise fallback to basic functions
+    if (!window.PKCUtils || !window.PKCUtils.content) {
+      console.warn('⚠️ PKCUtils.content not available, using minimal fallbacks');
+      // Provide minimal fallback functions
+      window.PKCUtils = window.PKCUtils || {};
+      window.PKCUtils.content = {
+        inferContentTypeFromFilename: (filename) => filename?.split('.').pop() || 'unknown',
+        getTypeLabel: (type) => type || 'unknown',
+        getTypeIconSvg: (type) => '📄',
+        getTypePillHTML: (type) => `<span class="type-pill">${type || 'unknown'}</span>`,
+        resolveEffectiveContentType: (item) => item?.content_type || item?.filename?.split('.').pop() || 'unknown',
+        getRendererTypeFromContentType: (type) => type || 'text',
+        generateDisplayTitle: (item) => item?.title || item?.filename || item?.hash?.substring(0, 8) || 'Unknown'
+      };
     }
+
+    const { 
+      inferContentTypeFromFilename,
+      getTypeLabel,
+      getTypeIconSvg,
+      getTypePillHTML,
+      resolveEffectiveContentType,
+      getRendererTypeFromContentType,
+      generateDisplayTitle
+    } = window.PKCUtils.content;
+    
+    console.log('🧩 Navigation: Using PKCUtils');
     
     // Dynamic API URL getter that always checks current runtime environment
     const getApiUrl = () => {
@@ -211,7 +212,7 @@ const {
     // Remove dev-time overrides; rely on content-type utils for display
     // (This block intentionally left minimal.)
 
-    // Debounce utility: prefer shared helper, fallback locally
+    // Debounce/paginate helpers: use window.PKCUtils.list when available
     let debounce = (fn, delay = 300) => {
       let timeoutId;
       return (...args) => {
@@ -219,34 +220,24 @@ const {
         timeoutId = setTimeout(() => fn.apply(null, args), delay);
       };
     };
-    let formatNavItemHTML = null;
-    let paginate = (items, page, pageSize) => {
+    let paginate = (items, page = 1, pageSize = 10) => {
       const totalItems = items.length;
       const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
       const start = (page - 1) * pageSize;
       const end = start + pageSize;
-      return {
-        items: items.slice(start, end),
-        page,
-        pageSize,
-        totalItems,
-        totalPages,
-      };
+      return { items: items.slice(start, end), page, pageSize, totalItems, totalPages };
     };
+    let formatNavItemHTML = null;
     try {
-      const mod = await import('/src/utils/list-format.ts');
-      if (mod && typeof mod.debounce === 'function') {
-        debounce = mod.debounce;
+      try { await waitForPKCUtils(); } catch {}
+      const l = window.PKCUtils?.list;
+      if (l) {
+        if (typeof l.debounce === 'function') debounce = l.debounce;
+        if (typeof l.paginate === 'function') paginate = l.paginate;
+        if (typeof l.formatNavItemHTML === 'function') formatNavItemHTML = l.formatNavItemHTML;
+        console.log('🧰 List utils loaded from window.PKCUtils');
       }
-      if (mod && typeof mod.formatNavItemHTML === 'function') {
-        formatNavItemHTML = mod.formatNavItemHTML;
-      }
-      if (mod && typeof mod.paginate === 'function') {
-        paginate = mod.paginate;
-      }
-    } catch (e) {
-      console.warn('⚠️ Using local debounce/format/paginate fallback:', e);
-    }
+    } catch {}
     
     // Titles are now generated via shared utils: generateDisplayTitle()
     

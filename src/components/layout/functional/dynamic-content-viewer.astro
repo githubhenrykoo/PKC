@@ -10,8 +10,7 @@ const {
   initialTitle = "Select an item from the navigation to view content"
 } = Astro.props as Props;
 
-// Import renderer registry and utilities
-import { rendererRegistry } from '../../../components/Mcard/content_type_viewer/index.ts';
+// Note: renderer registry not needed for client-side dynamic rendering
 
 // Import specialized renderer components
 import MarkdownRenderer from '../../../components/Mcard/content_type_viewer/MarkdownRenderer.astro';
@@ -58,9 +57,9 @@ import UnknownRenderer from '../../../components/Mcard/content_type_viewer/Unkno
   </div>
 </div>
 
-<script is:inline>
+<script type="module" is:inline>
   // Dynamic Content Viewer - Redux sync functionality
-  document.addEventListener('DOMContentLoaded', () => {
+  document.addEventListener('DOMContentLoaded', async () => {
     console.log('🎯 Content viewer initializing...');
     
     const contentTitle = document.getElementById('content-title');
@@ -118,44 +117,49 @@ import UnknownRenderer from '../../../components/Mcard/content_type_viewer/Unkno
       return gTime;
     };
 
-    // Load content-type utilities via standardized loader with unified fallbacks
-    let getTypeIconSvg, getTypeLabel, getTypePillHTML, inferContentTypeFromFilename, resolveEffectiveContentType, getRendererTypeFromContentType, generateDisplayTitle;
-    const initContentTypeUtils = async () => {
-      try {
-        const { loadContentTypeUtils } = await import('/src/utils/load-content-type-utils.ts');
-        ({
-          getTypeIconSvg,
-          getTypeLabel,
-          getTypePillHTML,
-          inferContentTypeFromFilename,
-          resolveEffectiveContentType,
-          getRendererTypeFromContentType,
-          generateDisplayTitle,
-        } = await loadContentTypeUtils());
-        console.log('🧩 Content-type utils loaded in content viewer (standard loader)');
-      } catch (e) {
-        console.warn('⚠️ Failed to initialize content-type utils loader:', e);
-        // Minimal hard fallback
-        getTypeIconSvg = () => '📄';
-        getTypeLabel = () => 'Document';
-        getTypePillHTML = (ct) => `<span class=\"ml-2 text-xs px-2 py-1 rounded bg-black/5 dark:bg-white/10 opacity-70\">${getTypeLabel(ct)}</span>`;
-        inferContentTypeFromFilename = () => undefined;
-        resolveEffectiveContentType = (meta) => meta?.content_type || meta?.contentType || 'text/plain';
-        getRendererTypeFromContentType = (ct) => (ct && ct.startsWith('text/')) ? 'text' : 'unknown';
-        generateDisplayTitle = (src, index) => {
-          const name = src?.filename?.replace(/\.[^/.]+$/, '');
-          if (name) return name;
-          if (src?.metadata?.title) return src.metadata.title;
-          const base = 'Document';
-          if (typeof index === 'number') return `${base} ${index + 1}`;
-          if (src?.hash) return `${base} ${src.hash.substring(0, 8)}`;
-          return base;
-        };
-      }
+    // Ensure PKCUtils.content is available before use
+    const waitForPKCUtilsContent = async (timeout = 5000) => {
+      const start = Date.now();
+      // Quick check first
+      if (window.PKCUtils?.content) return window.PKCUtils.content;
+      return new Promise((resolve) => {
+        const interval = setInterval(() => {
+          if (window.PKCUtils?.content) {
+            clearInterval(interval);
+            resolve(window.PKCUtils.content);
+          } else if (Date.now() - start >= timeout) {
+            clearInterval(interval);
+            resolve(undefined);
+          }
+        }, 100);
+      });
     };
-    
-    // Initialize utils and keep a promise to await before usage elsewhere
-    const utilsReady = initContentTypeUtils();
+
+    const contentUtils = await waitForPKCUtilsContent(5000);
+    let getTypeIconSvg, getTypeLabel, getTypePillHTML, inferContentTypeFromFilename, resolveEffectiveContentType, getRendererTypeFromContentType, generateDisplayTitle;
+    if (contentUtils) {
+      ({
+        getTypeIconSvg,
+        getTypeLabel,
+        getTypePillHTML,
+        inferContentTypeFromFilename,
+        resolveEffectiveContentType,
+        getRendererTypeFromContentType,
+        generateDisplayTitle
+      } = contentUtils);
+      console.log('🧩 Content viewer: Using PKCUtils');
+    } else {
+      console.warn('⚠️ PKCUtils.content not available, using minimal fallbacks');
+      // Minimal fallbacks to avoid crashes; types will be coarse
+      getTypeIconSvg = () => '<span>📄</span>';
+      getTypeLabel = (t) => t || 'unknown';
+      getTypePillHTML = (t) => `<span class="ml-1 text-xs opacity-60">${t || 'unknown'}</span>`;
+      inferContentTypeFromFilename = (f) => (f?.endsWith('.md') ? 'text/markdown' : 'text/plain');
+      resolveEffectiveContentType = ({ content_type }) => content_type || 'text/plain';
+      getRendererTypeFromContentType = (ct) =>
+        ct?.includes('markdown') ? 'markdown' : ct?.includes('html') ? 'html' : ct?.includes('json') ? 'json' : ct?.startsWith('image/') ? 'image' : ct === 'application/pdf' ? 'pdf' : 'text';
+      generateDisplayTitle = ({ filename, hash }) => filename || (hash ? hash.substring(0, 8) : 'MCard Content');
+    }
 
     // Helper: set title with icon using shared utils
     const setTitleWithIcon = (type, titleText) => {
@@ -510,6 +514,12 @@ import UnknownRenderer from '../../../components/Mcard/content_type_viewer/Unkno
         case 'json':
           initializeJsonRenderer(content, hash);
           break;
+        case 'image':
+          await initializeImageRenderer(hash);
+          break;
+        case 'pdf':
+          await initializePdfRenderer(hash);
+          break;
         case 'text':
           await initializeTextRenderer(content, hash);
           break;
@@ -520,6 +530,24 @@ import UnknownRenderer from '../../../components/Mcard/content_type_viewer/Unkno
     window.ensureRenderLibs = ensureRenderLibs;
 
     // Renderer initialization functions
+    const initializeImageRenderer = async (hash) => {
+      // Prefer explicit ID from server-rendered placeholder, fallback to inline img
+      const img = document.getElementById(`image-content-${hash}`) 
+        || document.querySelector(`.image-renderer[data-hash="${hash}"] img`);
+      if (!img) return;
+      const baseUrl = getMCardApiUrl();
+      img.src = `${baseUrl}/card/${hash}/content`;
+    };
+
+    const initializePdfRenderer = async (hash) => {
+      // Prefer explicit ID from server-rendered placeholder, fallback to inline iframe
+      const iframe = document.getElementById(`pdf-content-${hash}`) 
+        || document.querySelector(`.pdf-renderer[data-hash="${hash}"] iframe`);
+      if (!iframe) return;
+      const baseUrl = getMCardApiUrl();
+      iframe.src = `${baseUrl}/card/${hash}/content`;
+    };
+
     const initializeMarkdownRenderer = async (content, hash) => {
       const container = document.getElementById(`markdown-content-${hash}`);
       if (!container) return;
@@ -628,8 +656,6 @@ import UnknownRenderer from '../../../components/Mcard/content_type_viewer/Unkno
 
     // Function to load and display MCard content
     window.loadMCardContent = async (hash, title = 'MCard Content') => {
-      // Ensure content-type utils are loaded before proceeding
-      try { await utilsReady; } catch {}
       try {
         showLoading();
         console.log('🔄 Loading MCard content for hash:', hash);

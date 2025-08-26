@@ -2,13 +2,6 @@ import React, { useEffect, useState } from 'react';
 import { Card, CardContent } from '@/components/MVPCard/card.tsx';
 import { Loader2, CheckCircle, XCircle } from 'lucide-react';
 
-// Declare global window.RUNTIME_ENV type
-declare global {
-  interface Window {
-    RUNTIME_ENV?: Record<string, string>;
-  }
-}
-
 // OAuth token exchange function with PKCE support
 async function exchangeCodeForTokens(code: string, state: string) {
   console.log('🔄 Exchanging authorization code for tokens...');

@@ -11,13 +11,6 @@ interface SearchResponse {
   pagination: PaginationState;
 }
 
-// Declare global window.RUNTIME_ENV type
-declare global {
-  interface Window {
-    RUNTIME_ENV?: Record<string, string>;
-  }
-}
-
 export class MCardService {
   private _baseUrl: string;
   private offlineMode: boolean = false;

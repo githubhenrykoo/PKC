@@ -1,11 +1,39 @@
 ---
 // AppShell.astro - PKC Responsive Layout System
 // Implements triadic card-based architecture with mobile-first responsive design
-interface Props {
+
+export interface Props {
   title?: string;
+  description?: string;
   enableThemeToggle?: boolean;
+  showSidebar?: boolean;
+  showRightPanel?: boolean;
 }
-const { title = 'PKC', enableThemeToggle = true } = Astro.props as Props;
+
+const { 
+  title = "PKC - Personal Knowledge Container", 
+  description = "A modular, card-based web architecture for personal knowledge management",
+  enableThemeToggle = true,
+  showSidebar = true,
+  showRightPanel = false
+} = Astro.props as Props;
+
+// Use stable Vite paths that are rewritten in prod
+const clientExportsUrl = '/src/utils/client-exports.ts';
+const pkcutilsInitUrl = '/src/utils/pkcutils-init.ts';
+const preloadStateUrl = '/src/store/preload-state.ts';
+const initializerUrl = '/src/store/initializer.ts';
+const preloadEntryUrl = '/src/services/preload-entry.ts';
+const reduxStoreUrl = '/src/store/store.ts';
+
+// Generate the module URLs JSON string
+const moduleUrlsJson = JSON.stringify({
+  reduxStoreUrl,
+  pkcutilsInitUrl,
+  preloadStateUrl,
+  initializerUrl,
+  preloadEntryUrl
+});
 ---
 
 <!DOCTYPE html>
@@ -31,14 +59,81 @@ const { title = 'PKC', enableThemeToggle = true } = Astro.props as Props;
 
     <!-- Initialize runtime env object early -->
     <script is:inline>
-      window.RUNTIME_ENV = window.RUNTIME_ENV || {};
+      // Local development configuration constants
+      const LOCALHOST = 'localhost';
+      const LOCALHOST_IP = '127.0.0.1';
+      const LOCAL_MCARD_URL = 'http://localhost:49384/v1';
+      const LOCAL_AUTH_URL_OLLAMA = 'http://localhost:11434';
+      const LOCAL_AUTH_URL_PKC = 'http://localhost:28302';
+      const LOCAL_AUTHENTIK_URL = 'http://localhost:9000';
+      const LOCAL_RAG_URL = 'http://localhost:28302/api/v1';
+      
+      window.RUNTIME_ENV = window.RUNTIME_ENV || {
+        // Default values in case runtime-env.js fails to load
+        PUBLIC_MCARD_API_URL: LOCAL_MCARD_URL,
+        PUBLIC_AUTH_URL: LOCAL_AUTH_URL_OLLAMA,
+        VERSION: '1.0.0',
+        BUILD_TIMESTAMP: new Date().toISOString()
+      };
+
+      // If running on localhost, prefer localhost defaults over remote URLs
+      (function ensureLocalhostDefaults(){
+        const host = (location && location.hostname) || '';
+        const onLocal = host === LOCALHOST || host === LOCALHOST_IP;
+        if (!onLocal) return;
+        const env = window.RUNTIME_ENV || {};
+        // Only override if variables are absent or clearly remote
+        /** @type {(v: unknown) => boolean} */
+        const looksRemote = (v) => typeof v === 'string' && /\.pkc\.pub|https:\/\//.test(v);
+        if (!env.PUBLIC_MCARD_API_URL || looksRemote(env.PUBLIC_MCARD_API_URL)) {
+          env.PUBLIC_MCARD_API_URL = LOCAL_MCARD_URL;
+        }
+        if (!env.PUBLIC_AUTH_URL || looksRemote(env.PUBLIC_AUTH_URL)) {
+          // Keep as placeholder local auth URL if applicable
+          env.PUBLIC_AUTH_URL = LOCAL_AUTH_URL_PKC;
+        }
+        // Common additional public vars used elsewhere
+        if (env.PUBLIC_AUTHENTIK_URL && looksRemote(env.PUBLIC_AUTHENTIK_URL)) {
+          env.PUBLIC_AUTHENTIK_URL = LOCAL_AUTHENTIK_URL;
+        }
+        if (env.PUBLIC_RAG_API_URL && looksRemote(env.PUBLIC_RAG_API_URL)) {
+          env.PUBLIC_RAG_API_URL = LOCAL_RAG_URL;
+        }
+        window.RUNTIME_ENV = env;
+      })();
+      
       console.log('Initial environment variables:', window.RUNTIME_ENV);
+      
+      // Helper function to safely access environment variables
+      window.getEnv = function(key, defaultValue = '') {
+        return window.RUNTIME_ENV[key] !== undefined ? window.RUNTIME_ENV[key] : defaultValue;
+      };
+    </script>
+
+    <!-- Expose module URLs for legacy and dynamic usage (JSON + consumer) -->
+    <script type="application/json" id="pkc-module-urls" set:html={moduleUrlsJson}></script>
+    <script is:inline>
+      (function(){
+        try {
+          const el = document.getElementById('pkc-module-urls');
+          const urls = el ? JSON.parse(el.textContent || '{}') : {};
+          window.__PKC_MODULE_URLS = urls;
+          // legacy globals
+          window.reduxStoreUrl = urls.reduxStoreUrl;
+          window.pkcutilsInitUrl = urls.pkcutilsInitUrl;
+          window.preloadStateUrl = urls.preloadStateUrl;
+          window.initializerUrl = urls.initializerUrl;
+          window.preloadEntryUrl = urls.preloadEntryUrl;
+        } catch (e) {
+          console.error('Failed to initialize __PKC_MODULE_URLS', e);
+        }
+      })();
     </script>
 
     <!-- Load runtime environment variables (no-cache) -->
     <script>
       (function loadRuntimeEnv(){
-        const url = `/runtime-env.js?t=${Date.now()}`;
+        const url = '/runtime-env.js?t=' + Date.now();
         console.log('🔄 Loading runtime environment variables...');
         fetch(url, {
           method: 'GET',
@@ -54,6 +149,35 @@ const { title = 'PKC', enableThemeToggle = true } = Astro.props as Props;
           const s = document.createElement('script');
           s.textContent = js;
           document.head.appendChild(s);
+          // Normalize to localhost if needed after load
+          (function normalizeAfterLoad(){
+            // Local development configuration
+            const LOCALHOST = 'localhost';
+            const LOCALHOST_IP = '127.0.0.1';
+            const LOCAL_MCARD_URL = 'http://localhost:49384/v1';
+            const LOCAL_AUTHENTIK_URL = 'http://localhost:9000';
+            const LOCAL_RAG_URL = 'http://localhost:28302/api/v1';
+            const LOCAL_AUTH_URL = 'http://localhost:28302';
+            
+            const host = (location && location.hostname) || '';
+            const onLocal = host === LOCALHOST || host === LOCALHOST_IP;
+            if (!onLocal) return;
+            const env = window.RUNTIME_ENV || {};
+            const looksRemote = (v: unknown): boolean => typeof v === 'string' && /\.pkc\.pub|^https:\/\//.test(v);
+            if (!env.PUBLIC_MCARD_API_URL || looksRemote(env.PUBLIC_MCARD_API_URL)) {
+              env.PUBLIC_MCARD_API_URL = LOCAL_MCARD_URL;
+            }
+            if (env.PUBLIC_AUTHENTIK_URL && looksRemote(env.PUBLIC_AUTHENTIK_URL)) {
+              env.PUBLIC_AUTHENTIK_URL = LOCAL_AUTHENTIK_URL;
+            }
+            if (env.PUBLIC_RAG_API_URL && looksRemote(env.PUBLIC_RAG_API_URL)) {
+              env.PUBLIC_RAG_API_URL = LOCAL_RAG_URL;
+            }
+            if (env.PUBLIC_AUTH_URL && looksRemote(env.PUBLIC_AUTH_URL)) {
+              env.PUBLIC_AUTH_URL = LOCAL_AUTH_URL;
+            }
+            window.RUNTIME_ENV = env;
+          })();
           console.log('✅ Runtime environment loaded:', window.RUNTIME_ENV);
           window.dispatchEvent(new CustomEvent('runtime-env-loaded', { detail: window.RUNTIME_ENV }));
         })
@@ -65,8 +189,7 @@ const { title = 'PKC', enableThemeToggle = true } = Astro.props as Props;
       })();
     </script>
 
-    <!-- Load Redux Store from external file -->
-    <script src="/redux-store.js" is:inline></script>
+    <!-- Redux store will be dynamically imported below using reduxStoreUrl -->
 
     <style is:inline>
       /* CSS Custom Properties for Theming */
@@ -218,30 +341,46 @@ const { title = 'PKC', enableThemeToggle = true } = Astro.props as Props;
       /* Debug borders for development - Remove in production */
       /* Removed debug outlines for cleaner visual layout */
     </style>
-    <script type="module" src="/src/store/preload-state.ts"></script>
-    <script type="module" src="/src/store/initializer.ts"></script>
-
-    <!-- Preload MCards on initial load -->
-    <script>
-      import { preloadService } from '../services/preload-service';
+    <!-- PKC initialization - simplified approach -->
+    <script is:inline type="module">
+      // Wait for the DOM to be fully loaded
       document.addEventListener('DOMContentLoaded', async () => {
-        // Test API connection first
-        console.log('🧪 Testing MCard API connection...');
-        const apiUrl = window.RUNTIME_ENV?.PUBLIC_MCARD_API_URL || 'http://localhost:49384/v1';
         try {
-          const testResponse = await fetch(`${apiUrl}/health`);
-          console.log('🏥 API Health check:', testResponse.status, testResponse.statusText);
-          if (testResponse.ok) {
-            const healthData = await testResponse.json();
-            console.log('🏥 API Health data:', healthData);
+          // Get module URLs from the JSON script
+          const urlsEl = document.getElementById('pkc-module-urls');
+          const urls = urlsEl ? JSON.parse(urlsEl.textContent || '{}') : {};
+          
+          // Load Redux store first (works in dev and prod)
+          const storeModule = await import(urls.reduxStoreUrl);
+          const store = storeModule.default;
+
+          // Store reference to the Redux store on window for debugging
+          if (typeof window !== 'undefined') {
+            window.reduxStore = store;
+            // Compatibility alias for consumers expecting window.store
+            window.store = store;
+            // Let listeners know Redux is ready as early as possible
+            window.dispatchEvent(new CustomEvent('redux-ready', { detail: { store } }));
           }
-        } catch (healthError) {
-          console.error('❌ API Health check failed:', healthError);
+
+          // Load other modules in parallel
+          await Promise.all([
+            import(urls.pkcutilsInitUrl),
+            import(urls.preloadStateUrl),
+            import(urls.initializerUrl),
+            import(urls.preloadEntryUrl)
+          ]);
+
+          console.log('✅ All modules loaded successfully');
+
+          // Dispatch a custom event when everything is ready
+          window.dispatchEvent(new CustomEvent('pkg-ready', {
+            detail: { store }
+          }));
+
+        } catch (error) {
+          console.error('❌ Error initializing application:', error);
         }
-        
-        // Start preload process
-        console.log('🚀 Starting preload process...');
-        preloadService.preloadAllMCards(true); // Force preload for testing
       });
     </script>
   </head>
@@ -283,13 +422,27 @@ const { title = 'PKC', enableThemeToggle = true } = Astro.props as Props;
       <slot name="footer" />
     </footer>
 
-    <!-- Service Worker registration -->
+    <!-- Service Worker registration: only enable in production; actively unregister in dev -->
     <script is:inline>
-      if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-          navigator.serviceWorker.register('/sw.js').catch(console.error);
-        });
-      }
+      (function(){
+        if (!('serviceWorker' in navigator)) return;
+        // Local development configuration
+        const LOCALHOST = 'localhost';
+        const LOCALHOST_IP = '127.0.0.1';
+        // Heuristic: treat localhost/127.0.0.1 as development
+        const host = (location && location.hostname) || '';
+        const isDev = host === LOCALHOST || host === LOCALHOST_IP;
+        if (isDev) {
+          // Dev: ensure no stale SW interferes with Vite module URLs
+          navigator.serviceWorker.getRegistrations?.().then((regs) => {
+            regs.forEach((r) => r.unregister().catch(() => {}));
+          }).catch(() => {});
+        } else {
+          window.addEventListener('load', () => {
+            navigator.serviceWorker.register('/sw.js').catch(console.error);
+          });
+        }
+      })();
     </script>
 
     <!-- Theme toggle handler (only when floating toggle is enabled) -->

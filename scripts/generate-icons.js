@@ -6,8 +6,12 @@ import { mkdirSync, existsSync, writeFileSync } from 'fs';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-// Ensure public/icons directory exists
+// Ensure public/ and public/icons directories exist
+const publicDir = new URL('../public', import.meta.url).pathname;
 const iconsDir = new URL('../public/icons', import.meta.url).pathname;
+if (!existsSync(publicDir)) {
+  mkdirSync(publicDir, { recursive: true });
+}
 if (!existsSync(iconsDir)) {
   mkdirSync(iconsDir, { recursive: true });
 }
@@ -31,15 +35,22 @@ function createIcon(size, text, bgColor = '#4f46e5', textColor = '#ffffff') {
   return canvas.toBuffer();
 }
 
-// Generate icons
+// Generate icons for both /icons and root-level PWA files
 const sizes = [192, 512];
 const texts = ['192', '512'];
 
 sizes.forEach((size, index) => {
   const buffer = createIcon(size, texts[index]);
+
+  // /public/icons/icon-<size>x<size>.png
   const iconPath = new URL(`../public/icons/icon-${size}x${size}.png`, import.meta.url).pathname;
   writeFileSync(iconPath, buffer);
-  console.log(`Generated icon-${size}x${size}.png`);
+  console.log(`Generated icons/icon-${size}x${size}.png`);
+
+  // /public/pwa-<size>x<size>.png (root-level for manifest and PWA plugin)
+  const pwaRootPath = new URL(`../public/pwa-${size}x${size}.png`, import.meta.url).pathname;
+  writeFileSync(pwaRootPath, buffer);
+  console.log(`Generated pwa-${size}x${size}.png`);
 });
 
 // Create favicon

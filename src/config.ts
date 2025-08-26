@@ -36,9 +36,3 @@ export function getRagApiUrl(): string {
 export const MCARD_API_URL = typeof window === 'undefined' ? 'http://localhost:49384/v1' : undefined;
 export const RAG_API_URL = typeof window === 'undefined' ? 'http://localhost:28302/api/v1' : undefined;
 
-// Add TypeScript declaration for window.RUNTIME_ENV
-declare global {
-  interface Window {
-    RUNTIME_ENV?: Record<string, string>;
-  }
-}

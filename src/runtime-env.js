@@ -1,22 +1,24 @@
-// Runtime environment script that runs at container startup
-// This script will be mounted into the container and served as a static file
+// Runtime environment variables for the client
+// This file is generated at build time and served as a static file
 
-// Import required modules
-import fs from 'fs';
-import path from 'path';
-import { fileURLToPath } from 'url';
+// Export environment variables as a global object
+window.RUNTIME_ENV = {
+  // Core configuration
+  PUBLIC_API_URL: 'https://bmcard.pkc.pub/v1',
+  
+  // Authentication
+  PUBLIC_AUTH_URL: 'https://auth.pkc.pub',
+  
+  // Feature flags
+  ENABLE_EXPERIMENTAL_FEATURES: false,
+  
+  // Version info
+  VERSION: '1.0.0',
+  BUILD_TIMESTAMP: new Date().toISOString()
+};
 
-// Extract all PUBLIC_ environment variables from process.env
-const env = {};
-Object.keys(process.env).forEach(key => {
-  if (key.startsWith('PUBLIC_')) {
-    env[key] = process.env[key];
-  }
-});
-
-// Get current directory
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+// Log that environment was loaded
+console.log('✅ Runtime environment variables loaded:', window.RUNTIME_ENV);
 
 // Ensure the output directory exists
 const outputDir = path.resolve(process.env.RUNTIME_ENV_OUTPUT_DIR || '/app/dist/client');

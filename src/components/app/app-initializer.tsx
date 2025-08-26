@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { useDispatch } from 'react-redux';
 import { fetchMCards } from '../../store/slices/data-slice';
 import type { AppDispatch } from '../../store';
+import { resolveMCardBaseUrl } from '@/services/service-resolver';
 
 interface AppInitializerProps {
   children?: React.ReactNode;
@@ -40,20 +41,36 @@ export function AppInitializer({ children }: AppInitializerProps) {
         
         if (!mounted) return;
 
-        console.log('📡 Runtime environment loaded, fetching MCard data...');
-        
-        // Fetch initial MCard data
-        const result = await dispatch(fetchMCards({ 
-          page: 1, 
-          pageSize: 50, // Get more items for navigation
-          sortBy: 'g_time',
-          sortOrder: 'desc'
-        }));
+        console.log('📡 Runtime environment loaded, resolving MCard service...');
 
-        if (fetchMCards.fulfilled.match(result)) {
-          console.log('✅ MCard data loaded successfully:', result.payload.items.length, 'items');
-        } else if (fetchMCards.rejected.match(result)) {
-          console.error('❌ Failed to load MCard data:', result.payload);
+        // Probe service availability (localhost-first in dev) with 1500ms timeout
+        const resolvedUrl = await resolveMCardBaseUrl(1500);
+
+        if (!mounted) return;
+
+        if (resolvedUrl) {
+          const currentUrl = window.RUNTIME_ENV?.PUBLIC_MCARD_API_URL;
+          if (currentUrl !== resolvedUrl) {
+            console.log('🔄 Updating PUBLIC_MCARD_API_URL ->', resolvedUrl);
+            window.RUNTIME_ENV = { ...(window.RUNTIME_ENV || {}), PUBLIC_MCARD_API_URL: resolvedUrl } as any;
+            window.dispatchEvent(new Event('runtime-env-loaded'));
+          }
+
+          console.log('📥 Fetching initial MCard data from', resolvedUrl);
+          const result = await dispatch(fetchMCards({ 
+            page: 1, 
+            pageSize: 50, // Get more items for navigation
+            sortBy: 'g_time',
+            sortOrder: 'desc'
+          }));
+
+          if (fetchMCards.fulfilled.match(result)) {
+            console.log('✅ MCard data loaded successfully:', result.payload.items.length, 'items');
+          } else if (fetchMCards.rejected.match(result)) {
+            console.error('❌ Failed to load MCard data:', result.payload);
+          }
+        } else {
+          console.warn('⚠️ MCard service not reachable (localhost and runtime env). Running without initial data.');
         }
 
       } catch (error) {
@@ -71,9 +88,3 @@ export function AppInitializer({ children }: AppInitializerProps) {
   return <>{children}</>;
 }
 
-// Declare global window.RUNTIME_ENV type for TypeScript
-declare global {
-  interface Window {
-    RUNTIME_ENV?: Record<string, string>;
-  }
-}
