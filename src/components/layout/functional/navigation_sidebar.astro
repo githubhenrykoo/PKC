@@ -1,5 +1,6 @@
 ---
 // Navigation sidebar with direct MCard API integration
+import { getTypeIconSvg, getTypeLabel, getTypePillHTML } from '../../../utils/content-type-utils.ts';
 interface NavigationItem {
   title: string;
   content: string;
@@ -32,7 +33,7 @@ const {
 
 <aside class="rounded-lg bg-[var(--surface)] border border-black/5 dark:border-white/10 p-4">
   <div class="flex justify-between items-center mb-2">
-    <h2 class="text-sm font-semibold opacity-70">{title}</h2>
+    <h2 id="nav-title" class="text-sm font-semibold opacity-70">{title}</h2>
     <span class="text-xs opacity-50" id="page-indicator">1 / 1</span>
   </div>
   
@@ -63,7 +64,9 @@ const {
           data-content={item.content}
           data-id={item.id || item.title.toLowerCase().replace(/\s+/g, '-')}
         >
-          • {item.title}
+          <span class="align-middle mr-1" set:html={getTypeIconSvg(undefined)} />
+          <span class="align-middle">{item.title}</span>
+          <span class="align-middle" set:html={getTypePillHTML(undefined)} />
         </button>
       </li>
     ))}
@@ -105,17 +108,19 @@ const {
     let searchTotalItems = 0;
     
     // Load content-type utilities for icons, labels, title generation, and type resolution
-    let inferContentTypeFromFilename, getTypeLabel, getTypeIconSvg, resolveEffectiveContentType, getRendererTypeFromContentType, generateDisplayTitle;
+    let inferContentTypeFromFilename, getTypeLabel, getTypeIconSvg, getTypePillHTML, resolveEffectiveContentType, getRendererTypeFromContentType, generateDisplayTitle;
     try {
+      // Use explicit absolute path to ensure correct client chunk resolution
       const utils = await import('/src/utils/content-type-utils.ts');
-      ({ inferContentTypeFromFilename, getTypeLabel, getTypeIconSvg, resolveEffectiveContentType, getRendererTypeFromContentType, generateDisplayTitle } = utils);
+      ({ inferContentTypeFromFilename, getTypeLabel, getTypeIconSvg, getTypePillHTML, resolveEffectiveContentType, getRendererTypeFromContentType, generateDisplayTitle } = utils);
       console.log('🧩 Content-type utils loaded');
     } catch (e) {
       console.warn('⚠️ Failed to load content-type utils:', e);
       // Fallback functions
       inferContentTypeFromFilename = (filename) => undefined;
-      getTypeLabel = (contentType) => 'Document';
+      getTypeLabel = (contentType) => 'PKC NOTES';
       getTypeIconSvg = (contentType) => '📄';
+      getTypePillHTML = (contentType) => `<span class="ml-1 text-[10px] px-1 py-0.5 rounded bg-black/5 dark:bg-white/10 align-middle">${getTypeLabel(contentType)}</span>`;
       resolveEffectiveContentType = (meta) => (meta?.content_type || meta?.contentType || inferContentTypeFromFilename(meta?.filename) || 'text/plain');
       getRendererTypeFromContentType = (ct) => {
         const t = (ct || '').toLowerCase();
@@ -128,13 +133,20 @@ const {
         return 'unknown';
       };
       generateDisplayTitle = (src, index) => {
-        const name = src?.filename?.replace(/\.[^/.]+$/, '');
-        if (name) return name;
-        if (src?.metadata?.title) return src.metadata.title;
-        const base = 'Document';
-        if (typeof index === 'number') return `${base} ${index + 1}`;
-        if (src?.hash) return `${base} ${src.hash.substring(0, 8)}`;
-        return base;
+        // Fallback now mirrors utils format: icon + label + short hash
+        const icon = '📄';
+        const label = 'PKC NOTES';
+        const h = src?.hash || '';
+        const shorten = (s, max = 10) => {
+          if (!s) return '';
+          if (s.length <= max) return s;
+          const keep = max - 3;
+          const front = Math.ceil(keep / 2);
+          const back = Math.floor(keep / 2);
+          return `${s.slice(0, front)}...${s.slice(-back)}`;
+        };
+        const shortHash = h ? shorten(h, 10) : (typeof index === 'number' ? `${index + 1}` : '');
+        return shortHash ? `${icon} ${label} ${shortHash}` : `${icon} ${label}`;
       };
     }
     
@@ -234,6 +246,9 @@ const {
     const searchClear = document.getElementById('search-clear');
     const searchSpinner = document.getElementById('search-spinner');
     
+    // Remove dev-time overrides; rely on content-type utils for display
+    // (This block intentionally left minimal.)
+
     // Debounce utility for smooth interactions
     function debounce(fn, delay) {
       let timeoutId;
@@ -248,10 +263,9 @@ const {
     // Format item with type icon and label
     const formatItemTitle = (item, contentType) => {
       const ct = contentType || inferContentTypeFromFilename(item.filename);
-      const typeLabel = getTypeLabel(ct);
       const typeIconSvg = getTypeIconSvg(ct);
       const baseTitle = item.title || item.filename?.replace(/\.[^/.]+$/, '') || item.hash?.substring(0, 8) || 'Unknown';
-      return `${typeIconSvg} ${baseTitle} <span class="ml-1 text-[10px] px-1 py-0.5 rounded bg-black/5 dark:bg-white/10 align-middle">${typeLabel}</span>`;
+      return `${typeIconSvg} ${baseTitle} ${getTypePillHTML(ct)}`;
     };
     
     // Load MCard data from API
@@ -326,17 +340,19 @@ const {
       }
       
       navItemsContainer.innerHTML = pageItems.map(item => {
-        const formattedTitle = formatItemTitle(item, item.contentType);
+        const icon = getTypeIconSvg(item.contentType || '');
+        const displayTitle = item.title || '';
+        const pill = getTypePillHTML(item.contentType || '');
         return `
           <li>
             <button 
               class="nav-link w-full text-left px-2 py-1 rounded hover:bg-black/5 dark:hover:bg-white/10 transition-colors opacity-80 hover:opacity-100"
-              data-hash="${item.hash}"
-              data-title="${item.title}"
+              data-hash="${item.hash || ''}"
+              data-title="${displayTitle}"
               data-content-type="${item.contentType || ''}"
               data-g-time="${item.gTime || ''}"
             >
-              ${formattedTitle}
+              ${icon} ${displayTitle} ${pill}
             </button>
           </li>
         `;

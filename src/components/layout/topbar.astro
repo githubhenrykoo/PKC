@@ -22,14 +22,48 @@ const { title = 'PKC' } = Astro.props as Props;
 <script is:inline>
   (function(){
     const q = (id) => document.getElementById(id);
-    const login = q('btnLogin');
-    const logout = q('btnLogout');
-    const theme = q('btnThemeToggle');
-    if (login) login.addEventListener('click', () => window.dispatchEvent(new CustomEvent('app-login')));
-    if (logout) logout.addEventListener('click', () => window.dispatchEvent(new CustomEvent('app-logout')));
-    if (theme) theme.addEventListener('click', () => {
-      const tog = document.getElementById('appThemeToggle');
-      if (tog) tog.dispatchEvent(new Event('click', { bubbles: true }));
+    const loginBtn = q('btnLogin');
+    const logoutBtn = q('btnLogout');
+    const themeBtn = q('btnThemeToggle');
+
+    // --- Auth state handling (simple localStorage flag) ---
+    const AUTH_KEY = 'pkc_auth_token';
+    const isLoggedIn = () => !!localStorage.getItem(AUTH_KEY);
+    const renderAuth = () => {
+      const logged = isLoggedIn();
+      if (loginBtn) loginBtn.classList.toggle('hidden', logged);
+      if (logoutBtn) logoutBtn.classList.toggle('hidden', !logged);
+    };
+    // Initial render
+    document.addEventListener('DOMContentLoaded', renderAuth);
+    // Respond to cross-tab changes
+    window.addEventListener('storage', (e) => { if (e.key === AUTH_KEY) renderAuth(); });
+
+    if (loginBtn) loginBtn.addEventListener('click', () => {
+      // In a real app, redirect to Auth; here we simulate by setting a token
+      localStorage.setItem(AUTH_KEY, '1');
+      window.dispatchEvent(new CustomEvent('app-login'));
+      renderAuth();
+    });
+    if (logoutBtn) logoutBtn.addEventListener('click', () => {
+      localStorage.removeItem(AUTH_KEY);
+      window.dispatchEvent(new CustomEvent('app-logout'));
+      renderAuth();
+    });
+
+    // --- Theme toggle (directly manage theme here) ---
+    const THEME_KEY = 'theme';
+    const applyInitialTheme = () => {
+      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      const saved = localStorage.getItem(THEME_KEY);
+      const initial = saved || (prefersDark ? 'dark' : 'light');
+      document.documentElement.classList.toggle('dark-theme', initial === 'dark');
+    };
+    document.addEventListener('DOMContentLoaded', applyInitialTheme);
+
+    if (themeBtn) themeBtn.addEventListener('click', () => {
+      const isDark = document.documentElement.classList.toggle('dark-theme');
+      localStorage.setItem(THEME_KEY, isDark ? 'dark' : 'light');
     });
   })();
   </script>

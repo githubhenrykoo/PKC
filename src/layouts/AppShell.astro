@@ -292,22 +292,24 @@ const { title = 'PKC', enableThemeToggle = true } = Astro.props as Props;
       }
     </script>
 
-    <!-- Theme toggle handler -->
-    <script is:inline>
-      (function(){
-        const key = 'theme';
-        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-        const saved = localStorage.getItem(key);
-        const initial = saved || 'dark';
-        if (initial === 'dark') document.documentElement.classList.add('dark-theme');
-        const btn = document.getElementById('appThemeToggle');
-        if (btn) {
-          btn.addEventListener('click', () => {
-            const isDark = document.documentElement.classList.toggle('dark-theme');
-            localStorage.setItem(key, isDark ? 'dark' : 'light');
-          });
-        }
-      })();
-    </script>
+    <!-- Theme toggle handler (only when floating toggle is enabled) -->
+    {enableThemeToggle && (
+      <script is:inline>
+        (function(){
+          const key = 'theme';
+          const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+          const saved = localStorage.getItem(key);
+          const initial = saved || (prefersDark ? 'dark' : 'light');
+          document.documentElement.classList.toggle('dark-theme', initial === 'dark');
+          const btn = document.getElementById('appThemeToggle');
+          if (btn) {
+            btn.addEventListener('click', () => {
+              const isDark = document.documentElement.classList.toggle('dark-theme');
+              localStorage.setItem(key, isDark ? 'dark' : 'light');
+            });
+          }
+        })();
+      </script>
+    )}
   </body>
 </html>

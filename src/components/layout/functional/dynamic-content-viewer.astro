@@ -119,18 +119,19 @@ import UnknownRenderer from '../../../components/Mcard/content_type_viewer/Unkno
     };
 
     // Load content-type utilities for icons, labels, title generation, and type resolution
-    let getTypeIconSvg, getTypeLabel, inferContentTypeFromFilename, resolveEffectiveContentType, getRendererTypeFromContentType, generateDisplayTitle;
+    let getTypeIconSvg, getTypeLabel, getTypePillHTML, inferContentTypeFromFilename, resolveEffectiveContentType, getRendererTypeFromContentType, generateDisplayTitle;
     
     // Initialize content-type utils asynchronously
     const initContentTypeUtils = async () => {
       try {
         const utils = await import('/src/utils/content-type-utils.ts');
-        ({ getTypeIconSvg, getTypeLabel, inferContentTypeFromFilename, resolveEffectiveContentType, getRendererTypeFromContentType, generateDisplayTitle } = utils);
+        ({ getTypeIconSvg, getTypeLabel, getTypePillHTML, inferContentTypeFromFilename, resolveEffectiveContentType, getRendererTypeFromContentType, generateDisplayTitle } = utils);
         console.log('🧩 Content-type utils loaded in content viewer');
       } catch (e) {
         console.warn('⚠️ Failed to load content-type utils:', e);
         // Fallback functions (minimal)
         getTypeIconSvg = (contentType) => '📄';
+        getTypePillHTML = (contentType) => `<span class=\"ml-2 text-xs px-2 py-1 rounded bg-black/5 dark:bg-white/10 opacity-70\">${getTypeLabel(contentType)}</span>`;
         getTypeLabel = (contentType) => 'Document';
         inferContentTypeFromFilename = (filename) => undefined;
         resolveEffectiveContentType = (meta) => (meta?.content_type || meta?.contentType || inferContentTypeFromFilename(meta?.filename) || 'text/plain');
@@ -162,8 +163,8 @@ import UnknownRenderer from '../../../components/Mcard/content_type_viewer/Unkno
     // Helper: set title with icon using shared utils
     const setTitleWithIcon = (type, titleText) => {
       const iconSvg = getTypeIconSvg(type);
-      const typeLabel = getTypeLabel(type);
-      contentTitle.innerHTML = `${iconSvg} <span class="align-middle">${titleText}</span> <span class="ml-2 text-xs px-2 py-1 rounded bg-black/5 dark:bg-white/10 opacity-70">${typeLabel}</span>`;
+      const pill = getTypePillHTML(type);
+      contentTitle.innerHTML = `${iconSvg} <span class="align-middle">${titleText}</span> ${pill}`;
     };
 
     // Show/hide loading state

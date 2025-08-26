@@ -9,6 +9,21 @@ export type IconOptions = {
   strokeWidth?: number;
 };
 
+/**
+ * Return a small label chip HTML for a content-type. Safe to insert with set:html.
+ */
+export const getTypePillHTML = (ct?: string): string => {
+  const label = getTypeLabel(ct);
+  return `<span class="ml-1 text-[10px] px-1 py-0.5 rounded bg-black/5 dark:bg-white/10 align-middle">${label}</span>`;
+};
+
+/**
+ * Convenience: icon + type pill (without title). Useful when composing nav items.
+ */
+export const getIconWithPillHTML = (ct?: string, opts: IconOptions = {}): string => {
+  return `${getTypeIconSvg(ct, opts)} ${getTypePillHTML(ct)}`.trim();
+};
+
 // Strip file extension from filename
 const stripExtension = (name?: string): string | undefined => {
   if (!name) return undefined;
@@ -198,19 +213,25 @@ export type TitleSource = {
 
 /**
  * Generate a consistent display title from metadata/filename/content-type.
- * Priority: filename (no ext) > metadata.title > friendly type + ordinal/hash fallback
+ * New format: [icon] <TYPE_LABEL> <shortHash>
+ * - TYPE_LABEL comes from MIMETYPE_LABELS (falls back to getTypeLabel)
+ * - shortHash is max 10 chars with ... in the middle
  */
 export const generateDisplayTitle = (src: TitleSource, index?: number): string => {
-  const byFilename = stripExtension(src?.filename);
-  if (byFilename) return byFilename;
+  // Helper: shorten a string with center ellipsis to a maximum length
+  const shortenMiddle = (s: string, max: number = 12): string => {
+    if (!s) return '';
+    if (s.length <= max) return s;
+    const keep = max - 3; // account for '...'
+    const front = Math.ceil(keep / 2);
+    const back = Math.floor(keep / 2);
+    return `${s.slice(0, front)}...${s.slice(-back)}`;
+  };
 
-  const byMetaTitle = src?.metadata?.title;
-  if (byMetaTitle && typeof byMetaTitle === 'string') return byMetaTitle;
+  // Short hash or reasonable fallback
+  const h = src?.hash || '';
+  const shortHash = h ? shortenMiddle(h, 12) : '';
 
-  const ct = normalizeContentType(src?.content_type || src?.contentType);
-  const friendly = (ct && MIMETYPE_FRIENDLY[ct]) || 'Document';
-
-  if (typeof index === 'number') return `${friendly} ${index + 1}`;
-  if (src?.hash) return `${friendly} ${src.hash.substring(0, 8)}`;
-  return friendly;
+  // Return only the shortened hash per requirement
+  return shortHash;
 };
