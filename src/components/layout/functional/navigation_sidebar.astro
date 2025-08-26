@@ -188,7 +188,7 @@ const {
     // Initialize services
     let mcardService = null;
     try {
-      const { mcardService: mcs } = await import('/src/services/mcard-service.ts');
+      const { mcardService: mcs } = await import('@/services/mcard-service');
       mcardService = mcs;
       console.log('📦 MCard service initialized');
     } catch (error) {
@@ -356,58 +356,106 @@ const {
     
     // Perform search
     const performSearch = async (query, page = 1) => {
-      if (!mcardService) return;
-      
-      lastQuery = query;
+      // normalize and capture for stale-response guard
+      const q = (query || '').trim();
+      lastQuery = q;
+      const queryAtStart = q;
       searchPage = page;
-      
-      if (!query || query.trim().length === 0) {
-        // Exit search mode and return to full list
+
+      // empty query exits search mode
+      if (!q) {
         searchActive = false;
         currentPage = 1;
         await loadMCardData();
         renderPage(1);
         return;
       }
-      
+
+      // enter search mode and reset view to first page for consistency
+      searchActive = true;
+      currentPage = 1;
+
       try {
+        console.log('🔎 performSearch start:', { q, page });
         searchSpinner.classList.remove('hidden');
-        const resp = await mcardService.searchMCards({ query, page, pageSize: itemsPerPage });
-        
-        searchActive = true;
-        searchTotalItems = resp.pagination.totalItems;
-        searchTotalPages = resp.pagination.totalPages || 1;
-        
-        // Map search results; always fetch per-card metadata so titles match viewer
-        allItems = await Promise.all(
-          resp.results.map(async (res, index) => {
-            let md = null;
-            let effectiveType = resolveEffectiveContentType({ content_type: res.metadata?.content_type, filename: res.metadata?.filename });
-            if (res.hash) {
-              md = await fetchCardMetadata(res.hash);
+
+        let resp;
+        if (mcardService) {
+          resp = await mcardService.searchMCards({ query: q, page, pageSize: itemsPerPage });
+        } else {
+          // Fallback to direct fetch if service not available
+          const params = new URLSearchParams({ query: q, page: String(page), page_size: String(itemsPerPage) });
+          const r = await fetch(`${API_URL}/cards/search?${params.toString()}`);
+          if (!r.ok) throw new Error(`HTTP ${r.status}`);
+          resp = await r.json();
+        }
+
+        // stale-response guard: ensure the result matches the latest query
+        if (queryAtStart !== lastQuery) {
+          return; // ignore outdated response
+        }
+
+        searchTotalItems = resp.pagination?.totalItems ?? resp.total_items ?? 0;
+        searchTotalPages = resp.pagination?.totalPages ?? resp.total_pages ?? 1;
+
+        // Map search results quickly without metadata to render immediately
+        const results = resp.results || resp.items || [];
+        const quickItems = results.map((res) => {
+          const hash = res.hash || res?.hash_id || res?.id;
+          const ct = res.metadata?.content_type || res.content_type;
+          const filename = res.metadata?.filename || res.filename;
+          const titleSource = {
+            filename,
+            metadata: { title: res.metadata?.title },
+            content_type: ct,
+            hash
+          };
+          return {
+            title: generateDisplayTitle(titleSource),
+            content: hash,
+            id: `mcard-${String(hash).substring(0, 8)}`,
+            contentType: resolveEffectiveContentType({ content_type: ct, filename }),
+            filename,
+            gTime: res.metadata?.g_time || res.g_time,
+            hash
+          };
+        });
+
+        // First render: fast
+        allItems = quickItems;
+        renderPage(1);
+
+        // Enhance with per-card metadata in background
+        const enhanced = await Promise.all(
+          quickItems.map(async (item) => {
+            try {
+              const md = item.hash ? await fetchCardMetadata(item.hash) : null;
               if (md) {
-                effectiveType = resolveEffectiveContentType({ content_type: md.content_type, filename: md.filename });
+                const titleSource = {
+                  filename: md.filename || item.filename,
+                  metadata: { title: md.title },
+                  content_type: md.content_type || item.contentType,
+                  hash: item.hash
+                };
+                return {
+                  ...item,
+                  title: generateDisplayTitle(titleSource),
+                  contentType: resolveEffectiveContentType({ content_type: md.content_type, filename: md.filename }),
+                  filename: md.filename || item.filename
+                };
               }
-            }
-            const titleSource = {
-              filename: (md && md.filename) || res.metadata?.filename,
-              metadata: { title: (md && md.title) || res.metadata?.title },
-              content_type: (md && md.content_type) || res.metadata?.content_type,
-              hash: res.hash
-            };
-            return {
-              title: generateDisplayTitle(titleSource),
-              content: res.hash,
-              id: `mcard-${res.hash.substring(0, 8)}`,
-              contentType: effectiveType,
-              filename: titleSource.filename,
-              gTime: res.metadata?.g_time,
-              hash: res.hash
-            };
+            } catch {}
+            return item;
           })
         );
-        
-        renderPage(currentPage);
+
+        // Guard again before applying enhanced results
+        if (queryAtStart !== lastQuery) {
+          return;
+        }
+        allItems = enhanced;
+        renderPage(1);
+        console.log('✅ performSearch done:', { count: enhanced.length, searchTotalItems, searchTotalPages });
       } catch (err) {
         console.warn('Search failed', err);
         navItemsContainer.innerHTML = `<li class='opacity-70 text-xs px-2 py-1'>Search failed. Try again.</li>`;
