@@ -46,8 +46,7 @@ src/utils/
 
 ```mermaid
 graph TD
-    A[Navigation Sidebar] -->|Redux Action| B[Redux Store]
-    B -->|State Change| C[Dynamic Content Viewer]
+    A[Navigation Sidebar] -->|window.loadMCardContent(hash, title)| C[Dynamic Content Viewer]
     C -->|Load Content| D[MCard API]
     D -->|Metadata + Content| C
     C -->|Select Renderer| E[Renderer Registry]
@@ -148,11 +147,10 @@ graph TD
 
 ### 1. Selection Trigger
 ```javascript
-// From navigation sidebar via Redux
-window.reduxStore.dispatch({
-  type: 'mcardSelection/setSelectedMCard',
-  payload: { hash, title, gTime, contentType }
-});
+// From navigation sidebar via direct call
+if (typeof window.loadMCardContent === 'function') {
+  window.loadMCardContent(hash, title || 'MCard Content');
+}
 ```
 
 ### 2. Content Loading Process
@@ -445,10 +443,9 @@ case 'mynew':
 
 ## Integration with Navigation System
 
-The content viewer integrates with the navigation sidebar through Redux state management. See `selection-flow.md` for detailed information about:
+The content viewer integrates with the navigation sidebar through a direct global function call. See `selection-flow.md` for details about:
 
-- Redux action dispatching from navigation
-- State subscription in content viewer
+- Sidebar click → direct `window.loadMCardContent()` invocation
 - Data contract between components
 - Resilience and error handling
 

@@ -18,22 +18,12 @@ const {
   showRightPanel = false
 } = Astro.props as Props;
 
-// Use stable Vite paths that are rewritten in prod
+// Static paths for Vite to resolve; used directly in client import()
 const clientExportsUrl = '/src/utils/client-exports.ts';
 const pkcutilsInitUrl = '/src/utils/pkcutils-init.ts';
 const preloadStateUrl = '/src/store/preload-state.ts';
 const initializerUrl = '/src/store/initializer.ts';
 const preloadEntryUrl = '/src/services/preload-entry.ts';
-const reduxStoreUrl = '/src/store/store.ts';
-
-// Generate the module URLs JSON string
-const moduleUrlsJson = JSON.stringify({
-  reduxStoreUrl,
-  pkcutilsInitUrl,
-  preloadStateUrl,
-  initializerUrl,
-  preloadEntryUrl
-});
 ---
 
 <!DOCTYPE html>
@@ -110,25 +100,7 @@ const moduleUrlsJson = JSON.stringify({
       };
     </script>
 
-    <!-- Expose module URLs for legacy and dynamic usage (JSON + consumer) -->
-    <script type="application/json" id="pkc-module-urls" set:html={moduleUrlsJson}></script>
-    <script is:inline>
-      (function(){
-        try {
-          const el = document.getElementById('pkc-module-urls');
-          const urls = el ? JSON.parse(el.textContent || '{}') : {};
-          window.__PKC_MODULE_URLS = urls;
-          // legacy globals
-          window.reduxStoreUrl = urls.reduxStoreUrl;
-          window.pkcutilsInitUrl = urls.pkcutilsInitUrl;
-          window.preloadStateUrl = urls.preloadStateUrl;
-          window.initializerUrl = urls.initializerUrl;
-          window.preloadEntryUrl = urls.preloadEntryUrl;
-        } catch (e) {
-          console.error('Failed to initialize __PKC_MODULE_URLS', e);
-        }
-      })();
-    </script>
+    <!-- Removed JSON-based module URL plumbing -->
 
     <!-- Load runtime environment variables (no-cache) -->
     <script>
@@ -189,7 +161,7 @@ const moduleUrlsJson = JSON.stringify({
       })();
     </script>
 
-    <!-- Redux store will be dynamically imported below using reduxStoreUrl -->
+    <!-- Redux store removed from initialization -->
 
     <style is:inline>
       /* CSS Custom Properties for Theming */
@@ -343,45 +315,21 @@ const moduleUrlsJson = JSON.stringify({
     </style>
     <!-- PKC initialization - simplified approach -->
     <script is:inline type="module">
-      // Wait for the DOM to be fully loaded
-      document.addEventListener('DOMContentLoaded', async () => {
-        try {
-          // Get module URLs from the JSON script
-          const urlsEl = document.getElementById('pkc-module-urls');
-          const urls = urlsEl ? JSON.parse(urlsEl.textContent || '{}') : {};
-          
-          // Load Redux store first (works in dev and prod)
-          const storeModule = await import(urls.reduxStoreUrl);
-          const store = storeModule.default;
+      // Use static imports so Vite rewrites and resolves aliases correctly
+      import '/src/utils/pkcutils-init.ts';
+      import '/src/store/preload-state.ts';
+      import '/src/store/initializer.ts';
+      import '/src/services/preload-entry.ts';
 
-          // Store reference to the Redux store on window for debugging
-          if (typeof window !== 'undefined') {
-            window.reduxStore = store;
-            // Compatibility alias for consumers expecting window.store
-            window.store = store;
-            // Let listeners know Redux is ready as early as possible
-            window.dispatchEvent(new CustomEvent('redux-ready', { detail: { store } }));
-          }
+      // Bridge: ensure shared content-type utilities are available on window.PKCUtils.content
+      import * as ContentUtils from '/src/utils/content-type-utils.ts';
+      window.PKCUtils = window.PKCUtils || {};
+      window.PKCUtils.content = window.PKCUtils.content || {
+        ...ContentUtils
+      };
 
-          // Load other modules in parallel
-          await Promise.all([
-            import(urls.pkcutilsInitUrl),
-            import(urls.preloadStateUrl),
-            import(urls.initializerUrl),
-            import(urls.preloadEntryUrl)
-          ]);
-
-          console.log('✅ All modules loaded successfully');
-
-          // Dispatch a custom event when everything is ready
-          window.dispatchEvent(new CustomEvent('pkg-ready', {
-            detail: { store }
-          }));
-
-        } catch (error) {
-          console.error('❌ Error initializing application:', error);
-        }
-      });
+      console.log('✅ All modules loaded successfully');
+      window.dispatchEvent(new CustomEvent('pkg-ready'));
     </script>
   </head>
   

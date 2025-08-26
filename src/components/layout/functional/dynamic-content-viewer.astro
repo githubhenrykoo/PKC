@@ -57,7 +57,7 @@ import UnknownRenderer from '../../../components/Mcard/content_type_viewer/Unkno
   </div>
 </div>
 
-<script type="module" is:inline>
+<script type="module">
   // Dynamic Content Viewer - Redux sync functionality
   document.addEventListener('DOMContentLoaded', async () => {
     console.log('🎯 Content viewer initializing...');
@@ -74,32 +74,7 @@ import UnknownRenderer from '../../../components/Mcard/content_type_viewer/Unkno
       return window.RUNTIME_ENV?.PUBLIC_MCARD_API_URL || 'http://localhost:49384/v1';
     };
     
-    // Track API URL changes
-    let currentApiUrl = getMCardApiUrl();
-    console.log('🔗 Content Viewer API URL (initial):', currentApiUrl);
-    
-    // Setup periodic check for runtime environment updates
-    const setupApiUrlUpdater = () => {
-      let lastUrl = currentApiUrl;
-      const checkForUpdates = () => {
-        const newUrl = getMCardApiUrl();
-        if (newUrl !== lastUrl && newUrl !== 'http://localhost:49384/v1') {
-          console.log('🔄 Content Viewer: API URL updated from', lastUrl, 'to', newUrl);
-          currentApiUrl = newUrl;
-          lastUrl = newUrl;
-        }
-      };
-      
-      // Check every second for first 10 seconds
-      let checks = 0;
-      const interval = setInterval(() => {
-        checkForUpdates();
-        checks++;
-        if (checks >= 10) clearInterval(interval);
-      }, 1000);
-    };
-    
-    setupApiUrlUpdater();
+    console.log('🔗 Content Viewer API URL (initial):', getMCardApiUrl());
 
     // Function to format timestamp
     const formatTimestamp = (gTime) => {
@@ -117,49 +92,31 @@ import UnknownRenderer from '../../../components/Mcard/content_type_viewer/Unkno
       return gTime;
     };
 
-    // Ensure PKCUtils.content is available before use
-    const waitForPKCUtilsContent = async (timeout = 5000) => {
+    // Wait for PKCUtils.content provided by pkcutils-init.ts
+    const waitForContentUtils = async (timeout = 5000) => {
       const start = Date.now();
-      // Quick check first
       if (window.PKCUtils?.content) return window.PKCUtils.content;
       return new Promise((resolve) => {
-        const interval = setInterval(() => {
-          if (window.PKCUtils?.content) {
-            clearInterval(interval);
-            resolve(window.PKCUtils.content);
-          } else if (Date.now() - start >= timeout) {
-            clearInterval(interval);
-            resolve(undefined);
+        const iv = setInterval(() => {
+          if (window.PKCUtils?.content || Date.now() - start >= timeout) {
+            clearInterval(iv);
+            resolve(window.PKCUtils?.content);
           }
-        }, 100);
+        }, 50);
       });
     };
-
-    const contentUtils = await waitForPKCUtilsContent(5000);
-    let getTypeIconSvg, getTypeLabel, getTypePillHTML, inferContentTypeFromFilename, resolveEffectiveContentType, getRendererTypeFromContentType, generateDisplayTitle;
-    if (contentUtils) {
-      ({
-        getTypeIconSvg,
-        getTypeLabel,
-        getTypePillHTML,
-        inferContentTypeFromFilename,
-        resolveEffectiveContentType,
-        getRendererTypeFromContentType,
-        generateDisplayTitle
-      } = contentUtils);
-      console.log('🧩 Content viewer: Using PKCUtils');
-    } else {
-      console.warn('⚠️ PKCUtils.content not available, using minimal fallbacks');
-      // Minimal fallbacks to avoid crashes; types will be coarse
-      getTypeIconSvg = () => '<span>📄</span>';
-      getTypeLabel = (t) => t || 'unknown';
-      getTypePillHTML = (t) => `<span class="ml-1 text-xs opacity-60">${t || 'unknown'}</span>`;
-      inferContentTypeFromFilename = (f) => (f?.endsWith('.md') ? 'text/markdown' : 'text/plain');
-      resolveEffectiveContentType = ({ content_type }) => content_type || 'text/plain';
+    const contentUtils = await waitForContentUtils();
+    const {
+      getTypeIconSvg = () => '<span>📄</span>',
+      getTypeLabel = (t) => t || 'unknown',
+      getTypePillHTML = (t) => `<span class="ml-1 text-xs opacity-60">${t || 'unknown'}</span>`,
+      inferContentTypeFromFilename = (f) => (f?.endsWith('.md') ? 'text/markdown' : 'text/plain'),
+      resolveEffectiveContentType = ({ content_type }) => content_type || 'text/plain',
       getRendererTypeFromContentType = (ct) =>
-        ct?.includes('markdown') ? 'markdown' : ct?.includes('html') ? 'html' : ct?.includes('json') ? 'json' : ct?.startsWith('image/') ? 'image' : ct === 'application/pdf' ? 'pdf' : 'text';
-      generateDisplayTitle = ({ filename, hash }) => filename || (hash ? hash.substring(0, 8) : 'MCard Content');
-    }
+        ct?.includes('markdown') ? 'markdown' : ct?.includes('html') ? 'html' : ct?.includes('json') ? 'json' : ct?.startsWith('image/') ? 'image' : ct === 'application/pdf' ? 'pdf' : 'text',
+      generateDisplayTitle = ({ filename, hash }) => filename || (hash ? hash.substring(0, 8) : 'MCard Content')
+    } = contentUtils || {};
+    console.log('🧩 Content viewer: Using content utils', !!contentUtils);
 
     // Helper: set title with icon using shared utils
     const setTitleWithIcon = (type, titleText) => {
@@ -309,8 +266,48 @@ import UnknownRenderer from '../../../components/Mcard/content_type_viewer/Unkno
       return window.__renderLibs;
     };
 
-    // Content type detection delegates to shared utility
-    const getRendererType = (contentType) => getRendererTypeFromContentType(contentType);
+    // Normalize renderer type aliases to our known set
+    const normalizeRendererType = (t, contentTypeStr = '') => {
+      if (!t) t = '';
+      const s = String(t).toLowerCase();
+      const ct = String(contentTypeStr || '').toLowerCase();
+      const map = {
+        'md': 'markdown',
+        'markdown-inline': 'markdown',
+        'markdown-block': 'markdown',
+        'htm': 'html',
+        'plain': 'text',
+        'plaintext': 'text',
+        'txt': 'text',
+        'jpeg': 'image',
+        'jpg': 'image',
+        'png': 'image',
+        'gif': 'image',
+        'svg': 'image',
+        'webp': 'image',
+        'pdf': 'pdf',
+        'application/pdf': 'pdf'
+      };
+      let v = map[s] || s;
+      // Derive from content-type if needed
+      if (!['markdown','html','json','image','pdf','text'].includes(v)) {
+        if (ct.includes('markdown')) v = 'markdown';
+        else if (ct.includes('html')) v = 'html';
+        else if (ct.includes('json')) v = 'json';
+        else if (ct.startsWith('image/')) v = 'image';
+        else if (ct === 'application/pdf' || ct.includes('pdf')) v = 'pdf';
+        else if (ct.startsWith('text/')) v = 'text';
+      }
+      // Final fallback
+      if (!['markdown','html','json','image','pdf','text'].includes(v)) v = 'text';
+      return v;
+    };
+
+    // Content type detection delegates to shared utility but normalized
+    const getRendererType = (contentType) => normalizeRendererType(
+      getRendererTypeFromContentType(contentType),
+      contentType
+    );
 
     // (Removed local icon generator in favor of shared utils)
 
@@ -735,46 +732,7 @@ import UnknownRenderer from '../../../components/Mcard/content_type_viewer/Unkno
       }
     }
 
-    // Setup Redux subscription with retry limit
-    function setupReduxSubscription() {
-      console.log('🔗 Setting up Redux subscription...');
-      let retryCount = 0;
-      const maxRetries = 10;
-      let lastLoadedHash = null;
-      
-      const trySetup = () => {
-        if (window.reduxStore) {
-          console.log('✅ Redux store found, setting up subscription');
-          window.reduxStore.subscribe(() => {
-            console.log('🔔 Redux state changed in content viewer');
-            const state = window.reduxStore.getState();
-            const { hash, title } = state.mcardSelection;
-            
-            if (hash && hash !== lastLoadedHash) {
-              console.log('🚀 Loading new content:', hash);
-              lastLoadedHash = hash;
-              window.loadMCardContent(hash, title || 'MCard Content');
-            }
-          });
-          console.log('✅ Redux subscription established');
-          return true;
-        } else {
-          retryCount++;
-          if (retryCount < maxRetries) {
-            console.warn(`⚠️ Redux store not available (attempt ${retryCount}/${maxRetries})`);
-            setTimeout(trySetup, 1000);
-          } else {
-            console.error('❌ Redux store failed to initialize after', maxRetries, 'attempts. Continuing without Redux.');
-          }
-          return false;
-        }
-      };
-      
-      trySetup();
-    }
-    
-    // Initialize Redux subscription (with retry limit)
-    setupReduxSubscription();
+    // Redux subscription removed to simplify runtime coordination
 
     console.log('🎯 Dynamic Content Viewer initialized');
   });

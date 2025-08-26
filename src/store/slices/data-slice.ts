@@ -48,7 +48,7 @@ export const fetchMCards = createAsyncThunk(
   'data/fetchMCards',
   async (params: { page?: number; pageSize?: number; sortBy?: string; sortOrder?: string } = {}, { rejectWithValue }) => {
     try {
-      const { mcardService } = await import('@/services/mcard-service');
+      const { mcardService } = await import('../../services/mcard-service.ts');
       const response = await mcardService.fetchMCards(params);
       return response;
     } catch (error: any) {
@@ -61,7 +61,7 @@ export const fetchMCardContent = createAsyncThunk(
   'data/fetchMCardContent',
   async (hash: string, { rejectWithValue }) => {
     try {
-      const { mcardService } = await import('@/services/mcard-service');
+      const { mcardService } = await import('../../services/mcard-service.ts');
       const content = await mcardService.getMCardContent(hash);
       return { hash, content };
     } catch (error: any) {
@@ -74,7 +74,7 @@ export const searchMCards = createAsyncThunk(
   'data/searchMCards',
   async (params: { query: string; filters?: SearchFilters; page?: number; pageSize?: number }, { rejectWithValue }) => {
     try {
-      const { mcardService } = await import('@/services/mcard-service');
+      const { mcardService } = await import('../../services/mcard-service.ts');
       const results = await mcardService.searchMCards(params);
       return { ...params, results };
     } catch (error: any) {
@@ -87,7 +87,7 @@ export const uploadFile = createAsyncThunk(
   'data/uploadFile',
   async (file: File, { rejectWithValue }) => {
     try {
-      const { mcardService } = await import('@/services/mcard-service');
+      const { mcardService } = await import('../../services/mcard-service.ts');
       const result = await mcardService.uploadFile(file);
       return result;
     } catch (error: any) {
@@ -100,7 +100,7 @@ export const deleteMCard = createAsyncThunk(
   'data/deleteMCard',
   async (hash: string, { rejectWithValue }) => {
     try {
-      const { mcardService } = await import('@/services/mcard-service');
+      const { mcardService } = await import('../../services/mcard-service.ts');
       await mcardService.deleteMCard(hash);
       return hash;
     } catch (error: any) {

@@ -2,7 +2,7 @@
 
 This document explains how `src/components/layout/functional/navigation_sidebar.astro` selects an MCard item and how it informs `src/components/layout/functional/dynamic-content-viewer.astro` to render the selected content.
 
-Both components communicate via a global Redux store exposed as `window.reduxStore`.
+The components communicate directly via a global function: `window.loadMCardContent(hash, title)`. Redux is no longer used for this flow.
 
 ## Components involved
 
@@ -17,21 +17,20 @@ Both components communicate via a global Redux store exposed as `window.reduxSto
 - __Click handler__: `setupSelectionHandlers()` attaches listeners to `.nav-link`.
   - Reads attributes from the clicked button.
   - Applies highlight classes for visual feedback.
-  - __Dispatches Redux action__:
+  - __Directly triggers content load__:
     ```js
-    window.reduxStore.dispatch({
-      type: 'mcardSelection/setSelectedMCard',
-      payload: { hash, title, gTime, contentType }
-    })
+    if (typeof window.loadMCardContent === 'function') {
+      window.loadMCardContent(hash, title || 'MCard Content');
+    }
     ```
 - __Data loading__: `loadMCardData()` and `performSearch()` fetch from the MCard API and normalize titles/types using `content-type-utils` so the sidebar and viewer stay consistent.
 - __Runtime env__: MCard API base URL is sourced from `window.RUNTIME_ENV.PUBLIC_MCARD_API_URL` with a short-lived updater that reloads data when the URL changes.
 
 ## How the content viewer reacts
 
-- __Redux subscription__: In `setupReduxSubscription()` the viewer subscribes to `window.reduxStore`.
-  - On state change, it reads `state.mcardSelection.hash` and `title`.
-  - If the `hash` differs from the last loaded hash, it calls `window.loadMCardContent(hash, title)`.
+- __Direct invocation__: The viewer exposes `window.loadMCardContent(hash, title)` which the sidebar calls.
+  - Debounces duplicate requests for the same `hash`.
+  - Manages its own loading/error UI states.
 - __Loading pipeline__: `window.loadMCardContent(hash, title)`
   - Gets API base URL (same runtime mechanism).
   - Fetches metadata: `GET /card/{hash}/metadata`.
@@ -43,21 +42,16 @@ Both components communicate via a global Redux store exposed as `window.reduxSto
 
 ## Data contract between sidebar and viewer
 
-Redux action payload used by the sidebar:
+The viewer requires a `hash` and optionally a `title`:
 ```ts
-{
-  hash: string,
-  title?: string,
-  gTime?: string,
-  contentType?: string
-}
+loadMCardContent(hash: string, title?: string): Promise<void>
 ```
-The viewer only needs `hash` to load; `title` enhances the header display.
+`title` enhances the header display if provided by the sidebar.
 
 ## Resilience and readiness
 
-- __Store readiness__: Both components retry up to 10 times (1s interval) if `window.reduxStore` is not yet available.
 - __Runtime env updates__: Both check for changes to `window.RUNTIME_ENV.PUBLIC_MCARD_API_URL` during the first ~10 seconds and react accordingly.
+ - __Runtime env readiness__: The viewer waits for `window.RUNTIME_ENV` and handles default/localhost overrides.
 
 ## Sequence diagram
 
@@ -65,16 +59,12 @@ The viewer only needs `hash` to load; `title` enhances the header display.
 sequenceDiagram
   actor U as User
   participant NS as navigation_sidebar.astro
-  participant RS as window.reduxStore
   participant CV as dynamic-content-viewer.astro
   participant API as MCard API
 
   U->>NS: Click list item (button.nav-link)
   NS->>NS: Read data-* attrs (hash, title, contentType, gTime)
-  NS->>RS: dispatch("mcardSelection/setSelectedMCard", payload)
-  RS-->>CV: state change notification (subscribe)
-  CV->>CV: Detect new mcardSelection.hash
-  CV->>CV: loadMCardContent(hash, title)
+  NS->>CV: window.loadMCardContent(hash, title)
   CV->>API: GET /card/{hash}/metadata
   API-->>CV: metadata (content_type, filename, g_time, title)
   CV->>CV: resolve effective content type + display title
@@ -91,8 +81,7 @@ sequenceDiagram
 ## Key references (code locations)
 
 - __Sidebar item render__: `navigation_sidebar.astro` → `renderPage()`
-- __Sidebar click→dispatch__: `navigation_sidebar.astro` → `setupSelectionHandlers()`
-- __Viewer subscribe__: `dynamic-content-viewer.astro` → `setupReduxSubscription()`
+- __Sidebar click→load__: `navigation_sidebar.astro` → `setupSelectionHandlers()` calls `window.loadMCardContent()`
 - __Viewer load__: `dynamic-content-viewer.astro` → `window.loadMCardContent()`
 - __Renderer init__: `dynamic-content-viewer.astro` → `renderContentWithComponent()` and `initialize*Renderer()` functions
 - __Shared utilities__: `src/utils/content-type-utils.ts`

@@ -71,7 +71,7 @@ const {
   <PaginationControls prevDisabled={true} />
 </aside>
 
-<script type="module" is:inline>
+<script type="module">
   document.addEventListener('DOMContentLoaded', async () => {
     console.log('🔧 Navigation sidebar initializing...');
     
@@ -85,33 +85,33 @@ const {
     let searchTotalPages = 1;
     let searchTotalItems = 0;
     
-    // Use PKCUtils if available, otherwise fallback to basic functions
-    if (!window.PKCUtils || !window.PKCUtils.content) {
-      console.warn('⚠️ PKCUtils.content not available, using minimal fallbacks');
-      // Provide minimal fallback functions
-      window.PKCUtils = window.PKCUtils || {};
-      window.PKCUtils.content = {
-        inferContentTypeFromFilename: (filename) => filename?.split('.').pop() || 'unknown',
-        getTypeLabel: (type) => type || 'unknown',
-        getTypeIconSvg: (type) => '📄',
-        getTypePillHTML: (type) => `<span class="type-pill">${type || 'unknown'}</span>`,
-        resolveEffectiveContentType: (item) => item?.content_type || item?.filename?.split('.').pop() || 'unknown',
-        getRendererTypeFromContentType: (type) => type || 'text',
-        generateDisplayTitle: (item) => item?.title || item?.filename || item?.hash?.substring(0, 8) || 'Unknown'
-      };
+    // Wait for PKCUtils.content provided by pkcutils-init.ts
+    const waitForContentUtils = async (timeout = 5000) => {
+      const start = Date.now();
+      if (window.PKCUtils?.content) return window.PKCUtils.content;
+      return new Promise((resolve) => {
+        const iv = setInterval(() => {
+          if (window.PKCUtils?.content || Date.now() - start >= timeout) {
+            clearInterval(iv);
+            resolve(window.PKCUtils?.content);
+          }
+        }, 50);
+      });
+    };
+    const contentUtils = await waitForContentUtils();
+    if (!contentUtils) {
+      console.warn('⚠️ Content utils not available; using minimal fallbacks');
     }
-
-    const { 
-      inferContentTypeFromFilename,
-      getTypeLabel,
-      getTypeIconSvg,
-      getTypePillHTML,
-      resolveEffectiveContentType,
-      getRendererTypeFromContentType,
-      generateDisplayTitle
-    } = window.PKCUtils.content;
-    
-    console.log('🧩 Navigation: Using PKCUtils');
+    const {
+      inferContentTypeFromFilename = (f) => f?.split('.').pop() || 'unknown',
+      getTypeLabel = (t) => t || 'unknown',
+      getTypeIconSvg = () => '<span>📄</span>',
+      getTypePillHTML = (t) => `<span class="type-pill">${t || 'unknown'}</span>`,
+      resolveEffectiveContentType = (meta) => meta?.content_type || inferContentTypeFromFilename(meta?.filename),
+      getRendererTypeFromContentType = (ct) => ct || 'text',
+      generateDisplayTitle = (item) => item?.title || item?.filename || item?.hash?.slice(0,8) || 'MCard'
+    } = contentUtils || {};
+    console.log('🧩 Navigation: Using content utils', !!contentUtils);
     
     // Dynamic API URL getter that always checks current runtime environment
     const getApiUrl = () => {
@@ -119,34 +119,9 @@ const {
       return url;
     };
     
-    // Initial API URL
+    // Initial API URL (evaluate once for simplicity)
     let API_URL = getApiUrl();
     console.log('🔗 MCard API URL (initial):', API_URL);
-    
-    // Setup periodic check for runtime environment updates
-    const setupApiUrlUpdater = () => {
-      let lastUrl = API_URL;
-      const checkForUpdates = () => {
-        const newUrl = getApiUrl();
-        if (newUrl !== lastUrl && newUrl !== 'http://localhost:49384/v1') {
-          console.log('🔄 Navigation: API URL updated from', lastUrl, 'to', newUrl);
-          API_URL = newUrl;
-          lastUrl = newUrl;
-          // Reload data with new URL
-          loadMCardData().then(() => renderPage(1));
-        }
-      };
-      
-      // Check every second for first 10 seconds
-      let checks = 0;
-      const interval = setInterval(() => {
-        checkForUpdates();
-        checks++;
-        if (checks >= 10) clearInterval(interval);
-      }, 1000);
-    };
-    
-    setupApiUrlUpdater();
     
     // Helper: fetch per-card metadata (filename, title, content_type, etc.)
     const fetchCardMetadata = async (hash) => {
@@ -160,44 +135,16 @@ const {
       return null;
     };
     
-    // Initialize services
+    // Initialize services (best-effort)
     let mcardService = null;
     try {
-      const { mcardService: mcs } = await import('@/services/mcard-service');
+      const { mcardService: mcs } = await import('/src/services/mcard-service.ts');
       mcardService = mcs;
       console.log('📦 MCard service initialized');
     } catch (error) {
       console.warn('⚠️ Failed to initialize MCard service:', error);
     }
-    
-    // Setup Redux subscription with retry limit
-    function setupReduxSubscription() {
-      console.log('🔗 Setting up Redux subscription...');
-      let retryCount = 0;
-      const maxRetries = 10;
-      
-      const trySetup = () => {
-        if (window.reduxStore) {
-          console.log('✅ Redux store found, setting up subscription');
-          // Implementation for Redux subscription would go here
-          // For now, just log that it's available
-          return true;
-        } else {
-          retryCount++;
-          if (retryCount < maxRetries) {
-            console.warn(`⚠️ Redux store not available (attempt ${retryCount}/${maxRetries})`);
-            setTimeout(trySetup, 1000);
-          } else {
-            console.error('❌ Redux store failed to initialize after', maxRetries, 'attempts. Continuing without Redux.');
-          }
-          return false;
-        }
-      };
-      
-      trySetup();
-    }
-    
-    setupReduxSubscription();
+    // Removed Redux subscription to simplify runtime coordination
     
     // DOM elements
     const navItemsContainer = document.getElementById('nav-items');
@@ -485,16 +432,11 @@ const {
           // Visual feedback
           navLinks.forEach(l => l.classList.remove('bg-black/10', 'dark:bg-white/20'));
           button.classList.add('bg-black/10', 'dark:bg-white/20');
-          
-          // Redux dispatch
-          if (window.reduxStore && typeof window.reduxStore.dispatch === 'function') {
-            window.reduxStore.dispatch({
-              type: 'mcardSelection/setSelectedMCard',
-              payload: { hash, title, gTime: gTime || '', contentType: contentType || '' }
-            });
-            console.log('✅ Redux dispatched for:', hash);
+          // Directly load content without store coordination
+          if (typeof window.loadMCardContent === 'function') {
+            window.loadMCardContent(hash, title || 'MCard Content');
           } else {
-            console.warn('⚠️ Redux store not available');
+            console.warn('⚠️ loadMCardContent not available');
           }
         });
       });
