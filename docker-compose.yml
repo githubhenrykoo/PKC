@@ -82,8 +82,8 @@ services:
           sleep 3
         done &&
         echo 'Ollama API is available!' &&
-        echo 'Pulling llama3 model...' &&
-        curl -s -X POST http://ollama:11434/api/pull -d '{"name":"llama3"}' &&
+        echo 'Pulling qwen3:0.6b model...' &&
+        curl -s -X POST http://ollama:11434/api/pull -d '{"name":"qwen3:0.6b"}' &&
         echo 'Pulling nomic-embed-text model...' &&
         curl -s -X POST http://ollama:11434/api/pull -d '{"name":"nomic-embed-text"}' &&
         echo 'Model initialization completed successfully!'
