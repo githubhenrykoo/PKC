@@ -1,7 +1,9 @@
+version: '3.8'
+
 services:
   mcard-service:
     container_name: mcard-service
-    image: henry768/mcard-service:latest
+    image: henry768/mcard-service@sha256:7a71df5f93d370905c90d4fa0ae34421d9088e95a75b9c798484d558d73580c4
     # No platform needed with multi-arch images
     ports:
       - "49384:49384"
@@ -19,7 +21,7 @@ services:
       start_period: 10s
 
   pkc-app:
-    image: henry768/pkc:latest_RAG_test
+    image: henry768/pkc@sha256:4cb30375f46ef36331d601a7aa897446cd747f090fe5eda0cfab7bbddcf8f146
     container_name: pkc-app
     restart: unless-stopped
     ports:
@@ -39,16 +41,15 @@ services:
       start_period: 10s
 
   local-rag:
-    image: henry768/local-rag:super-small  # Use super-small image as requested
+    image: henry768/local-rag:super-small  # Use our locally built image
     ports:
       - "28302:28302"
     environment:
       - PORT=28302
-      - MCARD_BASE_URL=http://mcard-service:49384/v1
+      - MCARD_BASE_URL=http://host.docker.internal:49384/v1
       - OLLAMA_BASE_URL=http://ollama:11434
       - LOG_LEVEL=INFO
       - HOME=/app
-      - PRESERVE_HASH=true  # Add this to ensure hashes are preserved
     volumes:
       - vector_data:/app/data/vector_store
       - log_data:/app/data/logs
@@ -81,8 +82,8 @@ services:
           sleep 3
         done &&
         echo 'Ollama API is available!' &&
-        echo 'Pulling qwen3:0.6b model...' &&
-        curl -s -X POST http://ollama:11434/api/pull -d '{"name":"qwen3:0.6b"}' &&
+        echo 'Pulling llama3 model...' &&
+        curl -s -X POST http://ollama:11434/api/pull -d '{"name":"llama3"}' &&
         echo 'Pulling nomic-embed-text model...' &&
         curl -s -X POST http://ollama:11434/api/pull -d '{"name":"nomic-embed-text"}' &&
         echo 'Model initialization completed successfully!'
