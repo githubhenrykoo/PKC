@@ -1,63 +1,11 @@
 ---
-import { DashboardLayout } from '../components/Dashboard/DashboardLayout';
-import '../styles/global.css';
+import MainLayout from '@/layouts/MainLayout.astro';
+import MCardManager from '@/components/mcard/MCardManager';
 ---
 
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>PKC Dashboard</title>
-</head>
-<body>
-  <DashboardLayout client:load title="PKC" />
-  
-  <script>
-    // Load runtime environment variables before components initialize
-    (async function loadRuntimeEnv() {
-      try {
-        console.log('🔄 Loading runtime environment variables...');
-        
-        // Add cache prevention
-        const timestamp = Date.now();
-        const response = await fetch(`/runtime-env.js?t=${timestamp}`, {
-          cache: 'no-cache',
-          headers: {
-            'Cache-Control': 'no-cache, no-store, must-revalidate',
-            'Pragma': 'no-cache',
-            'Expires': '0'
-          }
-        });
-        
-        if (!response.ok) {
-          throw new Error(`Failed to load runtime env: ${response.status} ${response.statusText}`);
-        }
-        
-        const envScript = await response.text();
-        
-        // Execute the script to set window.RUNTIME_ENV
-        const script = document.createElement('script');
-        script.textContent = envScript;
-        document.head.appendChild(script);
-        
-        console.log('✅ Runtime environment loaded:', Object.keys(window.RUNTIME_ENV || {}));
-        
-        // Dispatch event for components waiting for runtime env
-        window.dispatchEvent(new CustomEvent('runtime-env-loaded', {
-          detail: window.RUNTIME_ENV
-        }));
-        
-      } catch (error) {
-        console.error('❌ Failed to load runtime environment:', error);
-        
-        // Fallback: set empty runtime env to prevent indefinite waiting
-        window.RUNTIME_ENV = {};
-        window.dispatchEvent(new CustomEvent('runtime-env-loaded', {
-          detail: {}
-        }));
-      }
-    })();
-  </script>
-</body>
-</html>
+<MainLayout title="MCard Management">
+  <div class="h-screen p-4">
+    <h1 class="text-2xl font-bold mb-4">MCard Content Management</h1>
+    <MCardManager client:load />
+  </div>
+</MainLayout>

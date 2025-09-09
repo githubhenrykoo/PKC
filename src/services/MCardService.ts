@@ -45,16 +45,16 @@ export class MCardService {
     console.log('MCardService base URL updated to:', this.baseUrl);
   }
 
-  // List all cards with pagination
-  async listCards(page = 1, pageSize = 10): Promise<MCardListResponse> {
-    return this._get(`/cards?page=${page}&page_size=${pageSize}`);
-  }
-  
-  // Search cards by content
-  async searchCards(query: string, page = 1, pageSize = 10): Promise<MCardListResponse> {
-    return this._get(
-      `/cards/search?query=${encodeURIComponent(query)}&page=${page}&page_size=${pageSize}`
-    );
+  // List all cards with pagination and search
+  async listCards(page = 1, pageSize = 10, query?: string): Promise<MCardListResponse> {
+    const params = new URLSearchParams({
+      page: String(page),
+      page_size: String(pageSize),
+    });
+    if (query) {
+      params.append('query', query);
+    }
+    return this._get(`/content/cards?${params.toString()}`);
   }
   
   // Search cards by partial hash
@@ -102,7 +102,7 @@ export class MCardService {
   }
   
   // Upload file with enhanced error handling and size checks
-  async uploadFile(file: File, metadata: Record<string, any> = {}): Promise<MCardItem> {
+  async uploadFile(file: File): Promise<MCardItem> {
     // File size check (warn for files > 100MB)
     const maxSize = 100 * 1024 * 1024; // 100MB
     if (file.size > maxSize) {
@@ -122,15 +122,12 @@ export class MCardService {
       filename: file.name,
       originalType: file.type || 'application/octet-stream',
       size: file.size,
-      lastModified: file.lastModified,
-      ...metadata
+      lastModified: file.lastModified
     };
     
-    formData.append('metadata', JSON.stringify(enhancedMetadata));
-    
-    // Use direct API call - server CORS has been fixed
+    // Use direct API call to the new endpoint
     console.log(`Uploading file: ${file.name}, type: ${file.type}, size: ${(file.size / 1024 / 1024).toFixed(2)}MB`);
-    return this._post('/files', formData, true);
+    return this._post('/content/cards', formData, true);
   }
   
   // Helper methods with enhanced error handling
