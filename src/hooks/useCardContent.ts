@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { MCardService, type MCardItem } from "@/services/MCardService";
-import { ContentRenderer } from "@/components/Mcard/ContentRenderer";
+import { ContentRenderer } from "@/components/mcard/ContentRenderer";
 
 export function useCardContent() {
   const [selectedCard, setSelectedCard] = useState<MCardItem | null>(null);

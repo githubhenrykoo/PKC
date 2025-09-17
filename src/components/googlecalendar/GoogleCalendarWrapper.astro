@@ -1,0 +1,291 @@
+---
+// Google Calendar Wrapper Component for Astro
+---
+
+<div id="google-calendar-wrapper" class="h-full w-full">
+  <div class="h-full p-4 space-y-4">
+    <div class="flex justify-between items-center">
+      <h2 class="text-xl font-bold dark:text-white">Google Calendar</h2>
+      <button 
+        id="google-signin-btn"
+        class="bg-white text-gray-700 px-4 py-2 rounded-lg border border-gray-300 hover:bg-gray-50 flex items-center space-x-2 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+      >
+        <img 
+          src="https://www.google.com/favicon.ico" 
+          alt="Google" 
+          class="w-4 h-4"
+        />
+        <span id="signin-text">Sign in with Google</span>
+      </button>
+    </div>
+    
+    <div id="calendar-content" class="hidden h-full">
+      <!-- Calendar content will be rendered here -->
+    </div>
+    
+    <div id="calendar-loading" class="hidden h-full">
+      <div class="flex items-center justify-center h-full">
+        <div class="text-center">
+          <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-2"></div>
+          <p class="text-sm opacity-70">Loading calendar...</p>
+        </div>
+      </div>
+    </div>
+    
+    <div id="calendar-error" class="hidden bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-300 rounded-lg p-4 text-center">
+      <div class="text-4xl mb-2">⚠️</div>
+      <p class="text-sm" id="error-message">Failed to load calendar</p>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+  import { loadGoogleApi, signIn, signOut, listEvents, isInitialized } from './google-calendar.js';
+
+  class GoogleCalendarManager {
+    constructor() {
+      this.isAuthenticated = false;
+      this.events = [];
+      this.isLoading = false;
+      this.initializeElements();
+      this.bindEvents();
+      this.initialize();
+    }
+
+    initializeElements() {
+      this.signInBtn = document.getElementById('google-signin-btn');
+      this.signInText = document.getElementById('signin-text');
+      this.calendarContent = document.getElementById('calendar-content');
+      this.calendarPlaceholder = document.getElementById('calendar-placeholder');
+      this.calendarLoading = document.getElementById('calendar-loading');
+      this.calendarError = document.getElementById('calendar-error');
+      this.errorMessage = document.getElementById('error-message');
+    }
+
+    bindEvents() {
+      if (this.signInBtn) {
+        this.signInBtn.addEventListener('click', () => {
+          if (this.isAuthenticated) {
+            this.handleSignOut();
+          } else {
+            this.handleSignIn();
+          }
+        });
+      }
+    }
+
+    async initialize() {
+      try {
+        this.showLoading();
+        await loadGoogleApi();
+        
+        // Check if already authenticated
+        if (typeof window !== 'undefined' && window.gapi && window.gapi.client.getToken()) {
+          this.isAuthenticated = true;
+          await this.loadEvents();
+        } else {
+          this.showPlaceholder();
+        }
+      } catch (error) {
+        console.error('Failed to initialize Google Calendar:', error);
+        this.showError('Failed to initialize Google Calendar. Please check your API credentials.');
+      }
+    }
+
+    async handleSignIn() {
+      try {
+        this.showLoading();
+        await signIn();
+        this.isAuthenticated = true;
+        this.updateSignInButton();
+        await this.loadEvents();
+      } catch (error) {
+        console.error('Sign in failed:', error);
+        this.showError('Sign in failed. Please try again.');
+      }
+    }
+
+    async handleSignOut() {
+      try {
+        this.showLoading();
+        await signOut();
+        this.isAuthenticated = false;
+        this.events = [];
+        this.updateSignInButton();
+        this.showPlaceholder();
+      } catch (error) {
+        console.error('Sign out failed:', error);
+        this.showError('Sign out failed. Please try again.');
+      }
+    }
+
+    async loadEvents() {
+      try {
+        this.showLoading();
+        const response = await listEvents();
+        this.events = response.result.items || [];
+        this.renderEvents();
+      } catch (error) {
+        console.error('Failed to load events:', error);
+        this.showError('Failed to load calendar events. Please try again.');
+      }
+    }
+
+    renderEvents() {
+      if (!this.calendarContent) return;
+
+      const today = new Date();
+      const todayEvents = this.events.filter(event => {
+        const eventDate = new Date(event.start.dateTime || event.start.date);
+        return eventDate.toDateString() === today.toDateString();
+      });
+
+      const upcomingEvents = this.events.slice(0, 10); // Show next 10 events
+
+      this.calendarContent.innerHTML = `
+        <div class="space-y-4">
+          <!-- Today's Events -->
+          <div class="bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-lg p-3">
+            <h3 class="font-semibold mb-2">Today's Schedule</h3>
+            ${todayEvents.length > 0 
+              ? `<p class="text-sm">You have ${todayEvents.length} ${todayEvents.length === 1 ? 'meeting' : 'meetings'} today</p>`
+              : '<p class="text-sm">No meetings today, would you like to take a vacation?</p>'
+            }
+          </div>
+
+          <!-- Upcoming Events -->
+          <div>
+            <h3 class="font-semibold mb-3 dark:text-white">Upcoming Events</h3>
+            <div class="space-y-2 max-h-96 overflow-y-auto">
+              ${upcomingEvents.length === 0 
+                ? '<p class="text-sm text-gray-500 dark:text-gray-400">No upcoming events</p>'
+                : upcomingEvents.map(event => this.renderEventCard(event)).join('')
+              }
+            </div>
+          </div>
+
+          <!-- Refresh Button -->
+          <div class="flex justify-center pt-4">
+            <button 
+              id="refresh-events-btn"
+              class="px-4 py-2 text-blue-600 dark:text-blue-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors flex items-center gap-2"
+            >
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+              </svg>
+              Refresh
+            </button>
+          </div>
+        </div>
+      `;
+
+      // Bind refresh button
+      const refreshBtn = document.getElementById('refresh-events-btn');
+      if (refreshBtn) {
+        refreshBtn.addEventListener('click', () => this.loadEvents());
+      }
+
+      this.showContent();
+    }
+
+    renderEventCard(event) {
+      const date = new Date(event.start.dateTime || event.start.date);
+      const formattedDate = date.toLocaleString('en-US', {
+        weekday: 'short',
+        month: 'short',
+        day: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit'
+      });
+
+      return `
+        <div class="bg-white dark:bg-gray-700 rounded-lg shadow-sm border border-gray-200 dark:border-gray-600 p-3 hover:shadow-md transition-shadow">
+          <div class="flex items-start gap-3">
+            <div class="text-xs text-blue-600 dark:text-blue-400 whitespace-nowrap font-medium">
+              ${formattedDate}
+            </div>
+            <div class="flex-1 min-w-0">
+              <h4 class="font-medium text-sm dark:text-white truncate">${event.summary || 'Untitled Event'}</h4>
+              ${event.description 
+                ? `<p class="text-xs text-gray-600 dark:text-gray-300 mt-1 line-clamp-2">${event.description}</p>`
+                : ''
+              }
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    updateSignInButton() {
+      if (!this.signInBtn || !this.signInText) return;
+
+      if (this.isAuthenticated) {
+        this.signInText.textContent = 'Sign Out';
+        this.signInBtn.className = 'bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 flex items-center space-x-2 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed';
+      } else {
+        this.signInText.textContent = 'Sign in with Google';
+        this.signInBtn.className = 'bg-white text-gray-700 px-4 py-2 rounded-lg border border-gray-300 hover:bg-gray-50 flex items-center space-x-2 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed';
+      }
+    }
+
+    showLoading() {
+      this.isLoading = true;
+      if (this.signInBtn) this.signInBtn.disabled = true;
+      this.hideAll();
+      if (this.calendarLoading) this.calendarLoading.classList.remove('hidden');
+    }
+
+    showContent() {
+      this.isLoading = false;
+      if (this.signInBtn) this.signInBtn.disabled = false;
+      this.hideAll();
+      if (this.calendarContent) this.calendarContent.classList.remove('hidden');
+    }
+
+    showPlaceholder() {
+      this.isLoading = false;
+      if (this.signInBtn) this.signInBtn.disabled = false;
+      this.hideAll();
+      if (this.calendarPlaceholder) this.calendarPlaceholder.classList.remove('hidden');
+    }
+
+    showError(message) {
+      this.isLoading = false;
+      if (this.signInBtn) this.signInBtn.disabled = false;
+      this.hideAll();
+      if (this.errorMessage) this.errorMessage.textContent = message;
+      if (this.calendarError) this.calendarError.classList.remove('hidden');
+    }
+
+    hideAll() {
+      [this.calendarContent, this.calendarPlaceholder, this.calendarLoading, this.calendarError].forEach(el => {
+        if (el) el.classList.add('hidden');
+      });
+    }
+  }
+
+  // Initialize when DOM is ready
+  document.addEventListener('DOMContentLoaded', () => {
+    if (document.getElementById('google-calendar-wrapper')) {
+      new GoogleCalendarManager();
+    }
+  });
+</script>
+
+<style>
+  .line-clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .animate-spin {
+    animation: spin 1s linear infinite;
+  }
+
+  @keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+</style>

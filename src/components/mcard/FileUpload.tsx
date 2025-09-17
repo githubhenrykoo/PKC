@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { uploadCard } from '@/services/mcard';
+import defaultMCardService from '@/services/MCardService';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Toaster, toast } from 'sonner';
@@ -29,7 +29,7 @@ const FileUpload: React.FC<FileUploadProps> = ({ onUploadSuccess }) => {
     toast.loading('Uploading file...');
 
     try {
-      const response = await uploadCard(selectedFile);
+      const response = await defaultMCardService.uploadFile(selectedFile);
       toast.success('File uploaded successfully!', {
         description: `Card created with hash: ${response.hash}`,
       });

@@ -1,10 +1,4 @@
 // This file is auto-generated at build time
 window.RUNTIME_ENV = {
-  "PUBLIC_AUTHENTIK_REDIRECT_URI": "https://bkoo.pkc.pub/auth/callback",
-  "PUBLIC_AUTHENTIK_URL": "https://auth.pkc.pub",
-  "PUBLIC_MCARD_API_URL": "https://localhost/v1",
-  "PUBLIC_RAG_API_URL": "https://brag.pkc.pub/api/v1",
-  "PUBLIC_AUTHENTIK_CLIENT_ID": "ql7TBoa0pRweJ445MQs5hD5vYfXJpCkbiG6fhiYO",
-  "PUBLIC_AUTHENTIK_CLIENT_SECRET": "GeiJSq2MmtfHhG5hVs6LeBFXuEJj5r92oKnG8BzO9GlbpiHI9xqwHFjm5Eou6yYVAfeLMxQCHbjzE1wKccmxlHXt4yQdV0iN7GnFp0I3puVpGrJJHCvFBQs9917v6dEP",
-  "BUILD_TIMESTAMP": "2025-08-26T12:41:04.078Z"
+  "BUILD_TIMESTAMP": "2025-09-17T10:33:44.256Z"
 };

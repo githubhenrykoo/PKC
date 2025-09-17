@@ -1,5 +1,5 @@
 import React from 'react';
-import { MCardBrowser } from "@/components/Mcard/MCardBrowser";
+import { MCardBrowser } from "@/components/mcard/MCardBrowser";
 import { RAGBrowser } from "@/components/RAG/RAGBrowser";
 import { useMediaQuery } from '@/hooks/useMediaQuery';
 import { cn } from "@/lib/utils";
