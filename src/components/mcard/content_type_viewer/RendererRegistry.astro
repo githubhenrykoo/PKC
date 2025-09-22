@@ -1,0 +1,151 @@
+---
+// RendererRegistry - Displays available content type renderers for developer reference
+import rendererRegistry from './renderer-registry.json';
+
+interface Props {
+  showCode?: boolean;
+  className?: string;
+}
+
+const { showCode = false, className = "" } = Astro.props as Props;
+const { renderers, fallback, metadata } = rendererRegistry;
+---
+
+<div class={`renderer-registry ${className}`}>
+  <!-- Header -->
+  <div class="mb-6">
+    <h2 class="text-2xl font-bold mb-2">Content Type Renderer Registry</h2>
+    <p class="text-sm opacity-70 mb-1">{metadata.description}</p>
+    <div class="text-xs opacity-60">
+      Version: {metadata.version} | Last Updated: {new Date(metadata.lastUpdated).toLocaleDateString()}
+    </div>
+  </div>
+
+  <!-- Available Renderers -->
+  <div class="space-y-4">
+    <h3 class="text-lg font-semibold border-b border-black/10 dark:border-white/10 pb-2">
+      Available Renderers ({Object.keys(renderers).length})
+    </h3>
+    
+    <div class="grid gap-4">
+      {Object.entries(renderers).map(([contentType, renderer]) => (
+        <div class="border border-black/10 dark:border-white/10 rounded-lg p-4 bg-black/5 dark:bg-white/5">
+          <div class="flex items-start justify-between mb-2">
+            <div>
+              <h4 class="font-semibold text-sm">{renderer.component}</h4>
+              <code class="text-xs bg-black/10 dark:bg-white/10 px-2 py-1 rounded mt-1 inline-block">
+                {contentType}
+              </code>
+            </div>
+          </div>
+          
+          <p class="text-sm opacity-70 mb-3">{renderer.description}</p>
+          
+          <div class="space-y-2">
+            <div class="text-xs">
+              <span class="font-medium">Import Path:</span>
+              <code class="ml-2 bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200 px-2 py-1 rounded">
+                {renderer.path}
+              </code>
+            </div>
+            
+            {showCode && (
+              <details class="text-xs">
+                <summary class="cursor-pointer font-medium hover:opacity-80">Show Import Code</summary>
+                <pre class="mt-2 bg-black/10 dark:bg-white/10 p-3 rounded overflow-x-auto"><code>{`import ${renderer.component} from '${renderer.path}';`}</code></pre>
+              </details>
+            )}
+          </div>
+        </div>
+      ))}
+    </div>
+  </div>
+
+  <!-- Fallback Renderer -->
+  <div class="mt-8">
+    <h3 class="text-lg font-semibold border-b border-black/10 dark:border-white/10 pb-2 mb-4">
+      Fallback Renderer
+    </h3>
+    
+    <div class="border border-orange-200 dark:border-orange-800 rounded-lg p-4 bg-orange-50 dark:bg-orange-900/20">
+      <div class="flex items-start justify-between mb-2">
+        <div>
+          <h4 class="font-semibold text-sm">{fallback.component}</h4>
+          <span class="text-xs bg-orange-200 dark:bg-orange-800 px-2 py-1 rounded mt-1 inline-block">
+            Default for unsupported types
+          </span>
+        </div>
+      </div>
+      
+      <p class="text-sm opacity-70 mb-3">{fallback.description}</p>
+      
+      <div class="space-y-2">
+        <div class="text-xs">
+          <span class="font-medium">Import Path:</span>
+          <code class="ml-2 bg-orange-200 dark:bg-orange-800 px-2 py-1 rounded">
+            {fallback.path}
+          </code>
+        </div>
+        
+        {showCode && (
+          <details class="text-xs">
+            <summary class="cursor-pointer font-medium hover:opacity-80">Show Import Code</summary>
+            <pre class="mt-2 bg-black/10 dark:bg-white/10 p-3 rounded overflow-x-auto"><code>{`import ${fallback.component} from '${fallback.path}';`}</code></pre>
+          </details>
+        )}
+      </div>
+    </div>
+  </div>
+
+  <!-- Usage Instructions -->
+  <div class="mt-8 p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
+    <h3 class="text-lg font-semibold mb-3 text-green-800 dark:text-green-200">
+      Adding New Renderers
+    </h3>
+    
+    <ol class="space-y-2 text-sm">
+      <li class="flex items-start gap-2">
+        <span class="bg-green-200 dark:bg-green-800 rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold shrink-0 mt-0.5">1</span>
+        <div>
+          Create your renderer component in <code class="bg-green-200 dark:bg-green-800 px-1 rounded">content_type_viewer/</code>
+        </div>
+      </li>
+      <li class="flex items-start gap-2">
+        <span class="bg-green-200 dark:bg-green-800 rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold shrink-0 mt-0.5">2</span>
+        <div>
+          Add entry to <code class="bg-green-200 dark:bg-green-800 px-1 rounded">renderer-registry.json</code> with content type and path
+        </div>
+      </li>
+      <li class="flex items-start gap-2">
+        <span class="bg-green-200 dark:bg-green-800 rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold shrink-0 mt-0.5">3</span>
+        <div>
+          Import and add to dynamic content viewer logic
+        </div>
+      </li>
+      <li class="flex items-start gap-2">
+        <span class="bg-green-200 dark:bg-green-800 rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold shrink-0 mt-0.5">4</span>
+        <div>
+          Test with sample content of the new type
+        </div>
+      </li>
+    </ol>
+  </div>
+</div>
+
+<style>
+  .renderer-registry {
+    max-width: 100%;
+    font-family: ui-sans-serif, system-ui, sans-serif;
+  }
+  
+  .renderer-registry code {
+    font-family: ui-monospace, 'Cascadia Code', 'Source Code Pro', monospace;
+    font-size: 0.85em;
+  }
+  
+  .renderer-registry pre {
+    font-family: ui-monospace, 'Cascadia Code', 'Source Code Pro', monospace;
+    font-size: 0.8em;
+    line-height: 1.4;
+  }
+</style>

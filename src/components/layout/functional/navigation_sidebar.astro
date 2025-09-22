@@ -1,0 +1,519 @@
+---
+// Navigation sidebar with direct MCard API integration
+import NavItem from '../../../components/ui/nav-item.astro';
+import PaginationControls from '../../../components/ui/pagination-controls.astro';
+interface NavigationItem {
+  title: string;
+  content: string;
+  id?: string;
+}
+
+interface Props {
+  items?: Array<{
+    title: string;
+    content: string;
+    id?: string;
+  }>;
+  title?: string;
+}
+
+// Fallback items for initial render
+const fallbackItems: Array<{
+  title: string;
+  content: string;
+  id?: string;
+}> = [
+  { title: "Click Refresh to load MCards", content: "empty", id: "empty-message" }
+];
+
+const { 
+  items = fallbackItems, 
+  title = "MCard Navigation"
+} = Astro.props as Props;
+---
+
+<aside class="rounded-lg bg-[var(--surface)] border border-black/5 dark:border-white/10 p-4">
+  <div class="flex justify-between items-center mb-2">
+    <h2 id="nav-title" class="text-sm font-semibold opacity-70">{title}</h2>
+    <span class="text-xs opacity-50" id="page-indicator">1 / 1</span>
+  </div>
+  
+  <!-- Search input with clear button -->
+  <div class="mb-3 relative">
+    <input 
+      id="search-input"
+      type="text" 
+      placeholder="Search MCards..." 
+      class="w-full px-3 py-2 text-sm border rounded-md bg-white dark:bg-black/20 border-black/10 dark:border-white/20 focus:outline-none focus:ring-1 focus:ring-black/20 dark:focus:ring-white/30"
+    />
+    <button 
+      id="search-clear"
+      class="absolute right-2 top-1/2 -translate-y-1/2 px-2 py-1 text-xs rounded bg-black/5 dark:bg-white/10 hover:bg-black/10 dark:hover:bg-white/20 transition-colors"
+      title="Clear search and refresh data"
+    >
+      Clear
+    </button>
+    <div id="search-spinner" class="absolute right-8 top-1/2 -translate-y-1/2 hidden">
+      <div class="w-3 h-3 border border-black/20 dark:border-white/30 border-t-transparent rounded-full animate-spin"></div>
+    </div>
+  </div>
+  <ul class="space-y-1 text-sm min-h-[200px]" id="nav-items">
+    {items.map((item) => (
+      <NavItem 
+        title={item.title}
+        contentType={undefined}
+        id={item.id || item.title.toLowerCase().replace(/\s+/g, '-')}
+      />
+    ))}
+  </ul>
+  
+  <!-- Pagination controls -->
+  <PaginationControls prevDisabled={true} />
+</aside>
+
+<script type="module">
+  document.addEventListener('DOMContentLoaded', async () => {
+    console.log('🔧 Navigation sidebar initializing...');
+    
+    // State management
+    let allItems = [];
+    let currentPage = 1;
+    let itemsPerPage = 8;
+    let searchActive = false;
+    let lastQuery = '';
+    let searchPage = 1;
+    let searchTotalPages = 1;
+    let searchTotalItems = 0;
+    
+    // Wait for PKCUtils.content provided by pkcutils-init.ts
+    const waitForContentUtils = async (timeout = 5000) => {
+      const start = Date.now();
+      if (window.PKCUtils?.content) return window.PKCUtils.content;
+      return new Promise((resolve) => {
+        const iv = setInterval(() => {
+          if (window.PKCUtils?.content || Date.now() - start >= timeout) {
+            clearInterval(iv);
+            resolve(window.PKCUtils?.content);
+          }
+        }, 50);
+      });
+    };
+    let contentUtils = await waitForContentUtils();
+    if (!contentUtils) {
+      console.warn('⚠️ Content utils not available; attempting direct import');
+      try {
+        // Load the shared utils directly so we can use real getTypeIconSvg
+        contentUtils = await import('@/utils/content-type-utils.ts');
+        console.log('✅ Loaded content utils module directly');
+      } catch (e) {
+        console.warn('⚠️ Failed to import content-type-utils.ts, using minimal fallbacks', e);
+      }
+    }
+    const {
+      inferContentTypeFromFilename = (f) => f?.split('.').pop() || 'unknown',
+      getTypeLabel = (t) => t || 'unknown',
+      // Use real util when available; only fall back to a basic icon as last resort
+      getTypeIconSvg = contentUtils?.getTypeIconSvg || ((/* ct */) => '<span>📄</span>'),
+      getTypePillHTML = (t) => `<span class="type-pill">${t || 'unknown'}</span>`,
+      resolveEffectiveContentType = (meta) => meta?.content_type || inferContentTypeFromFilename(meta?.filename),
+      getRendererTypeFromContentType = (ct) => ct || 'text',
+      generateDisplayTitle = (item) => item?.title || item?.filename || item?.hash?.slice(0,8) || 'MCard'
+    } = contentUtils || {};
+    console.log('🧩 Navigation: Using content utils', !!contentUtils);
+    
+    // Dynamic API URL getter that always checks current runtime environment
+    const getApiUrl = () => {
+      const url = window.RUNTIME_ENV?.PUBLIC_MCARD_API_URL || 'http://localhost:49384/v1';
+      return url;
+    };
+    
+    // Initial API URL (evaluate once for simplicity)
+    let API_URL = getApiUrl();
+    console.log('🔗 MCard API URL (initial):', API_URL);
+    
+    // Helper: fetch per-card metadata (filename, title, content_type, etc.)
+    const fetchCardMetadata = async (hash) => {
+      if (!hash) return null;
+      try {
+        const metaResp = await fetch(`${API_URL}/card/${hash}/metadata`);
+        if (metaResp.ok) {
+          return await metaResp.json();
+        }
+      } catch {}
+      return null;
+    };
+    
+    // Initialize services (best-effort)
+    let mcardService = null;
+    try {
+      const { mcardService: mcs } = await import('@/services/mcard-service.ts');
+      mcardService = mcs;
+      console.log('📦 MCard service initialized');
+    } catch (error) {
+      console.warn('⚠️ Failed to initialize MCard service:', error);
+    }
+    // Removed Redux subscription to simplify runtime coordination
+    
+    // DOM elements
+    const navItemsContainer = document.getElementById('nav-items');
+    const pageIndicator = document.getElementById('page-indicator');
+    const itemCount = document.getElementById('item-count');
+    const prevButton = document.getElementById('prev-page');
+    const nextButton = document.getElementById('next-page');
+    const searchInput = document.getElementById('search-input');
+    const searchClear = document.getElementById('search-clear');
+    const searchSpinner = document.getElementById('search-spinner');
+    
+    // Remove dev-time overrides; rely on content-type utils for display
+    // (This block intentionally left minimal.)
+
+    // Debounce/paginate helpers: use window.PKCUtils.list when available
+    let debounce = (fn, delay = 300) => {
+      let timeoutId;
+      return (...args) => {
+        clearTimeout(timeoutId);
+        timeoutId = setTimeout(() => fn.apply(null, args), delay);
+      };
+    };
+    let paginate = (items, page = 1, pageSize = 10) => {
+      const totalItems = items.length;
+      const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
+      const start = (page - 1) * pageSize;
+      const end = start + pageSize;
+      return { items: items.slice(start, end), page, pageSize, totalItems, totalPages };
+    };
+    let formatNavItemHTML = null;
+    try {
+      try { await waitForPKCUtils(); } catch {}
+      const l = window.PKCUtils?.list;
+      if (l) {
+        if (typeof l.debounce === 'function') debounce = l.debounce;
+        if (typeof l.paginate === 'function') paginate = l.paginate;
+        if (typeof l.formatNavItemHTML === 'function') formatNavItemHTML = l.formatNavItemHTML;
+        console.log('🧰 List utils loaded from window.PKCUtils');
+      }
+    } catch {}
+    
+    // Titles are now generated via shared utils: generateDisplayTitle()
+    
+    // Format item with type icon and label
+    const formatItemTitle = (item, contentType) => {
+      const ct = contentType || inferContentTypeFromFilename(item.filename);
+      const typeIconSvg = getTypeIconSvg(ct);
+      const baseTitle = item.title || item.filename?.replace(/\.[^/.]+$/, '') || item.hash?.substring(0, 8) || 'Unknown';
+      return `${typeIconSvg} ${baseTitle} ${getTypePillHTML(ct)}`;
+    };
+    
+    // Load MCard data from API
+    const loadMCardData = async () => {
+      console.log('🔄 Fetching MCards from API...');
+      
+      try {
+        const response = await fetch(`${API_URL}/cards?page=1&page_size=100`);
+        
+        if (response.ok) {
+          const data = await response.json();
+          console.log('✅ Loaded', data.items.length, 'MCard items');
+          
+          // Always fetch per-card metadata so title and type match viewer exactly
+          const itemsWithTypes = await Promise.all(
+            data.items.map(async (item, index) => {
+              let md = null;
+              let effectiveType = resolveEffectiveContentType({ content_type: item.content_type, filename: item.filename });
+              if (item.hash) {
+                md = await fetchCardMetadata(item.hash);
+                if (md) {
+                  effectiveType = resolveEffectiveContentType({ content_type: md.content_type, filename: md.filename });
+                }
+              }
+              const titleSource = {
+                filename: (md && md.filename) || item.filename,
+                metadata: { title: (md && md.title) || (item.metadata && item.metadata.title) },
+                content_type: (md && md.content_type) || item.content_type,
+                hash: item.hash
+              };
+              return {
+                title: generateDisplayTitle(titleSource),
+                content: item.hash,
+                id: `mcard-${item.hash.substring(0, 8)}`,
+                contentType: effectiveType,
+                filename: titleSource.filename,
+                gTime: item.g_time,
+                hash: item.hash
+              };
+            })
+          );
+          allItems = itemsWithTypes;
+          
+          return true;
+        } else {
+          console.error('❌ API Error:', response.status);
+          return false;
+        }
+      } catch (error) {
+        console.error('❌ Network Error:', error);
+        return false;
+      }
+    };
+    
+    // Render current page
+    const renderPage = (page) => {
+      let pageItems = [];
+      let total = 0;
+      let totalPages = 1;
+      
+      if (searchActive) {
+        // In search mode, allItems already holds current page of results
+        pageItems = allItems;
+        total = searchTotalItems;
+        totalPages = searchTotalPages;
+      } else {
+        const result = paginate(allItems, page, itemsPerPage);
+        pageItems = result.items;
+        total = result.totalItems;
+        totalPages = result.totalPages;
+      }
+      
+      if (formatNavItemHTML) {
+        navItemsContainer.innerHTML = pageItems.map(item =>
+          formatNavItemHTML(
+            { title: item.title || '', contentType: item.contentType || '', hash: item.hash || '', gTime: item.gTime || '' },
+            { getTypeIconSvg, getTypePillHTML }
+          )
+        ).join('');
+      } else {
+        navItemsContainer.innerHTML = pageItems.map(item => {
+          const icon = getTypeIconSvg(item.contentType || '');
+          const displayTitle = item.title || '';
+          const pill = getTypePillHTML(item.contentType || '');
+          return `
+            <li>
+              <button 
+                class="nav-link w-full text-left px-2 py-1 rounded hover:bg-black/5 dark:hover:bg-white/10 transition-colors opacity-80 hover:opacity-100"
+                data-hash="${item.hash || ''}"
+                data-title="${displayTitle}"
+                data-content-type="${item.contentType || ''}"
+                data-g-time="${item.gTime || ''}"
+              >
+                ${icon} ${displayTitle} ${pill}
+              </button>
+            </li>
+          `;
+        }).join('');
+      }
+      
+      // Update UI indicators
+      pageIndicator.textContent = `${searchActive ? searchPage : page} / ${totalPages}`;
+      itemCount.textContent = `${total} items`;
+      
+      // Update button states
+      prevButton.disabled = searchActive ? searchPage <= 1 : page === 1;
+      nextButton.disabled = searchActive ? searchPage >= totalPages : page >= totalPages;
+      
+      // Setup Redux selection handlers
+      setupSelectionHandlers();
+    };
+    
+    // Perform search
+    const performSearch = async (query, page = 1) => {
+      // normalize and capture for stale-response guard
+      const q = (query || '').trim();
+      lastQuery = q;
+      const queryAtStart = q;
+      searchPage = page;
+
+      // empty query exits search mode
+      if (!q) {
+        searchActive = false;
+        currentPage = 1;
+        await loadMCardData();
+        renderPage(1);
+        return;
+      }
+
+      // enter search mode and reset view to first page for consistency
+      searchActive = true;
+      currentPage = 1;
+
+      try {
+        console.log('🔎 performSearch start:', { q, page });
+        searchSpinner.classList.remove('hidden');
+
+        let resp;
+        if (mcardService) {
+          resp = await mcardService.searchMCards({ query: q, page, pageSize: itemsPerPage });
+        } else {
+          // Fallback to direct fetch if service not available
+          const params = new URLSearchParams({ query: q, page: String(page), page_size: String(itemsPerPage) });
+          const r = await fetch(`${API_URL}/cards/search?${params.toString()}`);
+          if (!r.ok) throw new Error(`HTTP ${r.status}`);
+          resp = await r.json();
+        }
+
+        // stale-response guard: ensure the result matches the latest query
+        if (queryAtStart !== lastQuery) {
+          return; // ignore outdated response
+        }
+
+        searchTotalItems = resp.pagination?.totalItems ?? resp.total_items ?? 0;
+        searchTotalPages = resp.pagination?.totalPages ?? resp.total_pages ?? 1;
+
+        // Map search results quickly without metadata to render immediately
+        const results = resp.results || resp.items || [];
+        const quickItems = results.map((res) => {
+          const hash = res.hash || res?.hash_id || res?.id;
+          const ct = res.metadata?.content_type || res.content_type;
+          const filename = res.metadata?.filename || res.filename;
+          const titleSource = {
+            filename,
+            metadata: { title: res.metadata?.title },
+            content_type: ct,
+            hash
+          };
+          return {
+            title: generateDisplayTitle(titleSource),
+            content: hash,
+            id: `mcard-${String(hash).substring(0, 8)}`,
+            contentType: resolveEffectiveContentType({ content_type: ct, filename }),
+            filename,
+            gTime: res.metadata?.g_time || res.g_time,
+            hash
+          };
+        });
+
+        // First render: fast
+        allItems = quickItems;
+        renderPage(1);
+
+        // Enhance with per-card metadata in background
+        const enhanced = await Promise.all(
+          quickItems.map(async (item) => {
+            try {
+              const md = item.hash ? await fetchCardMetadata(item.hash) : null;
+              if (md) {
+                const titleSource = {
+                  filename: md.filename || item.filename,
+                  metadata: { title: md.title },
+                  content_type: md.content_type || item.contentType,
+                  hash: item.hash
+                };
+                return {
+                  ...item,
+                  title: generateDisplayTitle(titleSource),
+                  contentType: resolveEffectiveContentType({ content_type: md.content_type, filename: md.filename }),
+                  filename: md.filename || item.filename
+                };
+              }
+            } catch {}
+            return item;
+          })
+        );
+
+        // Guard again before applying enhanced results
+        if (queryAtStart !== lastQuery) {
+          return;
+        }
+        allItems = enhanced;
+        renderPage(1);
+        console.log('✅ performSearch done:', { count: enhanced.length, searchTotalItems, searchTotalPages });
+      } catch (err) {
+        console.warn('Search failed', err);
+        navItemsContainer.innerHTML = `<li class='opacity-70 text-xs px-2 py-1'>Search failed. Try again.</li>`;
+      } finally {
+        searchSpinner.classList.add('hidden');
+      }
+    };
+    
+    // Setup Redux selection handlers for navigation links
+    function setupSelectionHandlers() {
+      const navLinks = document.querySelectorAll('.nav-link');
+      navLinks.forEach(link => {
+        link.addEventListener('click', (e) => {
+          const button = e.currentTarget;
+          const hash = button.getAttribute('data-hash');
+          const title = button.getAttribute('data-title');
+          const contentType = button.getAttribute('data-content-type');
+          const gTime = button.getAttribute('data-g-time');
+          
+          console.log('🎯 MCard selected:', hash);
+          
+          // Visual feedback
+          navLinks.forEach(l => l.classList.remove('bg-black/10', 'dark:bg-white/20'));
+          button.classList.add('bg-black/10', 'dark:bg-white/20');
+          // Directly load content without store coordination
+          if (typeof window.loadMCardContent === 'function') {
+            window.loadMCardContent(hash, title || 'MCard Content');
+          } else {
+            console.warn('⚠️ loadMCardContent not available');
+          }
+        });
+      });
+    }
+    
+    // Debounced search
+    const debouncedSearch = debounce((q) => performSearch(q, 1), 300);
+    
+    // Event listeners
+    searchInput.addEventListener('input', (e) => {
+      const q = e.target.value;
+      debouncedSearch(q);
+    });
+    
+    searchInput.addEventListener('keydown', async (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        performSearch(e.target.value, 1);
+      }
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        searchInput.value = '';
+        searchActive = false;
+        await loadMCardData();
+        renderPage(1);
+      }
+    });
+    
+    searchClear.addEventListener('click', async () => {
+      searchInput.value = '';
+      searchActive = false;
+      currentPage = 1;
+      await loadMCardData();
+      renderPage(1);
+    });
+    
+    // Pagination handlers
+    prevButton.addEventListener('click', () => {
+      if (searchActive) {
+        if (searchPage > 1) {
+          searchPage--;
+          performSearch(lastQuery, searchPage);
+        }
+      } else {
+        if (currentPage > 1) {
+          currentPage--;
+          renderPage(currentPage);
+        }
+      }
+    });
+    
+    nextButton.addEventListener('click', () => {
+      if (searchActive) {
+        if (searchPage < searchTotalPages) {
+          searchPage++;
+          performSearch(lastQuery, searchPage);
+        }
+      } else {
+        const totalPages = Math.ceil(allItems.length / itemsPerPage);
+        if (currentPage < totalPages) {
+          currentPage++;
+          renderPage(currentPage);
+        }
+      }
+    });
+    
+    // Initial load
+    await loadMCardData();
+    renderPage(1);
+  });
+</script>
+  

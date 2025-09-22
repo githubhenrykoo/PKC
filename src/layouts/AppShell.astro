@@ -1,0 +1,402 @@
+---
+// AppShell.astro - PKC Responsive Layout System
+// Implements triadic card-based architecture with mobile-first responsive design
+
+export interface Props {
+  title?: string;
+  description?: string;
+  enableThemeToggle?: boolean;
+  showSidebar?: boolean;
+  showRightPanel?: boolean;
+}
+
+const { 
+  title = "PKC - Personal Knowledge Container", 
+  description = "A modular, card-based web architecture for personal knowledge management",
+  enableThemeToggle = true,
+  showSidebar = true,
+  showRightPanel = false
+} = Astro.props as Props;
+
+// Static paths for Vite to resolve; used directly in client import()
+const clientExportsUrl = '/src/utils/client-exports.ts';
+const pkcutilsInitUrl = '/src/utils/pkcutils-init.ts';
+const preloadStateUrl = '/src/store/preload-state.ts';
+const initializerUrl = '/src/store/initializer.ts';
+const preloadEntryUrl = '/src/services/preload-entry.ts';
+---
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#4f46e5" />
+    <title>{title}</title>
+
+    <!-- PWA / Icons / Manifest -->
+    <link rel="manifest" href="/manifest.json" />
+    <link rel="icon" href="/favicon.ico" />
+    <link rel="apple-touch-icon" href="/icons/icon-192x192.png" />
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+
+    <!-- Allow pages to inject extra head tags -->
+    <slot name="head" />
+
+    <!-- Initialize runtime env object early -->
+    <script is:inline>
+      // Local development configuration constants
+      const LOCALHOST = 'localhost';
+      const LOCALHOST_IP = '127.0.0.1';
+      const LOCAL_MCARD_URL = 'http://localhost:49384/v1';
+      const LOCAL_AUTH_URL_OLLAMA = 'http://localhost:11434';
+      const LOCAL_AUTH_URL_PKC = 'http://localhost:28302';
+      const LOCAL_AUTHENTIK_URL = 'http://localhost:9000';
+      const LOCAL_RAG_URL = 'http://localhost:28302/api/v1';
+      
+      window.RUNTIME_ENV = window.RUNTIME_ENV || {
+        // Default values in case runtime-env.js fails to load
+        PUBLIC_MCARD_API_URL: LOCAL_MCARD_URL,
+        PUBLIC_AUTH_URL: LOCAL_AUTH_URL_OLLAMA,
+        VERSION: '1.0.0',
+        BUILD_TIMESTAMP: new Date().toISOString()
+      };
+
+      // If running on localhost, prefer localhost defaults over remote URLs
+      (function ensureLocalhostDefaults(){
+        const host = (location && location.hostname) || '';
+        const onLocal = host === LOCALHOST || host === LOCALHOST_IP;
+        if (!onLocal) return;
+        const env = window.RUNTIME_ENV || {};
+        // Only override if variables are absent or clearly remote
+        /** @type {(v: unknown) => boolean} */
+        const looksRemote = (v) => typeof v === 'string' && /\.pkc\.pub|https:\/\//.test(v);
+        if (!env.PUBLIC_MCARD_API_URL || looksRemote(env.PUBLIC_MCARD_API_URL)) {
+          env.PUBLIC_MCARD_API_URL = LOCAL_MCARD_URL;
+        }
+        if (!env.PUBLIC_AUTH_URL || looksRemote(env.PUBLIC_AUTH_URL)) {
+          // Keep as placeholder local auth URL if applicable
+          env.PUBLIC_AUTH_URL = LOCAL_AUTH_URL_PKC;
+        }
+        // Common additional public vars used elsewhere
+        if (env.PUBLIC_AUTHENTIK_URL && looksRemote(env.PUBLIC_AUTHENTIK_URL)) {
+          env.PUBLIC_AUTHENTIK_URL = LOCAL_AUTHENTIK_URL;
+        }
+        if (env.PUBLIC_RAG_API_URL && looksRemote(env.PUBLIC_RAG_API_URL)) {
+          env.PUBLIC_RAG_API_URL = LOCAL_RAG_URL;
+        }
+        window.RUNTIME_ENV = env;
+      })();
+      
+      console.log('Initial environment variables:', window.RUNTIME_ENV);
+      
+      // Helper function to safely access environment variables
+      window.getEnv = function(key, defaultValue = '') {
+        return window.RUNTIME_ENV[key] !== undefined ? window.RUNTIME_ENV[key] : defaultValue;
+      };
+    </script>
+
+    <!-- Removed JSON-based module URL plumbing -->
+
+    <!-- Load runtime environment variables (no-cache) -->
+    <script>
+      (function loadRuntimeEnv(){
+        const url = '/runtime-env.js?t=' + Date.now();
+        console.log('🔄 Loading runtime environment variables...');
+        fetch(url, {
+          method: 'GET',
+          cache: 'no-store',
+          headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate' }
+        })
+        .then(r => {
+          console.log('📡 Runtime env response status:', r.status);
+          if (!r.ok) throw new Error(`Runtime env endpoint returned ${r.status}`);
+          return r.text();
+        })
+        .then(js => {
+          const s = document.createElement('script');
+          s.textContent = js;
+          document.head.appendChild(s);
+          // Normalize to localhost if needed after load
+          (function normalizeAfterLoad(){
+            // Local development configuration
+            const LOCALHOST = 'localhost';
+            const LOCALHOST_IP = '127.0.0.1';
+            const LOCAL_MCARD_URL = 'http://localhost:49384/v1';
+            const LOCAL_AUTHENTIK_URL = 'http://localhost:9000';
+            const LOCAL_RAG_URL = 'http://localhost:28302/api/v1';
+            const LOCAL_AUTH_URL = 'http://localhost:28302';
+            
+            const host = (location && location.hostname) || '';
+            const onLocal = host === LOCALHOST || host === LOCALHOST_IP;
+            if (!onLocal) return;
+            const env = window.RUNTIME_ENV || {};
+            const looksRemote = (v: unknown): boolean => typeof v === 'string' && /\.pkc\.pub|^https:\/\//.test(v);
+            if (!env.PUBLIC_MCARD_API_URL || looksRemote(env.PUBLIC_MCARD_API_URL)) {
+              env.PUBLIC_MCARD_API_URL = LOCAL_MCARD_URL;
+            }
+            if (env.PUBLIC_AUTHENTIK_URL && looksRemote(env.PUBLIC_AUTHENTIK_URL)) {
+              env.PUBLIC_AUTHENTIK_URL = LOCAL_AUTHENTIK_URL;
+            }
+            if (env.PUBLIC_RAG_API_URL && looksRemote(env.PUBLIC_RAG_API_URL)) {
+              env.PUBLIC_RAG_API_URL = LOCAL_RAG_URL;
+            }
+            if (env.PUBLIC_AUTH_URL && looksRemote(env.PUBLIC_AUTH_URL)) {
+              env.PUBLIC_AUTH_URL = LOCAL_AUTH_URL;
+            }
+            window.RUNTIME_ENV = env;
+          })();
+          console.log('✅ Runtime environment loaded:', window.RUNTIME_ENV);
+          window.dispatchEvent(new CustomEvent('runtime-env-loaded', { detail: window.RUNTIME_ENV }));
+        })
+        .catch(err => {
+          console.error('❌ Failed to load runtime environment:', err);
+          window.RUNTIME_ENV = window.RUNTIME_ENV || {};
+          window.dispatchEvent(new CustomEvent('runtime-env-loaded', { detail: window.RUNTIME_ENV }));
+        });
+      })();
+    </script>
+
+    <!-- Redux store removed from initialization -->
+
+    <style is:inline>
+      /* CSS Custom Properties for Theming */
+      :root { 
+        --background: #f8fafc; 
+        --text: #1e293b; 
+        --surface: #ffffff;
+        --panel-gap: 12px;
+      }
+      .dark-theme { 
+        --background: #0f172a; 
+        --text: #f8fafc; 
+        --surface: #1e293b; 
+      }
+      
+      /* Base Styles */
+      body { 
+        font-family: 'Inter', sans-serif; 
+        background: var(--background); 
+        color: var(--text); 
+        margin: 0; 
+      }
+      
+      .theme-toggle { 
+        position: fixed; 
+        top: 1rem; 
+        right: 1rem; 
+        z-index: 100; 
+      }
+
+      /* PKC Responsive Layout System */
+      
+      /* Root container fills viewport and establishes flex context */
+      .app-root { 
+        display: flex; 
+        flex-direction: column; 
+        min-height: 100svh; 
+      }
+      
+      /* Header with relative positioning for z-index control */
+      .app-header { 
+        position: relative; 
+        z-index: 10; 
+      }
+      
+      /* Main area flexes to consume remaining viewport height */
+      .app-main { 
+        flex: 1 1 auto; 
+        min-height: 0; 
+        display: flex; 
+      }
+
+      /* Grid container - Mobile-first responsive design */
+      .app-container {
+        width: 100vw;      /* Full viewport width */
+        max-width: none;   /* FULL BLEED */
+        margin: 0;         /* no centering wrapper */
+        padding: var(--panel-gap); /* outer padding for edge spacing */
+        display: grid;
+        flex: 1 1 auto;
+        min-height: 0;
+        box-sizing: border-box;
+        
+        /* Mobile-first: Vertical stacking */
+        grid-template-columns: 1fr;
+        grid-template-rows: auto auto auto;
+        gap: var(--panel-gap);
+        align-items: stretch;
+      }
+
+      /* Panel base styles - Mobile stacking behavior */
+      .app-sidebar, .app-content, .app-right {
+        display: flex;
+        flex-direction: column;
+        min-height: 200px;
+        overflow: hidden;
+        align-self: stretch;
+        min-width: 0; /* allow center to expand without shrinking */
+      }
+      
+      /* Mobile stacking order */
+      .app-sidebar { grid-row: 1; }
+      .app-content { grid-row: 2; }
+      .app-right { grid-row: 3; }
+      
+      /* Content styling */
+      .app-content { 
+        background: var(--surface); 
+        border-radius: 12px; 
+      }
+      
+      /* Hide empty panels */
+      .app-sidebar:empty, .app-right:empty { 
+        display: none; 
+      }
+      
+      /* Internal content scrolling */
+      .app-sidebar > *, .app-content > *, .app-right > * {
+        flex: 1;
+        overflow: auto;
+      }
+
+      /* Footer - Full-width outside grid */
+      .app-footer { 
+        width: 100%; 
+        margin: 0;
+        background: var(--surface);
+        border-top: 2px solid color-mix(in_oklab, var(--text) 20%, transparent);
+      }
+
+      /* Medium screens: Horizontal layout */
+      @media (min-width: 768px) {
+        .app-container {
+          grid-template-rows: 1fr;
+          grid-template-columns: clamp(200px, 20vw, 270px) 1fr clamp(180px, 20vw, 250px);
+        }
+        
+        /* All panels to row 1 for horizontal layout */
+        .app-sidebar, .app-content, .app-right {
+          grid-row: 1;
+          min-height: 0;
+        }
+        
+        .app-sidebar { grid-column: 1; }
+        .app-content { grid-column: 2; }
+        .app-right { grid-column: 3; }
+        
+        /* Hide empty sidebars but keep center expanded */
+        .app-sidebar:empty { display: none; }
+        .app-right:empty { display: none; }
+        
+        .app-container:has(.app-sidebar:empty):has(.app-right:not(:empty)) {
+          grid-template-columns: 0 1fr clamp(180px, 20vw, 250px);
+        }
+        
+        .app-container:has(.app-sidebar:not(:empty)):has(.app-right:empty) {
+          /* Sidebar +20px (min and max) when right panel is hidden */
+          grid-template-columns: clamp(200px, 20vw, 270px) 1fr 0;
+        }
+        
+        .app-container:has(.app-sidebar:empty):has(.app-right:empty) {
+          grid-template-columns: 0 1fr 0;
+        }
+      }
+
+      /* Utility classes */
+      .hidden { display: none !important; }
+
+      /* Debug borders for development - Remove in production */
+      /* Removed debug outlines for cleaner visual layout */
+    </style>
+    <!-- PKC initialization - inline module import so Vite rewrites graph -->
+    <script is:inline type="module">
+      import '@/entries/app-init.ts';
+    </script>
+  </head>
+  
+  <body class="app-root">
+    <!-- Optional theme toggle -->
+    {enableThemeToggle && (
+      <button class="theme-toggle" id="appThemeToggle" aria-label="Toggle theme">🌓</button>
+    )}
+
+    <!-- Header section - Full width outside grid -->
+    <header class="app-header w-full">
+      <slot name="header" />
+      <slot name="auth" />
+    </header>
+
+    <!-- Main responsive grid area -->
+    <main class="app-main w-full">
+      <div class="app-container w-full">
+        <!-- Left sidebar panel -->
+        <aside class="app-sidebar" data-slot="sidebar">
+          <slot name="sidebar" />
+        </aside>
+
+        <!-- Main content panel -->
+        <section class="app-content" data-slot="content">
+          <slot />
+        </section>
+
+        <!-- Right utility panel -->
+        <aside class="app-right" data-slot="right">
+          <slot name="right" />
+        </aside>
+      </div>
+    </main>
+
+    <!-- Full-width footer outside grid -->
+    <footer class="app-footer">
+      <slot name="footer" />
+    </footer>
+
+    <!-- Service Worker registration: only enable in production; actively unregister in dev -->
+    <script is:inline>
+      (function(){
+        if (!('serviceWorker' in navigator)) return;
+        // Local development configuration
+        const LOCALHOST = 'localhost';
+        const LOCALHOST_IP = '127.0.0.1';
+        // Heuristic: treat localhost/127.0.0.1 as development
+        const host = (location && location.hostname) || '';
+        const isDev = host === LOCALHOST || host === LOCALHOST_IP;
+        if (isDev) {
+          // Dev: ensure no stale SW interferes with Vite module URLs
+          navigator.serviceWorker.getRegistrations?.().then((regs) => {
+            regs.forEach((r) => r.unregister().catch(() => {}));
+          }).catch(() => {});
+        } else {
+          window.addEventListener('load', () => {
+            navigator.serviceWorker.register('/sw.js').catch(console.error);
+          });
+        }
+      })();
+    </script>
+
+    <!-- Theme toggle handler (only when floating toggle is enabled) -->
+    {enableThemeToggle && (
+      <script is:inline>
+        (function(){
+          const key = 'theme';
+          const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+          const saved = localStorage.getItem(key);
+          const initial = saved || (prefersDark ? 'dark' : 'light');
+          document.documentElement.classList.toggle('dark-theme', initial === 'dark');
+          const btn = document.getElementById('appThemeToggle');
+          if (btn) {
+            btn.addEventListener('click', () => {
+              const isDark = document.documentElement.classList.toggle('dark-theme');
+              localStorage.setItem(key, isDark ? 'dark' : 'light');
+            });
+          }
+        })();
+      </script>
+    )}
+  </body>
+</html>

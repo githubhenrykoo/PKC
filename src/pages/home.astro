@@ -1,0 +1,19 @@
+---
+import AppShell from "../layouts/AppShell.astro";
+import Topbar from "../components/layout/topbar.astro";
+import NavigationSidebar from "../components/layout/functional/navigation_sidebar.astro";
+import RightPanel from "../components/layout/right-panel.astro";
+import Footer from "../components/layout/footer.astro";
+import DynamicContentViewer from "../components/layout/functional/dynamic-content-viewer.astro";
+---
+
+<AppShell title="Epistemic Athenæum" enableThemeToggle={false}>
+  <Topbar slot="header" title="Epistemic Athenæum" />
+  <NavigationSidebar slot="sidebar" />
+  <RightPanel slot="right" />
+  <Footer slot="footer" />
+
+  <DynamicContentViewer 
+    initialTitle="Epistemic Athenæum"
+  />
+</AppShell>

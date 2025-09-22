@@ -1,0 +1,59 @@
+{
+  "renderers": {
+    "text/markdown": {
+      "component": "MarkdownRenderer",
+      "path": "@/components/mcard/content_type_viewer/MarkdownRenderer.astro",
+      "description": "Renders Markdown content with syntax highlighting and formatting"
+    },
+    "text/html": {
+      "component": "HtmlRenderer", 
+      "path": "@/components/mcard/content_type_viewer/HtmlRenderer.astro",
+      "description": "Renders HTML content in a sandboxed iframe"
+    },
+    "application/json": {
+      "component": "JsonRenderer",
+      "path": "@/components/mcard/content_type_viewer/JsonRenderer.astro", 
+      "description": "Renders JSON data with syntax highlighting and collapsible tree view"
+    },
+    "text/plain": {
+      "component": "TextRenderer",
+      "path": "@/components/mcard/content_type_viewer/TextRenderer.astro",
+      "description": "Renders plain text with basic formatting and line numbers"
+    },
+    "image/jpeg": {
+      "component": "ImageRenderer",
+      "path": "@/components/mcard/content_type_viewer/ImageRenderer.astro",
+      "description": "Renders JPEG images with zoom and download capabilities"
+    },
+    "image/png": {
+      "component": "ImageRenderer", 
+      "path": "@/components/mcard/content_type_viewer/ImageRenderer.astro",
+      "description": "Renders PNG images with zoom and download capabilities"
+    },
+    "image/gif": {
+      "component": "ImageRenderer",
+      "path": "@/components/mcard/content_type_viewer/ImageRenderer.astro", 
+      "description": "Renders GIF images with zoom and download capabilities"
+    },
+    "image/webp": {
+      "component": "ImageRenderer",
+      "path": "@/components/mcard/content_type_viewer/ImageRenderer.astro",
+      "description": "Renders WebP images with zoom and download capabilities"
+    },
+    "application/pdf": {
+      "component": "PdfRenderer",
+      "path": "@/components/mcard/content_type_viewer/PdfRenderer.astro",
+      "description": "Renders PDF documents with download link and preview"
+    }
+  },
+  "fallback": {
+    "component": "UnknownRenderer",
+    "path": "@/components/mcard/content_type_viewer/UnknownRenderer.astro",
+    "description": "Default renderer for unsupported content types"
+  },
+  "metadata": {
+    "version": "1.0.0",
+    "lastUpdated": "2025-08-22T22:44:49+08:00",
+    "description": "Registry of available content type renderers for MCard system"
+  }
+}

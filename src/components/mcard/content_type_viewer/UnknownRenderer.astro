@@ -1,0 +1,55 @@
+---
+// Unknown Content Renderer - Fallback component for unsupported MCard types
+interface Props {
+  hash: string;
+  contentType: string;
+  metadata?: any;
+}
+
+const { hash, contentType, metadata } = Astro.props as Props;
+---
+
+<div class="unknown-renderer" data-hash={hash}>
+  <div class="text-center">
+    <div class="text-6xl mb-4">❓</div>
+    <h3 class="text-lg font-semibold mb-2">Unknown Content Type</h3>
+    <p class="text-sm opacity-70 mb-4">Type: {contentType}</p>
+    <p class="text-sm opacity-70 mb-4">Hash: {hash}</p>
+    <a 
+      id={`download-link-${hash}`}
+      target="_blank" 
+      rel="noopener noreferrer"
+      class="inline-block px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600 transition-colors"
+    >
+      Download Content
+    </a>
+  </div>
+</div>
+
+<script is:inline define:vars={{ hash }}>
+  // Download link setup
+  document.addEventListener('DOMContentLoaded', () => {
+    const link = document.getElementById(`download-link-${hash}`);
+    if (!link) return;
+
+    // Get MCard API base URL
+    const getMCardApiUrl = () => {
+      return window.RUNTIME_ENV?.PUBLIC_MCARD_API_URL || 'http://localhost:49384/v1';
+    };
+
+    const baseUrl = getMCardApiUrl();
+    const downloadUrl = `${baseUrl}/card/${hash}/content`;
+    
+    link.href = downloadUrl;
+  });
+</script>
+
+<style>
+  .unknown-renderer {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+</style>

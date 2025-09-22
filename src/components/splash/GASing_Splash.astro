@@ -1,0 +1,234 @@
+---
+/**
+ * src/components/splash/GASing_Splash.astro
+ * Standalone splash experience (original index content).
+ * Rendered directly by Card with type="splash".
+ */
+---
+
+<head>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  </head>
+  
+  <div class="container">
+    <main class="main-content">
+      <div class="header">
+        <h1>Welcome to PKC</h1>
+        <p class="subtitle">Interactive Experience</p>
+      </div>
+  
+      <div class="card">
+        <div class="image-container">
+          <div class="image-wrapper">
+            <img
+              src="/images/gasing.png"
+              alt="Gasing"
+              class="gasing-image"
+              width="300"
+              height="300"
+              loading="lazy"
+            />
+            <div class="image-overlay"></div>
+          </div>
+        </div>
+  
+        <div class="content">
+          <div class="action-section">
+            <button id="pushButton" class="push-button" onclick="window.location.href='/home'">
+              <span class="button-text">Push to Start</span>
+              <span class="button-particles"></span>
+            </button>
+  
+            <p id="countdown" class="countdown-text">
+              <span>or I will push myself in <span class="countdown-number">3</span> seconds</span>
+            </p>
+          </div>
+        </div>
+      </div>
+  
+      <div class="status-message" id="statusMessage">
+        <div class="status-content">
+          <i class="fas fa-check-circle"></i>
+          <span>Action completed successfully!</span>
+        </div>
+      </div>
+    </main>
+  </div>
+  
+  <style>
+    /* Add fade animations for countdown */
+    .fade-out { opacity: 0; transform: translateY(-5px); transition: opacity 0.3s ease, transform 0.3s ease; }
+    .fade-in { opacity: 1; transform: translateY(0); transition: opacity 0.3s ease, transform 0.3s ease; }
+    .fade-out-final { opacity: 0; transform: translateY(10px); transition: opacity 0.5s ease, transform 0.5s ease; }
+  
+    :root {
+      --primary: #4f46e5;
+      --primary-dark: #4338ca;
+      --primary-light: #818cf8;
+      --background: #f8fafc;
+      --card-bg: #ffffff;
+      --text: #1e293b;
+      --text-secondary: #64748b;
+      --success: #10b981;
+      --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+      --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+  
+    .dark-theme {
+      --background: #0f172a;
+      --card-bg: #1e293b;
+      --text: #f8fafc;
+      --text-secondary: #94a3b8;
+      --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2);
+    }
+  
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+  
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: var(--background);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+      transition: var(--transition);
+      line-height: 1.6;
+    }
+  
+    .container { width: 100%; max-width: 800px; margin: 0 auto; }
+    .header { text-align: center; margin-bottom: 2.5rem; }
+  
+    .header h1 {
+      font-size: 2.5rem;
+      font-weight: 800;
+      background: linear-gradient(135deg, var(--primary), var(--primary-light));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 0.5rem;
+    }
+  
+    .subtitle { color: var(--text-secondary); font-size: 1.1rem; font-weight: 400; }
+  
+    .card { background: var(--card-bg); border-radius: 1rem; box-shadow: var(--shadow); overflow: hidden; transition: var(--transition); }
+  
+    .image-container { position: relative; padding: 2rem; background: linear-gradient(135deg, #e0e7ff, #c7d2fe); text-align: center; }
+  
+    .image-wrapper {
+      position: relative; display: inline-block; border-radius: 0.75rem; overflow: hidden;
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    }
+  
+    .gasing-image {
+      display: block; max-width: 100%; height: auto; max-height: 300px; object-fit: contain;
+      transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+  
+    .image-overlay {
+      position: absolute; inset: 0;
+      background: linear-gradient(to bottom, rgba(79, 70, 229, 0.1), rgba(79, 70, 229, 0.3));
+      opacity: 0; transition: opacity 0.3s ease;
+    }
+  
+    .image-wrapper:hover .gasing-image { transform: scale(1.05); }
+    .image-wrapper:hover .image-overlay { opacity: 1; }
+  
+    .content { padding: 2rem; text-align: center; }
+    .content h2 { font-size: 1.75rem; margin-bottom: 1rem; color: var(--text); }
+    .description { color: var(--text-secondary); margin-bottom: 2rem; font-size: 1.05rem; }
+  
+    .action-section { display: flex; flex-direction: column; align-items: center; gap: 1.5rem; }
+  
+    .push-button {
+      position: relative; display: inline-flex; align-items: center; justify-content: center;
+      background: var(--primary); color: white; border: none; padding: 1.25rem 3rem;
+      font-size: 1.5rem; font-weight: 700; border-radius: 12px; cursor: pointer; overflow: hidden;
+      transition: all 0.3s ease; box-shadow: 0 6px 20px rgba(79, 70, 229, 0.3); z-index: 1; min-width: 280px;
+      text-align: center; line-height: 1.2;
+    }
+  
+    .button-text { position: relative; z-index: 2; display: block; width: 100%; text-align: center; }
+  
+    .push-button:hover {
+      background: var(--primary-dark);
+      transform: translateY(-3px) scale(1.03);
+      box-shadow: 0 8px 25px rgba(79, 70, 229, 0.4);
+    }
+  
+    .push-button:active { transform: translateY(0); }
+  
+    .button-particles {
+      position: absolute; inset: 0;
+      background: radial-gradient(circle, rgba(255,255,255,0.8) 0%, rgba(255,255,255,0) 70%);
+      opacity: 0; transition: opacity 0.3s ease;
+    }
+  
+    .push-button:hover .button-particles { opacity: 1; animation: particles 1.5s ease-in-out infinite; }
+  
+    @keyframes particles {
+      0% { transform: scale(1); opacity: 0.5; }
+      50% { transform: scale(1.5); opacity: 0.3; }
+      100% { transform: scale(1); opacity: 0.5; }
+    }
+  
+    .countdown-text {
+      display: flex; align-items: center; gap: 0.5rem; color: var(--text-secondary);
+      font-size: 1.4rem; margin-top: 1.5rem; text-align: center; opacity: 0.9; font-weight: 500; letter-spacing: 0.5px;
+    }
+  
+    .countdown-number {
+      font-weight: 700; color: var(--primary); font-size: 1.5rem; min-width: 1.5rem; display: inline-block; text-align: center;
+    }
+  
+    .status-message {
+      position: fixed; bottom: -100px; left: 50%; transform: translateX(-50%);
+      background: var(--success); color: white; padding: 1rem 2rem; border-radius: 0.5rem; box-shadow: var(--shadow);
+      display: flex; align-items: center; gap: 0.75rem; opacity: 0; transition: all 0.4s cubic-bezier(0.68, -0.55, 0.27, 1.55);
+      z-index: 1000;
+    }
+  
+    .status-message.show { bottom: 2rem; opacity: 1; }
+    .status-message i { font-size: 1.25rem; }
+  
+    @media (max-width: 768px) {
+      body { padding: 1rem; }
+      .header h1 { font-size: 2rem; }
+      .content { padding: 1.5rem; }
+      .push-button { width: 100%; padding: 0.875rem 2rem; }
+    }
+  </style>
+  
+  <script is:inline>
+    // @ts-check
+    document.addEventListener('DOMContentLoaded', () => {
+      const pushButton = document.getElementById('pushButton');
+      const countdownNumber = document.querySelector('.countdown-number');
+  
+      if (!pushButton || !countdownNumber) return;
+  
+      // Countdown + redirect
+      let timeLeft = 3;
+      countdownNumber.textContent = String(timeLeft);
+      const timer = setInterval(() => {
+        timeLeft -= 1;
+        if (timeLeft <= 0) {
+          clearInterval(timer);
+          pushButton.setAttribute('disabled', 'true');
+          const txt = pushButton.querySelector('.button-text');
+          if (txt) txt.textContent = 'Redirecting...';
+          window.location.href = '/home';
+        } else if (countdownNumber) {
+          countdownNumber.textContent = String(timeLeft);
+        }
+      }, 1000);
+  
+      pushButton.addEventListener('click', () => {
+        clearInterval(timer);
+        pushButton.setAttribute('disabled', 'true');
+        const txt = pushButton.querySelector('.button-text');
+        if (txt) txt.textContent = 'Redirecting...';
+        window.location.href = '/home';
+      });
+    });
+  </script>

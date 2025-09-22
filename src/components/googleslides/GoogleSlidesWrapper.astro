@@ -1,0 +1,449 @@
+---
+// Google Slides Wrapper Component for Astro
+---
+
+<div id="google-slides-wrapper" class="h-full w-full">
+  <div class="h-full p-4 space-y-4">
+    <div class="flex justify-between items-center">
+      <h2 class="text-xl font-bold dark:text-white">Google Slides</h2>
+      <button 
+        id="google-slides-signin-btn"
+        class="bg-white text-gray-700 px-4 py-2 rounded-lg border border-gray-300 hover:bg-gray-50 flex items-center space-x-2 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+      >
+        <img 
+          src="https://www.google.com/favicon.ico" 
+          alt="Google" 
+          class="w-4 h-4"
+        />
+        <span id="slides-signin-text">Sign in with Google</span>
+      </button>
+    </div>
+    
+    <div id="slides-content" class="hidden h-full">
+      <!-- Slides content will be rendered here -->
+    </div>
+    
+    <div id="slides-loading" class="hidden h-full">
+      <div class="flex items-center justify-center h-full">
+        <div class="text-center">
+          <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-2"></div>
+          <p class="text-sm opacity-70">Loading presentations...</p>
+        </div>
+      </div>
+    </div>
+    
+    <div id="slides-error" class="hidden bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-300 rounded-lg p-4 text-center">
+      <div class="text-4xl mb-2">⚠️</div>
+      <p class="text-sm" id="slides-error-message">Failed to load presentations</p>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+  import { loadGoogleApi, signIn, signOut, listPresentations, isInitialized } from './google-slides.js';
+  import { googleSlidesMCardService } from '../../services/google-slides-mcard-service.js';
+
+  class GoogleSlidesManager {
+    constructor() {
+      this.isAuthenticated = false;
+      this.presentations = [];
+      this.isLoading = false;
+      this.mcardSyncStatus = null;
+      this.mcardSyncError = null;
+      this.initializeElements();
+      this.bindEvents();
+      this.initialize();
+    }
+
+    initializeElements() {
+      this.signInBtn = document.getElementById('google-slides-signin-btn');
+      this.signInText = document.getElementById('slides-signin-text');
+      this.slidesContent = document.getElementById('slides-content');
+      this.slidesPlaceholder = document.getElementById('slides-placeholder');
+      this.slidesLoading = document.getElementById('slides-loading');
+      this.slidesError = document.getElementById('slides-error');
+      this.errorMessage = document.getElementById('slides-error-message');
+    }
+
+    bindEvents() {
+      if (this.signInBtn) {
+        this.signInBtn.addEventListener('click', () => {
+          if (this.isAuthenticated) {
+            this.handleSignOut();
+          } else {
+            this.handleSignIn();
+          }
+        });
+      }
+    }
+
+    async initialize() {
+      try {
+        this.showLoading();
+        await loadGoogleApi();
+        
+        // Check if already authenticated
+        if (typeof window !== 'undefined' && window.gapi && window.gapi.client.getToken()) {
+          this.isAuthenticated = true;
+          await this.loadPresentations();
+        } else {
+          this.showPlaceholder();
+        }
+      } catch (error) {
+        console.error('Failed to initialize Google Slides:', error);
+        this.showError('Failed to initialize Google Slides. Please check your API credentials.');
+      }
+    }
+
+    async handleSignIn() {
+      try {
+        this.showLoading();
+        await signIn();
+        this.isAuthenticated = true;
+        this.updateSignInButton();
+        await this.loadPresentations();
+      } catch (error) {
+        console.error('Sign in failed:', error);
+        
+        let errorMessage = 'Sign in failed. Please try again.';
+        if (error.error === 'popup_blocked_by_browser') {
+          errorMessage = 'Please allow popups for this site to sign in with Google.';
+        } else if (error.error === 'popup_closed_by_user') {
+          errorMessage = 'Sign-in popup was closed. Please try again.';
+        } else if (error.error === 'access_denied') {
+          errorMessage = 'Access denied. Please grant Google Slides access to view your presentations.';
+        } else if (error.error === 'coop_policy_error') {
+          errorMessage = 'Browser security policy blocked the sign-in. Please try refreshing the page.';
+        } else if (error.message) {
+          errorMessage = error.message;
+        }
+        
+        this.showError(errorMessage);
+      }
+    }
+
+    async handleSignOut() {
+      try {
+        this.showLoading();
+        await signOut();
+        this.isAuthenticated = false;
+        this.presentations = [];
+        this.updateSignInButton();
+        this.showPlaceholder();
+      } catch (error) {
+        console.error('Sign out failed:', error);
+        this.showError('Sign out failed. Please try again.');
+      }
+    }
+
+    async loadPresentations() {
+      try {
+        this.showLoading();
+        const response = await listPresentations();
+        this.presentations = response.result.files || [];
+        
+        // Send presentations to MCard after successful load
+        await this.sendPresentationsToMCard(this.presentations);
+        
+        this.renderPresentations();
+      } catch (error) {
+        console.error('Failed to load presentations:', error);
+        this.showError('Failed to load presentations. Please try again.');
+      }
+    }
+
+    async sendPresentationsToMCard(presentations) {
+      console.log('🔄 sendPresentationsToMCard called with', presentations.length, 'presentations');
+      
+      try {
+        this.mcardSyncStatus = 'syncing';
+        this.mcardSyncError = null;
+        this.updateSyncStatusDisplay();
+
+        // Check if MCard service is available
+        if (!googleSlidesMCardService) {
+          throw new Error('Google Slides MCard service not available');
+        }
+
+        // Get user email if available
+        const userEmail = window.gapi?.client?.getToken()?.access_token ? 
+          'google_slides_user' : 'unknown_user';
+
+        console.log('📤 Starting MCard sync for user:', userEmail);
+
+        // Save presentations to MCard using the service
+        const result = await googleSlidesMCardService.saveAllPresentationsToMCard(presentations, userEmail);
+        
+        console.log('✅ MCard sync result:', result);
+
+        this.mcardSyncStatus = 'success';
+        console.log(`✅ Successfully synced ${result.savedCount} presentations to MCard`);
+        
+        // Show success message briefly
+        setTimeout(() => {
+          this.mcardSyncStatus = null;
+          this.updateSyncStatusDisplay();
+        }, 3000);
+        
+      } catch (error) {
+        console.error('❌ Error syncing presentations to MCard:', error);
+        this.mcardSyncStatus = 'error';
+        this.mcardSyncError = error.message || 'Failed to sync presentations to MCard';
+        
+        // Clear error after 5 seconds
+        setTimeout(() => {
+          this.mcardSyncStatus = null;
+          this.mcardSyncError = null;
+          this.updateSyncStatusDisplay();
+        }, 5000);
+      }
+      
+      this.updateSyncStatusDisplay();
+    }
+
+    updateSyncStatusDisplay() {
+      // Update the sync status in the UI if it exists
+      const syncStatusElement = document.getElementById('mcard-sync-status');
+      if (syncStatusElement) {
+        if (this.mcardSyncStatus) {
+          let statusClass = '';
+          let statusContent = '';
+          
+          if (this.mcardSyncStatus === 'syncing') {
+            statusClass = 'bg-yellow-50 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300';
+            statusContent = `
+              <div class="flex items-center gap-2">
+                <div class="animate-spin rounded-full h-4 w-4 border-2 border-yellow-600 border-t-transparent"></div>
+                <span>Syncing presentations to MCard...</span>
+              </div>
+            `;
+          } else if (this.mcardSyncStatus === 'success') {
+            statusClass = 'bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-300';
+            statusContent = `
+              <div class="flex items-center gap-2">
+                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                </svg>
+                <span>Presentations successfully saved to MCard!</span>
+              </div>
+            `;
+          } else if (this.mcardSyncStatus === 'error') {
+            statusClass = 'bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-300';
+            statusContent = `
+              <div class="flex items-center gap-2">
+                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+                </svg>
+                <span>Failed to sync to MCard: ${this.mcardSyncError}</span>
+              </div>
+            `;
+          }
+          
+          syncStatusElement.className = `rounded-lg p-3 text-sm ${statusClass}`;
+          syncStatusElement.innerHTML = statusContent;
+          syncStatusElement.classList.remove('hidden');
+        } else {
+          syncStatusElement.classList.add('hidden');
+        }
+      }
+    }
+
+    renderPresentations() {
+      if (!this.slidesContent) return;
+
+      const recentPresentations = this.presentations.slice(0, 10); // Show most recent 10
+
+      this.slidesContent.innerHTML = `
+        <div class="space-y-4">
+          <!-- MCard Sync Status -->
+          <div id="mcard-sync-status" class="hidden rounded-lg p-3 text-sm">
+            <!-- Status content will be updated by updateSyncStatusDisplay -->
+          </div>
+
+          <!-- Summary Stats -->
+          <div class="bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-lg p-3">
+            <h3 class="font-semibold mb-2">Your Presentations</h3>
+            ${this.presentations.length > 0 
+              ? `<p class="text-sm">You have ${this.presentations.length} presentation${this.presentations.length === 1 ? '' : 's'} in Google Slides</p>`
+              : '<p class="text-sm">No presentations found. Create your first presentation in Google Slides!</p>'
+            }
+          </div>
+
+          <!-- Presentations List -->
+          <div>
+            <h3 class="font-semibold mb-3 dark:text-white">Recent Presentations</h3>
+            <div class="space-y-2 max-h-96 overflow-y-auto">
+              ${recentPresentations.length === 0 
+                ? `<div class="text-center py-8">
+                     <div class="text-4xl mb-2">📊</div>
+                     <p class="text-sm text-gray-500 dark:text-gray-400">No presentations found</p>
+                     <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">Create a new presentation in Google Slides to get started</p>
+                   </div>`
+                : recentPresentations.map(presentation => this.renderPresentationCard(presentation)).join('')
+              }
+            </div>
+          </div>
+
+          <!-- Refresh Button -->
+          <div class="flex justify-center pt-4">
+            <button 
+              id="refresh-presentations-btn"
+              class="px-4 py-2 text-blue-600 dark:text-blue-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors flex items-center gap-2"
+            >
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+              </svg>
+              Refresh
+            </button>
+          </div>
+        </div>
+      `;
+
+      // Bind refresh button
+      const refreshBtn = document.getElementById('refresh-presentations-btn');
+      if (refreshBtn) {
+        refreshBtn.addEventListener('click', () => this.loadPresentations());
+      }
+
+      this.showContent();
+    }
+
+    renderPresentationCard(presentation) {
+      const modifiedDate = new Date(presentation.modifiedTime || '');
+      const formattedDate = modifiedDate.toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+
+      const ownerName = presentation.owners && presentation.owners.length > 0 
+        ? presentation.owners[0].displayName || presentation.owners[0].emailAddress 
+        : '';
+
+      return `
+        <div class="bg-white dark:bg-gray-700 rounded-lg shadow-sm border border-gray-200 dark:border-gray-600 p-3 hover:shadow-md transition-shadow">
+          <div class="flex items-start gap-3">
+            <!-- Thumbnail -->
+            <div class="flex-shrink-0">
+              ${presentation.thumbnailLink 
+                ? `<img src="${presentation.thumbnailLink}" alt="${presentation.name}" class="w-12 h-9 object-cover rounded border border-gray-200 dark:border-gray-600" />`
+                : `<div class="w-12 h-9 bg-gray-100 dark:bg-gray-600 rounded border border-gray-200 dark:border-gray-600 flex items-center justify-center">
+                     <svg class="w-6 h-6 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                       <path fill-rule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clip-rule="evenodd" />
+                     </svg>
+                   </div>`
+              }
+            </div>
+
+            <!-- Content -->
+            <div class="flex-1 min-w-0">
+              <h4 class="font-medium text-sm dark:text-white truncate">${presentation.name || 'Untitled Presentation'}</h4>
+              <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Modified: ${formattedDate}</p>
+              ${ownerName ? `<p class="text-xs text-gray-400 dark:text-gray-500">Owner: ${ownerName}</p>` : ''}
+            </div>
+
+            <!-- Actions -->
+            <div class="flex-shrink-0">
+              <a
+                href="${presentation.webViewLink}"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 text-sm"
+              >
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                </svg>
+              </a>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    updateSignInButton() {
+      if (!this.signInBtn || !this.signInText) return;
+
+      if (this.isAuthenticated) {
+        this.signInText.textContent = 'Sign Out';
+        this.signInBtn.className = 'bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 flex items-center space-x-2 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed';
+      } else {
+        this.signInText.textContent = 'Sign in with Google';
+        this.signInBtn.className = 'bg-white text-gray-700 px-4 py-2 rounded-lg border border-gray-300 hover:bg-gray-50 flex items-center space-x-2 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed';
+      }
+    }
+
+    showLoading() {
+      this.isLoading = true;
+      if (this.signInBtn) this.signInBtn.disabled = true;
+      this.hideAll();
+      if (this.slidesLoading) this.slidesLoading.classList.remove('hidden');
+    }
+
+    showContent() {
+      this.isLoading = false;
+      if (this.signInBtn) this.signInBtn.disabled = false;
+      this.hideAll();
+      if (this.slidesContent) this.slidesContent.classList.remove('hidden');
+    }
+
+    showPlaceholder() {
+      this.isLoading = false;
+      if (this.signInBtn) this.signInBtn.disabled = false;
+      this.hideAll();
+      // Show a placeholder message when not authenticated
+      if (this.slidesContent) {
+        this.slidesContent.innerHTML = `
+          <div class="text-center py-8">
+            <div class="text-6xl mb-4">📊</div>
+            <h3 class="text-lg font-semibold dark:text-white mb-2">Access Your Google Slides</h3>
+            <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
+              Sign in with Google to view and manage your presentations
+            </p>
+          </div>
+        `;
+        this.slidesContent.classList.remove('hidden');
+      }
+    }
+
+    showError(message) {
+      this.isLoading = false;
+      if (this.signInBtn) this.signInBtn.disabled = false;
+      this.hideAll();
+      if (this.errorMessage) this.errorMessage.textContent = message;
+      if (this.slidesError) this.slidesError.classList.remove('hidden');
+    }
+
+    hideAll() {
+      [this.slidesContent, this.slidesPlaceholder, this.slidesLoading, this.slidesError].forEach(el => {
+        if (el) el.classList.add('hidden');
+      });
+    }
+  }
+
+  // Initialize when DOM is ready
+  document.addEventListener('DOMContentLoaded', () => {
+    if (document.getElementById('google-slides-wrapper')) {
+      new GoogleSlidesManager();
+    }
+  });
+</script>
+
+<style>
+  .line-clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .animate-spin {
+    animation: spin 1s linear infinite;
+  }
+
+  @keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+</style>

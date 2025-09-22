@@ -1,0 +1,67 @@
+---
+// Authentication callback page for Authentik OIDC flow
+import { AuthCallbackWrapper } from '../../components/auth/auth-callback-wrapper';
+export const prerender = false;
+---
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Authentication - PKC</title>
+  </head>
+  <body>
+    <div id="callback-root">
+      <AuthCallbackWrapper client:load />
+    </div>
+    
+    <script>
+      // Load runtime environment variables before auth components initialize
+      (async function loadRuntimeEnv() {
+        try {
+          console.log('🔄 Loading runtime environment variables for auth...');
+          
+          // Add cache prevention
+          const timestamp = Date.now();
+          const response = await fetch(`/runtime-env.js?t=${timestamp}`, {
+            cache: 'no-cache',
+            headers: {
+              'Cache-Control': 'no-cache, no-store, must-revalidate',
+              'Pragma': 'no-cache',
+              'Expires': '0'
+            }
+          });
+          
+          if (!response.ok) {
+            throw new Error(`Failed to load runtime env: ${response.status} ${response.statusText}`);
+          }
+          
+          const envScript = await response.text();
+          
+          // Execute the script to set window.RUNTIME_ENV
+          const script = document.createElement('script');
+          script.textContent = envScript;
+          document.head.appendChild(script);
+          
+          console.log('✅ Runtime environment loaded for auth:', Object.keys(window.RUNTIME_ENV || {}));
+          
+          // Dispatch event for auth components waiting for runtime env
+          window.dispatchEvent(new CustomEvent('runtime-env-loaded', {
+            detail: window.RUNTIME_ENV
+          }));
+          
+        } catch (error) {
+          console.error('❌ Failed to load runtime environment for auth:', error);
+          
+          // Fallback: set empty runtime env to prevent indefinite waiting
+          window.RUNTIME_ENV = {};
+          window.dispatchEvent(new CustomEvent('runtime-env-loaded', {
+            detail: {}
+          }));
+        }
+      })();
+    </script>
+  </body>
+</html>

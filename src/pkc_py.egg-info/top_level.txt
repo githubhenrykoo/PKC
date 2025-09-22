@@ -1,0 +1,12 @@
+components
+context
+hooks
+layouts
+lib
+pages
+scripts
+services
+store
+styles
+types
+utils

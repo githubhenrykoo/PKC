@@ -1,0 +1,96 @@
+services:
+  mcard-service:
+    container_name: mcard-service
+    image: henry768/mcard-service:latest
+    # No platform needed with multi-arch images
+    ports:
+      - "49384:49384"
+    volumes:
+      - mcard-data:/app/data
+    environment:
+      - LOG_LEVEL=INFO
+      # Add any other environment variables here
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:49384/v1/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  pkc-app:
+    image: henry768/pkc@sha256:4cb30375f46ef36331d601a7aa897446cd747f090fe5eda0cfab7bbddcf8f146
+    container_name: pkc-app
+    restart: unless-stopped
+    ports:
+      - "4321:4321"
+    # Load environment variables from .env file
+    env_file:
+      - .env
+    environment:
+      - NODE_ENV=production
+    # Override command to use npm start directly (no entrypoint script needed)
+    command: ["npm", "start"]
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:4321"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  local-rag:
+    image: henry768/local-rag:super-small  # Use our locally built image
+    ports:
+      - "28302:28302"
+    environment:
+      - PORT=28302
+      - MCARD_BASE_URL=http://host.docker.internal:49384/v1
+      - OLLAMA_BASE_URL=http://ollama:11434
+      - LOG_LEVEL=INFO
+      - HOME=/app
+    volumes:
+      - vector_data:/app/data/vector_store
+      - log_data:/app/data/logs
+    restart: unless-stopped
+    depends_on:
+      - ollama-init
+
+  # Ollama service for LLM functionality
+  ollama:
+    image: ollama/ollama:latest
+    ports:
+      - "11434:11434"
+    restart: unless-stopped
+    volumes:
+      - ollama_data:/root/.ollama
+      
+  # Model initialization service
+  ollama-init:
+    image: curlimages/curl:latest
+    depends_on:
+      - ollama
+    restart: "no"
+    entrypoint: ["/bin/sh"]
+    command: 
+      - "-c"
+      - |
+        echo 'Waiting for Ollama API to start...' &&
+        until curl -s -f http://ollama:11434/api/version; do
+          echo 'Waiting for Ollama API...'
+          sleep 3
+        done &&
+        echo 'Ollama API is available!' &&
+        echo 'Pulling qwen3:0.6b model...' &&
+        curl -s -X POST http://ollama:11434/api/pull -d '{"name":"qwen3:0.6b"}' &&
+        echo 'Pulling nomic-embed-text model...' &&
+        curl -s -X POST http://ollama:11434/api/pull -d '{"name":"nomic-embed-text"}' &&
+        echo 'Model initialization completed successfully!'
+
+# Named volumes for data persistence
+volumes:
+  mcard-data:
+  runtime_env:
+  ollama_data:
+  vector_data:
+  log_data:
+    # This will be automatically created by Docker Compose

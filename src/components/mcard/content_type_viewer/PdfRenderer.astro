@@ -1,0 +1,53 @@
+---
+// PDF Content Renderer - Specialized component for rendering PDF MCards
+interface Props {
+  hash: string;
+  metadata?: any;
+}
+
+const { hash, metadata } = Astro.props as Props;
+---
+
+<div class="pdf-renderer" data-hash={hash}>
+  <div class="text-center">
+    <div class="text-6xl mb-4">📄</div>
+    <h3 class="text-lg font-semibold mb-2">PDF Document</h3>
+    <p class="text-sm opacity-70 mb-4">Hash: {hash}</p>
+    <a 
+      id={`pdf-link-${hash}`}
+      target="_blank" 
+      rel="noopener noreferrer"
+      class="inline-block px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
+    >
+      Open PDF in New Tab
+    </a>
+  </div>
+</div>
+
+<script is:inline define:vars={{ hash }}>
+  // PDF link setup
+  document.addEventListener('DOMContentLoaded', () => {
+    const link = document.getElementById(`pdf-link-${hash}`);
+    if (!link) return;
+
+    // Get MCard API base URL
+    const getMCardApiUrl = () => {
+      return window.RUNTIME_ENV?.PUBLIC_MCARD_API_URL || 'http://localhost:49384/v1';
+    };
+
+    const baseUrl = getMCardApiUrl();
+    const pdfUrl = `${baseUrl}/card/${hash}/content`;
+    
+    link.href = pdfUrl;
+  });
+</script>
+
+<style>
+  .pdf-renderer {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+</style>

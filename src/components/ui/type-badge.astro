@@ -1,0 +1,13 @@
+---
+// Minimal SSR-safe badge for content type using existing helper
+// Usage: <TypeBadge contentType={ct} />
+import { getTypePillHTML } from '../../utils/content-type-utils.ts';
+
+interface Props {
+  contentType?: string;
+  class?: string;
+}
+
+const { contentType, class: className } = Astro.props as Props;
+---
+<span class={className} set:html={getTypePillHTML(contentType)} />

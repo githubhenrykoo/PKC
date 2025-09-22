@@ -1,0 +1,35 @@
+/* Theme override CSS to prevent certain components from affecting the theme */
+
+/* Target Radix UI tabs that are affecting theme */
+[role="tab"],
+[data-slot="tabs-trigger"] {
+  /* Override any dark mode specific styling */
+  transition: background-color 0.2s, color 0.2s, border-color 0.2s !important;
+}
+
+/* Override any dark mode classes that might be toggling the theme */
+[role="tab"][data-state="active"],
+[data-slot="tabs-trigger"][data-state="active"] {
+  background-color: var(--background) !important;
+  border-color: var(--border) !important;
+}
+
+/* Override specific tab elements by their attributes */
+/* Replace invalid wildcard ID selectors with attribute selectors */
+[id^="radix-:r:"][id$="-trigger-content"],
+[id^="radix-:r:"][id$="-trigger-hash"] {
+  color: var(--foreground) !important;
+}
+
+/* Input override */
+[data-slot="input"] {
+  /* Override any dark mode specific styling */
+  transition: background-color 0.2s, border-color 0.2s !important;
+  background-color: transparent !important;
+}
+
+/* Ensure theme only changes through our ThemeContext */
+html.dark,
+html:not(.dark) {
+  transition: background-color 0.2s, color 0.2s !important;
+}

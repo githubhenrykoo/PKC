@@ -1,0 +1,11 @@
+---
+import MainLayout from '@/layouts/MainLayout.astro';
+import MCardManager from '@/components/mcard/MCardManager';
+---
+
+<MainLayout title="MCard Management">
+  <div class="h-screen p-4">
+    <h1 class="text-2xl font-bold mb-4">MCard Content Management</h1>
+    <MCardManager client:load />
+  </div>
+</MainLayout>

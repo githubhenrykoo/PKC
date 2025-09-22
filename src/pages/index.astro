@@ -1,0 +1,17 @@
+---
+import AppShell from "../layouts/AppShell.astro";
+import Topbar from "../components/layout/topbar.astro";
+import Sidebar from "../components/layout/sidebar.astro";
+import RightPanel from "../components/layout/right-panel.astro";
+import Footer from "../components/layout/footer.astro";
+import Card from "../components/MVPCard/card.astro";
+---
+
+<AppShell title="Start" enableThemeToggle={false}>
+  <Topbar slot="header" title="Start" />
+  <Sidebar slot="sidebar" />
+  <RightPanel slot="right" />
+  <Footer slot="footer" />
+
+  <Card type="splash" splash="Second_Splash" />
+</AppShell>

@@ -1,0 +1,48 @@
+[project]
+name = "pkc-py"
+version = "0.1.0"
+description = "Python tooling for PKC (MCard client, scripts)"
+readme = "README.md"
+requires-python = ">=3.9,<3.10"
+authors = [{ name = "PKC Maintainers" }]
+license = { text = "MIT" }
+keywords = ["pkc", "mcard", "knowledge", "content-addressable"]
+
+# Core runtime dependencies
+# Keep in sync with the MCard version used by the project
+dependencies = [
+  "mcard==0.1.22",
+  "pocketflow==0.0.3",
+]
+
+[tool.uv]
+# Enable uv to manage and lock dependencies for this project
+# Dev dependencies are installed with: `uv sync --dev`
+dev-dependencies = [
+  "ruff~=0.5",
+  "black~=24.8",
+  "pytest~=8.3",
+]
+
+[tool.uv.scripts]
+# Convenient task runners: `uv run fmt`, `uv run lint`, `uv run test`
+fmt = "black ."
+lint = "ruff check ."
+test = "pytest"
+
+[tool.black]
+line-length = 100
+target-version = ["py39"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py39"
+select = ["E", "F", "I"]
+
+[tool.pytest.ini_options]
+addopts = "-q"
+pythonpath = ["."]
+
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"

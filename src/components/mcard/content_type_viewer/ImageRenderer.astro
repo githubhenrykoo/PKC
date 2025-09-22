@@ -1,0 +1,55 @@
+---
+// Image Content Renderer - Specialized component for rendering Image MCards
+interface Props {
+  hash: string;
+  metadata?: any;
+}
+
+const { hash, metadata } = Astro.props as Props;
+---
+
+<div class="image-renderer" data-hash={hash}>
+  <div class="w-full h-full flex items-center justify-center">
+    <img 
+      id={`image-content-${hash}`}
+      alt="MCard Image" 
+      class="max-w-full max-h-full object-contain rounded-lg shadow-lg"
+      loading="lazy"
+    />
+  </div>
+</div>
+
+<script is:inline define:vars={{ hash }}>
+  // Image loading and rendering
+  document.addEventListener('DOMContentLoaded', () => {
+    const img = document.getElementById(`image-content-${hash}`);
+    if (!img) return;
+
+    // Get MCard API base URL
+    const getMCardApiUrl = () => {
+      return window.RUNTIME_ENV?.PUBLIC_MCARD_API_URL || 'http://localhost:49384/v1';
+    };
+
+    const baseUrl = getMCardApiUrl();
+    const imageUrl = `${baseUrl}/card/${hash}/content`;
+    
+    img.src = imageUrl;
+    
+    img.onerror = () => {
+      img.parentElement.innerHTML = `
+        <div class="text-center text-red-500">
+          <div class="text-4xl mb-4">🖼️</div>
+          <h3 class="text-lg font-semibold mb-2">Image Load Failed</h3>
+          <p class="text-sm">Hash: ${hash}</p>
+        </div>
+      `;
+    };
+  });
+</script>
+
+<style>
+  .image-renderer {
+    width: 100%;
+    height: 100%;
+  }
+</style>
