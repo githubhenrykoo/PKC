@@ -1,0 +1,233 @@
+---
+// Test page for runtime environment system
+---
+
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Runtime Environment Test</title>
+  <style>
+    body { 
+      font-family: Arial, sans-serif; 
+      margin: 40px; 
+      background: #f5f5f5; 
+    }
+    .container { 
+      max-width: 800px; 
+      margin: 0 auto; 
+      background: white; 
+      padding: 30px; 
+      border-radius: 8px; 
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1); 
+    }
+    .status { 
+      padding: 15px; 
+      margin: 10px 0; 
+      border-radius: 4px; 
+      border-left: 4px solid #007acc; 
+      background: #f0f8ff; 
+    }
+    .env-var { 
+      background: #f8f8f8; 
+      padding: 10px; 
+      margin: 5px 0; 
+      border-radius: 4px; 
+      font-family: monospace; 
+    }
+    .missing { 
+      background: #ffe6e6; 
+      border-left-color: #ff4444; 
+    }
+    .valid { 
+      background: #e6ffe6; 
+      border-left-color: #44ff44; 
+    }
+    button { 
+      background: #007acc; 
+      color: white; 
+      border: none; 
+      padding: 10px 20px; 
+      border-radius: 4px; 
+      cursor: pointer; 
+      margin: 5px; 
+    }
+    button:hover { 
+      background: #005a99; 
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🔧 Runtime Environment Test</h1>
+    <p>This page tests the runtime environment system that dynamically reads from the <code>.env</code> file.</p>
+    
+    <div class="status" id="status">
+      <strong>Status:</strong> Initializing...
+    </div>
+    
+    <div>
+      <button onclick="refreshEnv()">🔄 Refresh Environment</button>
+      <button onclick="showEnvDetails()">📊 Show Details</button>
+      <button onclick="testGoogleCredentials()">🔍 Test Google Credentials</button>
+    </div>
+    
+    <h2>Environment Variables</h2>
+    <div id="env-vars">Loading...</div>
+    
+    <h2>Console Output</h2>
+    <p>Check the browser console (F12) for detailed logging information.</p>
+    
+    <h2>Instructions</h2>
+    <ol>
+      <li>Create a <code>.env</code> file in the project root</li>
+      <li>Add your Google API credentials:
+        <div class="env-var">
+PUBLIC_GOOGLE_API_KEY=your_api_key_here<br>
+PUBLIC_GOOGLE_CLIENT_ID=your_client_id_here<br>
+PUBLIC_GOOGLE_CLIENT_SECRET=your_client_secret_here<br>
+PUBLIC_MCARD_API_URL=http://localhost:49384/v1
+        </div>
+      </li>
+      <li>Save the file and watch the console for updates</li>
+      <li>The system checks for changes every 5 seconds</li>
+    </ol>
+  </div>
+
+  <script is:inline>
+    // Initialize runtime environment object
+    window.RUNTIME_ENV = window.RUNTIME_ENV || {};
+    
+    function updateStatus() {
+      const statusEl = document.getElementById('status');
+      const envVarsEl = document.getElementById('env-vars');
+      const env = window.RUNTIME_ENV || {};
+      
+      // Check if we have any environment variables
+      const hasVars = Object.keys(env).length > 0;
+      const hasGoogleCreds = env.PUBLIC_GOOGLE_API_KEY && env.PUBLIC_GOOGLE_CLIENT_ID && env.PUBLIC_GOOGLE_CLIENT_SECRET;
+      
+      if (hasVars) {
+        statusEl.className = hasGoogleCreds ? 'status valid' : 'status missing';
+        statusEl.innerHTML = `<strong>Status:</strong> ${hasGoogleCreds ? '✅ Environment loaded with Google credentials' : '⚠️ Environment loaded but missing Google credentials'}`;
+      } else {
+        statusEl.className = 'status missing';
+        statusEl.innerHTML = '<strong>Status:</strong> ❌ No environment variables loaded';
+      }
+      
+      // Display environment variables
+      let envHtml = '';
+      const importantVars = [
+        'PUBLIC_GOOGLE_API_KEY',
+        'PUBLIC_GOOGLE_CLIENT_ID', 
+        'PUBLIC_GOOGLE_CLIENT_SECRET',
+        'PUBLIC_MCARD_API_URL',
+        'PUBLIC_AUTHENTIK_URL',
+        'VERSION',
+        'BUILD_TIMESTAMP'
+      ];
+      
+      importantVars.forEach(key => {
+        const value = env[key] || '';
+        const hasValue = value && value !== '';
+        const isPlaceholder = value.includes('your_') || value.includes('_here');
+        
+        let className = 'env-var';
+        let status = '';
+        
+        if (!hasValue) {
+          className += ' missing';
+          status = ' ❌ Missing';
+        } else if (isPlaceholder) {
+          className += ' missing';
+          status = ' ⚠️ Placeholder';
+        } else {
+          className += ' valid';
+          status = ' ✅ Set';
+        }
+        
+        // Mask sensitive values
+        let displayValue = value;
+        if (key.includes('SECRET') || key.includes('KEY')) {
+          displayValue = value ? `${value.substring(0, 8)}...` : '';
+        }
+        
+        envHtml += `<div class="${className}"><strong>${key}:</strong> ${displayValue}${status}</div>`;
+      });
+      
+      envVarsEl.innerHTML = envHtml;
+    }
+    
+    function refreshEnv() {
+      console.log('🔄 Manual environment refresh requested');
+      fetch(`/runtime-env.json?t=${Date.now()}`, { 
+        cache: 'no-store',
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0'
+        }
+      })
+      .then(response => {
+        console.log('📡 Response status:', response.status);
+        return response.json();
+      })
+      .then(env => {
+        console.log('📥 Raw response from server:', env);
+        
+        // Show debug info if available
+        if (env._DEBUG) {
+          console.group('🔍 Server Debug Info');
+          console.log('Environment file read:', env._DEBUG.envFileRead);
+          console.log('Variables found:', env._DEBUG.envVarsFound);
+          console.log('Working directory:', env._DEBUG.currentWorkingDirectory);
+          console.log('Server timestamp:', env._DEBUG.timestamp);
+          console.groupEnd();
+        }
+        
+        window.RUNTIME_ENV = { ...window.RUNTIME_ENV, ...env };
+        updateStatus();
+        console.log('✅ Environment refreshed:', window.RUNTIME_ENV);
+      })
+      .catch(error => {
+        console.error('❌ Failed to refresh environment:', error);
+      });
+    }
+    
+    function showEnvDetails() {
+      console.group('🔧 Complete Environment Details');
+      console.log('Current RUNTIME_ENV:', window.RUNTIME_ENV);
+      console.log('Timestamp:', new Date().toISOString());
+      console.groupEnd();
+    }
+    
+    function testGoogleCredentials() {
+      const env = window.RUNTIME_ENV || {};
+      const hasAll = env.PUBLIC_GOOGLE_API_KEY && env.PUBLIC_GOOGLE_CLIENT_ID && env.PUBLIC_GOOGLE_CLIENT_SECRET;
+      
+      console.group('🔍 Google Credentials Test');
+      console.log('API Key:', env.PUBLIC_GOOGLE_API_KEY ? '✅ Present' : '❌ Missing');
+      console.log('Client ID:', env.PUBLIC_GOOGLE_CLIENT_ID ? '✅ Present' : '❌ Missing');
+      console.log('Client Secret:', env.PUBLIC_GOOGLE_CLIENT_SECRET ? '✅ Present' : '❌ Missing');
+      console.log('All credentials present:', hasAll ? '✅ Yes' : '❌ No');
+      console.groupEnd();
+      
+      alert(hasAll ? '✅ All Google credentials are present!' : '❌ Some Google credentials are missing. Check console for details.');
+    }
+    
+    // Listen for environment changes
+    window.addEventListener('runtime-env-changed', () => {
+      console.log('🔄 Environment changed event received');
+      updateStatus();
+    });
+    
+    // Initial update
+    document.addEventListener('DOMContentLoaded', () => {
+      updateStatus();
+      
+      // Auto-refresh display every 5 seconds
+      setInterval(updateStatus, 5000);
+    });
+  </script>
+</body>
+</html>

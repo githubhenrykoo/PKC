@@ -19,7 +19,7 @@ services:
       start_period: 10s
 
   pkc-app:
-    image: henry768/pkc@sha256:b22f49fd2ff6a6666dff1b6edebc38cfd3b1b4d547e8077d1112bf5f89a208b0
+    image: henry768/pkc@sha256:455b4a895cf558e4a13be89f6e09e0433099da169d93588b697767a62cfacc35
     container_name: pkc-app
     restart: unless-stopped
     ports:
@@ -29,6 +29,11 @@ services:
       - .env
     environment:
       - NODE_ENV=production
+      - PUBLIC_GOOGLE_API_KEY=${PUBLIC_GOOGLE_API_KEY}
+      - PUBLIC_GOOGLE_CLIENT_ID=${PUBLIC_GOOGLE_CLIENT_ID}
+      - PUBLIC_GOOGLE_CLIENT_SECRET=${PUBLIC_GOOGLE_CLIENT_SECRET}
+    volumes:
+      - ./.env:/app/.env:ro 
     # Override command to use npm start directly (no entrypoint script needed)
     command: ["npm", "start"]
     healthcheck:

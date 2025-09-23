@@ -33,16 +33,5 @@ if (!fs.existsSync(publicDir)) {
   fs.mkdirSync(publicDir, { recursive: true });
 }
 
-// Write the runtime environment JSON file
-const outputPath = path.join(publicDir, 'runtime-env.json');
-fs.writeFileSync(outputPath, JSON.stringify(runtimeEnv, null, 2), 'utf8');
-console.log(`✅ Generated runtime environment file at ${outputPath}`);
-
-// Also create a JS version for direct inclusion
-const jsOutputPath = path.join(publicDir, 'runtime-env.js');
-fs.writeFileSync(
-  jsOutputPath,
-  `// This file is auto-generated at build time\nwindow.RUNTIME_ENV = ${JSON.stringify(runtimeEnv, null, 2)};`,
-  'utf8'
-);
-console.log(`✅ Generated runtime environment JS file at ${jsOutputPath}`);
+// Skip generating static files - we use dynamic endpoint instead
+console.log(`⏭️ Skipping static runtime environment files - using dynamic endpoint instead`);

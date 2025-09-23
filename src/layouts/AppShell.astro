@@ -102,63 +102,157 @@ const preloadEntryUrl = '/src/services/preload-entry.ts';
 
     <!-- Removed JSON-based module URL plumbing -->
 
-    <!-- Load runtime environment variables (no-cache) -->
-    <script>
-      (function loadRuntimeEnv(){
-        const url = '/runtime-env.js?t=' + Date.now();
-        console.log('🔄 Loading runtime environment variables...');
-        fetch(url, {
-          method: 'GET',
-          cache: 'no-store',
-          headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate' }
-        })
-        .then(r => {
-          console.log('📡 Runtime env response status:', r.status);
-          if (!r.ok) throw new Error(`Runtime env endpoint returned ${r.status}`);
-          return r.text();
-        })
-        .then(js => {
-          const s = document.createElement('script');
-          s.textContent = js;
-          document.head.appendChild(s);
-          // Normalize to localhost if needed after load
-          (function normalizeAfterLoad(){
-            // Local development configuration
-            const LOCALHOST = 'localhost';
-            const LOCALHOST_IP = '127.0.0.1';
-            const LOCAL_MCARD_URL = 'http://localhost:49384/v1';
-            const LOCAL_AUTHENTIK_URL = 'http://localhost:9000';
-            const LOCAL_RAG_URL = 'http://localhost:28302/api/v1';
-            const LOCAL_AUTH_URL = 'http://localhost:28302';
+    <!-- Initialize Runtime Environment Watcher -->
+    <script is:inline>
+      // Runtime Environment Watcher - Inline implementation for reliability
+      let envWatcherInterval = null;
+      
+      // Initialize runtime environment
+      async function initRuntimeEnv() {
+        try {
+          console.log('🔄 Loading runtime environment variables...');
+          const timestamp = Date.now();
+          const response = await fetch(`/runtime-env.json?t=${timestamp}`, { 
+            cache: 'no-store',
+            headers: {
+              'Cache-Control': 'no-cache, no-store, must-revalidate',
+              'Pragma': 'no-cache',
+              'Expires': '0'
+            }
+          });
+          
+          if (response.ok) {
+            const env = await response.json();
+            const previousEnv = { ...window.RUNTIME_ENV };
+            window.RUNTIME_ENV = { ...window.RUNTIME_ENV, ...env };
             
-            const host = (location && location.hostname) || '';
-            const onLocal = host === LOCALHOST || host === LOCALHOST_IP;
-            if (!onLocal) return;
-            const env = window.RUNTIME_ENV || {};
-            const looksRemote = (v: unknown): boolean => typeof v === 'string' && /\.pkc\.pub|^https:\/\//.test(v);
-            if (!env.PUBLIC_MCARD_API_URL || looksRemote(env.PUBLIC_MCARD_API_URL)) {
-              env.PUBLIC_MCARD_API_URL = LOCAL_MCARD_URL;
+            // Check if environment has changed
+            const hasChanged = JSON.stringify(previousEnv) !== JSON.stringify(window.RUNTIME_ENV);
+            
+            if (hasChanged) {
+              console.log('🔄 Environment variables updated:', {
+                previous: previousEnv,
+                current: window.RUNTIME_ENV,
+                timestamp: new Date().toISOString()
+              });
+              
+              // Dispatch custom event for components to react to changes
+              window.dispatchEvent(new CustomEvent('runtime-env-changed', { 
+                detail: { 
+                  previous: previousEnv, 
+                  current: window.RUNTIME_ENV,
+                  timestamp: new Date().toISOString()
+                } 
+              }));
+            } else {
+              console.log('✅ Environment variables loaded (no changes):', window.RUNTIME_ENV);
             }
-            if (env.PUBLIC_AUTHENTIK_URL && looksRemote(env.PUBLIC_AUTHENTIK_URL)) {
-              env.PUBLIC_AUTHENTIK_URL = LOCAL_AUTHENTIK_URL;
-            }
-            if (env.PUBLIC_RAG_API_URL && looksRemote(env.PUBLIC_RAG_API_URL)) {
-              env.PUBLIC_RAG_API_URL = LOCAL_RAG_URL;
-            }
-            if (env.PUBLIC_AUTH_URL && looksRemote(env.PUBLIC_AUTH_URL)) {
-              env.PUBLIC_AUTH_URL = LOCAL_AUTH_URL;
-            }
-            window.RUNTIME_ENV = env;
-          })();
-          console.log('✅ Runtime environment loaded:', window.RUNTIME_ENV);
-          window.dispatchEvent(new CustomEvent('runtime-env-loaded', { detail: window.RUNTIME_ENV }));
-        })
-        .catch(err => {
-          console.error('❌ Failed to load runtime environment:', err);
-          window.RUNTIME_ENV = window.RUNTIME_ENV || {};
-          window.dispatchEvent(new CustomEvent('runtime-env-loaded', { detail: window.RUNTIME_ENV }));
+            
+            // Log environment status
+            logEnvironmentStatus();
+            
+          } else {
+            console.warn('⚠️ /runtime-env.json not found or not ok, status:', response.status);
+          }
+        } catch (error) {
+          console.warn('⚠️ Error loading /runtime-env.json:', error);
+        }
+      }
+      
+      // Validate environment
+      function validateEnvironment() {
+        const env = window.RUNTIME_ENV || {};
+        const missing = [];
+        const warnings = [];
+        
+        // Check required Google API credentials
+        if (!env.PUBLIC_GOOGLE_API_KEY) missing.push('PUBLIC_GOOGLE_API_KEY');
+        if (!env.PUBLIC_GOOGLE_CLIENT_ID) missing.push('PUBLIC_GOOGLE_CLIENT_ID');
+        if (!env.PUBLIC_GOOGLE_CLIENT_SECRET) missing.push('PUBLIC_GOOGLE_CLIENT_SECRET');
+        
+        // Check MCard API URL
+        if (!env.PUBLIC_MCARD_API_URL) missing.push('PUBLIC_MCARD_API_URL');
+        
+        // Check for placeholder values
+        if (env.PUBLIC_GOOGLE_API_KEY === 'your_google_api_key_here') {
+          warnings.push('PUBLIC_GOOGLE_API_KEY appears to be a placeholder value');
+        }
+        if (env.PUBLIC_GOOGLE_CLIENT_ID === 'your_google_client_id_here') {
+          warnings.push('PUBLIC_GOOGLE_CLIENT_ID appears to be a placeholder value');
+        }
+        
+        return {
+          isValid: missing.length === 0,
+          missing,
+          warnings
+        };
+      }
+      
+      // Log environment status
+      function logEnvironmentStatus() {
+        const validation = validateEnvironment();
+        const env = window.RUNTIME_ENV || {};
+        
+        console.group('🔧 Environment Configuration Status');
+        console.log('📊 Current Environment:', env);
+        console.log('✅ Valid:', validation.isValid);
+        
+        if (validation.missing.length > 0) {
+          console.warn('❌ Missing Variables:', validation.missing);
+        }
+        
+        if (validation.warnings.length > 0) {
+          console.warn('⚠️ Warnings:', validation.warnings);
+        }
+        
+        console.log('🕐 Last Updated:', new Date().toISOString());
+        console.groupEnd();
+      }
+      
+      // Start environment watcher
+      function startEnvironmentWatcher() {
+        console.log('🔍 Starting environment watcher (5s interval)');
+        
+        // Initial load
+        initRuntimeEnv();
+        
+        // Set up periodic refresh
+        envWatcherInterval = setInterval(() => {
+          initRuntimeEnv().catch(error => {
+            console.warn('⚠️ Environment refresh failed:', error);
+          });
+        }, 5000); // Check every 5 seconds
+        
+        // Cleanup on page unload
+        window.addEventListener('beforeunload', () => {
+          if (envWatcherInterval) {
+            clearInterval(envWatcherInterval);
+          }
         });
-      })();
+      }
+      
+      // Start the environment watcher when the page loads
+      document.addEventListener('DOMContentLoaded', () => {
+        console.log('🚀 Initializing Runtime Environment System');
+        
+        // Start watching for environment changes
+        startEnvironmentWatcher();
+        
+        // Listen for environment changes and log them
+        window.addEventListener('runtime-env-changed', (event) => {
+          console.log('🔄 Environment changed, updating components...');
+          
+          // Notify all components that environment has changed
+          document.dispatchEvent(new CustomEvent('env-updated', { 
+            detail: event.detail 
+          }));
+        });
+        
+        // Log environment status every 30 seconds for debugging
+        setInterval(() => {
+          logEnvironmentStatus();
+        }, 30000);
+      });
     </script>
 
     <!-- Redux store removed from initialization -->
