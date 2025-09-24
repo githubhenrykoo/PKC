@@ -1,11 +1,70 @@
 // Google Slides API configuration
-const CLIENT_ID = import.meta.env.PUBLIC_GOOGLE_CLIENT_ID;
-const API_KEY = import.meta.env.PUBLIC_GOOGLE_API_KEY;
 const SCOPES = 'https://www.googleapis.com/auth/presentations https://www.googleapis.com/auth/drive';
+
+// Dynamic credentials from runtime environment
+let CLIENT_ID = '';
+let API_KEY = '';
+let CLIENT_SECRET = '';
 
 let tokenClient;
 let gapiInited = false;
 let gisInited = false;
+
+// Function to fetch credentials from runtime environment
+const fetchRuntimeCredentials = async () => {
+  try {
+    const timestamp = Date.now();
+    const response = await fetch(`/runtime-env.json?t=${timestamp}`, { 
+      cache: 'no-store',
+      headers: {
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0'
+      }
+    });
+    
+    if (response.ok) {
+      const env = await response.json();
+      CLIENT_ID = env.PUBLIC_GOOGLE_CLIENT_ID || '';
+      API_KEY = env.PUBLIC_GOOGLE_API_KEY || '';
+      CLIENT_SECRET = env.PUBLIC_GOOGLE_CLIENT_SECRET || '';
+      
+      console.log('🔑 Google Slides credentials updated from runtime environment:', {
+        hasApiKey: !!API_KEY,
+        hasClientId: !!CLIENT_ID,
+        hasClientSecret: !!CLIENT_SECRET,
+        timestamp: new Date().toISOString()
+      });
+      
+      return { CLIENT_ID, API_KEY, CLIENT_SECRET };
+    } else {
+      throw new Error(`Failed to fetch runtime environment: ${response.status}`);
+    }
+  } catch (error) {
+    console.error('❌ Error fetching Google Slides credentials from runtime environment:', error);
+    // Fallback to import.meta.env if runtime fetch fails
+    CLIENT_ID = import.meta.env.PUBLIC_GOOGLE_CLIENT_ID || '';
+    API_KEY = import.meta.env.PUBLIC_GOOGLE_API_KEY || '';
+    CLIENT_SECRET = import.meta.env.PUBLIC_GOOGLE_CLIENT_SECRET || '';
+    
+    console.warn('⚠️ Falling back to build-time environment variables');
+    return { CLIENT_ID, API_KEY, CLIENT_SECRET };
+  }
+};
+
+// Validate credentials
+const validateCredentials = () => {
+  const missing = [];
+  if (!API_KEY) missing.push('PUBLIC_GOOGLE_API_KEY');
+  if (!CLIENT_ID) missing.push('PUBLIC_GOOGLE_CLIENT_ID');
+  if (!CLIENT_SECRET) missing.push('PUBLIC_GOOGLE_CLIENT_SECRET');
+  
+  if (missing.length > 0) {
+    throw new Error(`Missing Google Slides credentials: ${missing.join(', ')}. Please check your runtime environment configuration.`);
+  }
+  
+  return true;
+};
 
 // Load the Google API client library
 export const loadGoogleApi = async () => {
@@ -17,6 +76,13 @@ export const loadGoogleApi = async () => {
       console.log('Skipping Google Slides API initialization in SSR');
       return;
     }
+    
+    // First, fetch the latest credentials from runtime environment
+    console.log('🔄 Fetching Google Slides credentials from runtime environment...');
+    await fetchRuntimeCredentials();
+    
+    // Validate that we have all required credentials
+    validateCredentials();
     
     // Load the Google API client
     await new Promise((resolve, reject) => {
@@ -592,3 +658,104 @@ export const addImage = async (presentationId, slideId, imageUrl, x = 100, y = 1
     throw err;
   }
 };
+
+// Function to refresh credentials and reinitialize if needed
+export const refreshCredentials = async () => {
+  try {
+    console.log('🔄 Refreshing Google Slides credentials...');
+    
+    // Store current credentials for comparison
+    const previousCredentials = { CLIENT_ID, API_KEY, CLIENT_SECRET };
+    
+    // Fetch new credentials
+    await fetchRuntimeCredentials();
+    
+    // Check if credentials have changed
+    const credentialsChanged = 
+      previousCredentials.CLIENT_ID !== CLIENT_ID ||
+      previousCredentials.API_KEY !== API_KEY ||
+      previousCredentials.CLIENT_SECRET !== CLIENT_SECRET;
+    
+    if (credentialsChanged) {
+      console.log('🔑 Google Slides credentials have changed, reinitializing API...');
+      
+      // Reset initialization flags
+      gapiInited = false;
+      gisInited = false;
+      tokenClient = null;
+      
+      // Sign out if currently signed in
+      if (window.gapi && window.gapi.client && window.gapi.client.getToken()) {
+        await signOut();
+      }
+      
+      // Reinitialize with new credentials
+      await loadGoogleApi();
+      
+      console.log('✅ Google Slides API reinitialized with new credentials');
+      
+      // Dispatch custom event to notify components
+      window.dispatchEvent(new CustomEvent('google-slides-credentials-updated', {
+        detail: {
+          previousCredentials,
+          newCredentials: { CLIENT_ID, API_KEY, CLIENT_SECRET },
+          timestamp: new Date().toISOString()
+        }
+      }));
+    } else {
+      console.log('✅ Google Slides credentials unchanged');
+    }
+    
+    return credentialsChanged;
+  } catch (error) {
+    console.error('❌ Error refreshing Google Slides credentials:', error);
+    throw error;
+  }
+};
+
+// Function to get current credentials (for debugging)
+export const getCurrentCredentials = () => {
+  return {
+    CLIENT_ID,
+    API_KEY,
+    CLIENT_SECRET: CLIENT_SECRET ? '***' + CLIENT_SECRET.slice(-4) : '',
+    hasApiKey: !!API_KEY,
+    hasClientId: !!CLIENT_ID,
+    hasClientSecret: !!CLIENT_SECRET
+  };
+};
+
+// Function to check if credentials are valid
+export const hasValidCredentials = () => {
+  try {
+    validateCredentials();
+    return true;
+  } catch (error) {
+    return false;
+  }
+};
+
+// Function to get credentials error message
+export const getCredentialsError = () => {
+  try {
+    validateCredentials();
+    return null;
+  } catch (error) {
+    return error.message;
+  }
+};
+
+// Set up automatic credential refresh when runtime environment changes
+if (typeof window !== 'undefined') {
+  // Listen for runtime environment changes
+  window.addEventListener('runtime-env-changed', async (event) => {
+    console.log('🔄 Runtime environment changed, checking Google Slides credentials...');
+    try {
+      await refreshCredentials();
+    } catch (error) {
+      console.error('❌ Failed to refresh Google Slides credentials after environment change:', error);
+    }
+  });
+  
+  console.log('👂 Google Slides: Listening for runtime environment changes');
+}

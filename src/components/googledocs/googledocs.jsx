@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { marked } from 'marked';
 
 const GoogleDocsPanel = () => {
@@ -15,40 +15,182 @@ const GoogleDocsPanel = () => {
 
   // Removed text formatting functions and toolbar
 
-  const CLIENT_ID = import.meta.env.PUBLIC_GOOGLE_CLIENT_ID;
-  const API_KEY = import.meta.env.PUBLIC_GOOGLE_API_KEY;
+  // Dynamic credentials from runtime environment
+  const [credentials, setCredentials] = useState({
+    CLIENT_ID: '',
+    API_KEY: '',
+    CLIENT_SECRET: ''
+  });
+  const [credentialsLoaded, setCredentialsLoaded] = useState(false);
+  const [credentialsError, setCredentialsError] = useState(null);
+  
   const SCOPES = 'https://www.googleapis.com/auth/documents https://www.googleapis.com/auth/drive.readonly';
 
+  // Function to fetch credentials from runtime environment
+  const fetchRuntimeCredentials = useCallback(async () => {
+    try {
+      const timestamp = Date.now();
+      const response = await fetch(`/runtime-env.json?t=${timestamp}`, { 
+        cache: 'no-store',
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0'
+        }
+      });
+      
+      if (response.ok) {
+        const env = await response.json();
+        const newCredentials = {
+          CLIENT_ID: env.PUBLIC_GOOGLE_CLIENT_ID || '',
+          API_KEY: env.PUBLIC_GOOGLE_API_KEY || '',
+          CLIENT_SECRET: env.PUBLIC_GOOGLE_CLIENT_SECRET || ''
+        };
+        
+        setCredentials(newCredentials);
+        setCredentialsLoaded(true);
+        setCredentialsError(null);
+        
+        console.log('🔑 Google Docs credentials updated from runtime environment:', {
+          hasApiKey: !!newCredentials.API_KEY,
+          hasClientId: !!newCredentials.CLIENT_ID,
+          hasClientSecret: !!newCredentials.CLIENT_SECRET,
+          timestamp: new Date().toISOString()
+        });
+        
+        return newCredentials;
+      } else {
+        throw new Error(`Failed to fetch runtime environment: ${response.status}`);
+      }
+    } catch (error) {
+      console.error('❌ Error fetching Google Docs credentials from runtime environment:', error);
+      
+      // Don't fallback to build-time environment variables
+      setCredentials({
+        CLIENT_ID: '',
+        API_KEY: '',
+        CLIENT_SECRET: ''
+      });
+      setCredentialsLoaded(true);
+      setCredentialsError(error.message);
+      
+      return {
+        CLIENT_ID: '',
+        API_KEY: '',
+        CLIENT_SECRET: ''
+      };
+    }
+  }, []);
+
+  // Validate credentials (pure function without state updates)
+  const validateCredentials = useCallback((creds) => {
+    const missing = [];
+    if (!creds.API_KEY || creds.API_KEY.trim() === '') missing.push('PUBLIC_GOOGLE_API_KEY');
+    if (!creds.CLIENT_ID || creds.CLIENT_ID.trim() === '') missing.push('PUBLIC_GOOGLE_CLIENT_ID');
+    if (!creds.CLIENT_SECRET || creds.CLIENT_SECRET.trim() === '') missing.push('PUBLIC_GOOGLE_CLIENT_SECRET');
+    
+    if (missing.length > 0) {
+      const errorMsg = `Missing or invalid Google Docs credentials: ${missing.join(', ')}. Please check your runtime environment configuration.`;
+      setCredentialsError(errorMsg);
+      return false;
+    }
+    
+    setCredentialsError(null);
+    return true;
+  }, []);
+
+  // Compute credentials validity without side effects
+  const areCredentialsValid = useMemo(() => {
+    if (!credentialsLoaded) return false;
+    return !!(credentials.API_KEY && credentials.API_KEY.trim() !== '' &&
+              credentials.CLIENT_ID && credentials.CLIENT_ID.trim() !== '' &&
+              credentials.CLIENT_SECRET && credentials.CLIENT_SECRET.trim() !== '');
+  }, [credentials, credentialsLoaded]);
+
   useEffect(() => {
-    // Load Google API script
-    const loadGoogleApi = () => {
-      const script1 = document.createElement('script');
-      script1.src = 'https://accounts.google.com/gsi/client';
-      script1.async = true;
-      script1.defer = true;
+    // First, fetch credentials from runtime environment
+    const initializeComponent = async () => {
+      console.log('🔄 Initializing Google Docs component...');
       
-      const script2 = document.createElement('script');
-      script2.src = 'https://apis.google.com/js/api.js';
-      script2.onload = gapiLoaded;
-      
-      // Add Google Picker API script
-      const script3 = document.createElement('script');
-      script3.src = 'https://apis.google.com/js/platform.js';
-      script3.onload = () => setPickerInited(true);
-      
-      document.body.appendChild(script1);
-      document.body.appendChild(script2);
-      document.body.appendChild(script3);
+      try {
+        const creds = await fetchRuntimeCredentials();
+        if (!validateCredentials(creds)) {
+          console.error('❌ Invalid Google Docs credentials');
+          return;
+        }
+        
+        // Load Google API script after credentials are loaded
+        const loadGoogleApi = () => {
+          const script1 = document.createElement('script');
+          script1.src = 'https://accounts.google.com/gsi/client';
+          script1.async = true;
+          script1.defer = true;
+          
+          const script2 = document.createElement('script');
+          script2.src = 'https://apis.google.com/js/api.js';
+          script2.onload = gapiLoaded;
+          
+          // Add Google Picker API script
+          const script3 = document.createElement('script');
+          script3.src = 'https://apis.google.com/js/platform.js';
+          script3.onload = () => setPickerInited(true);
+          
+          document.body.appendChild(script1);
+          document.body.appendChild(script2);
+          document.body.appendChild(script3);
+        };
+
+        loadGoogleApi();
+        
+      } catch (error) {
+        console.error('❌ Failed to initialize Google Docs component:', error);
+        setCredentialsError(error.message);
+      }
     };
 
-    loadGoogleApi();
+    initializeComponent();
+
+    // Listen for runtime environment changes
+    const handleRuntimeEnvChange = async (event) => {
+      console.log('🔄 Runtime environment changed, refreshing Google Docs credentials...');
+      try {
+        const creds = await fetchRuntimeCredentials();
+        if (validateCredentials(creds)) {
+          // Reset component state if credentials changed
+          setGapiInited(false);
+          setTokenClient(null);
+          setSelectedDocId(null);
+          setEditorContent('');
+          setSaveStatus('Credentials updated - please re-authenticate');
+          
+          console.log('✅ Google Docs credentials refreshed');
+          
+          // Dispatch custom event to notify about credential changes
+          window.dispatchEvent(new CustomEvent('google-docs-credentials-updated', {
+            detail: {
+              newCredentials: creds,
+              timestamp: new Date().toISOString()
+            }
+          }));
+        }
+      } catch (error) {
+        console.error('❌ Failed to refresh Google Docs credentials:', error);
+        setCredentialsError(error.message);
+      }
+    };
+
+    window.addEventListener('runtime-env-changed', handleRuntimeEnvChange);
+    console.log('👂 Google Docs: Listening for runtime environment changes');
 
     return () => {
       // Cleanup scripts on unmount
       const scripts = document.querySelectorAll('script[src*="google"]');
       scripts.forEach(script => script.remove());
+      
+      // Remove event listener
+      window.removeEventListener('runtime-env-changed', handleRuntimeEnvChange);
     };
-  }, []);
+  }, [fetchRuntimeCredentials, validateCredentials]);
 
   const gapiLoaded = () => {
     window.gapi.load('client', initializeGapiClient);
@@ -57,7 +199,7 @@ const GoogleDocsPanel = () => {
   const initializeGapiClient = async () => {
     try {
       await window.gapi.client.init({
-        apiKey: API_KEY,
+        apiKey: credentials.API_KEY,
         discoveryDocs: ["https://docs.googleapis.com/$discovery/rest?version=v1"],
       });
       setGapiInited(true);
@@ -67,20 +209,54 @@ const GoogleDocsPanel = () => {
   };
 
   const handleAuthClick = () => {
-    if (!window.google || !gapiInited) return;
+    // Multiple safety checks to prevent authentication with invalid credentials
+    if (!window.google || !gapiInited || !credentialsLoaded) {
+      console.warn('❌ Google Docs: Cannot authenticate - API not ready');
+      return;
+    }
 
-    const newTokenClient = window.google.accounts.oauth2.initTokenClient({
-      client_id: CLIENT_ID,
-      scope: SCOPES,
-      callback: async (tokenResponse) => {
-        await window.gapi.client.setToken(tokenResponse);
-        // After successful authentication, don't automatically open picker
-        // Let user choose between picker and URL input
-      },
-    });
-    
-    setTokenClient(newTokenClient);
-    newTokenClient.requestAccessToken();
+    // Check for credential errors
+    if (credentialsError) {
+      console.warn('❌ Google Docs: Cannot authenticate - credential error:', credentialsError);
+      setSaveStatus('Authentication blocked: Invalid credentials');
+      setTimeout(() => setSaveStatus(''), 3000);
+      return;
+    }
+
+    // Validate credentials before attempting authentication
+    if (!validateCredentials(credentials)) {
+      console.warn('❌ Google Docs: Cannot authenticate - invalid credentials');
+      setSaveStatus('Authentication blocked: Missing or invalid credentials');
+      setTimeout(() => setSaveStatus(''), 3000);
+      return;
+    }
+
+    // Additional check for empty credentials
+    if (!credentials.CLIENT_ID || !credentials.API_KEY || !credentials.CLIENT_SECRET) {
+      console.warn('❌ Google Docs: Cannot authenticate - empty credentials');
+      setSaveStatus('Authentication blocked: Credentials not loaded');
+      setTimeout(() => setSaveStatus(''), 3000);
+      return;
+    }
+
+    try {
+      const newTokenClient = window.google.accounts.oauth2.initTokenClient({
+        client_id: credentials.CLIENT_ID,
+        scope: SCOPES,
+        callback: async (tokenResponse) => {
+          await window.gapi.client.setToken(tokenResponse);
+          // After successful authentication, don't automatically open picker
+          // Let user choose between picker and URL input
+        },
+      });
+      
+      setTokenClient(newTokenClient);
+      newTokenClient.requestAccessToken();
+    } catch (error) {
+      console.error('❌ Google Docs: Error during authentication setup:', error);
+      setSaveStatus('Authentication failed: Invalid credentials');
+      setTimeout(() => setSaveStatus(''), 3000);
+    }
   };
   
   // Toggle URL input visibility
@@ -153,7 +329,7 @@ const GoogleDocsPanel = () => {
       
       const picker = new window.google.picker.PickerBuilder()
         .enableFeature(window.google.picker.Feature.NAV_HIDDEN)
-        .setAppId(CLIENT_ID.split('-')[0])
+        .setAppId(credentials.CLIENT_ID.split('-')[0])
         .setOAuthToken(window.gapi.client.getToken().access_token)
         .addView(view)
         .setTitle('Select a Google Document')
@@ -375,7 +551,7 @@ const GoogleDocsPanel = () => {
         setSaveStatus('Initializing Google API...');
         await new Promise((resolve) => window.gapi.load('client', resolve));
         await window.gapi.client.init({
-          apiKey: API_KEY,
+          apiKey: credentials.API_KEY,
           discoveryDocs: ["https://docs.googleapis.com/$discovery/rest?version=v1"],
         });
       }
@@ -385,7 +561,7 @@ const GoogleDocsPanel = () => {
         setSaveStatus('Authentication required');
         if (!tokenClient) {
           const newTokenClient = window.google.accounts.oauth2.initTokenClient({
-            client_id: CLIENT_ID,
+            client_id: credentials.CLIENT_ID,
             scope: SCOPES,
             callback: async (tokenResponse) => {
               await window.gapi.client.setToken(tokenResponse);
@@ -458,23 +634,55 @@ const GoogleDocsPanel = () => {
     return (
       <div style={{
         display: 'flex',
+        flexDirection: 'column',
         justifyContent: 'center',
         alignItems: 'center',
         minHeight: '100vh',
         backgroundColor: '#f8f9fa',
+        padding: '20px',
       }}>
+        {credentialsError && (
+          <div style={{
+            backgroundColor: '#fef2f2',
+            border: '1px solid #fecaca',
+            borderRadius: '8px',
+            padding: '16px',
+            marginBottom: '20px',
+            maxWidth: '500px',
+            textAlign: 'center',
+          }}>
+            <div style={{ color: '#dc2626', fontWeight: '600', marginBottom: '8px' }}>
+              Credential Error
+            </div>
+            <div style={{ color: '#7f1d1d', fontSize: '14px' }}>
+              {credentialsError}
+            </div>
+          </div>
+        )}
+        
         <button 
           onClick={handleAuthClick}
-          disabled={!gapiInited}
+          disabled={!gapiInited || !credentialsLoaded || !!credentialsError || !areCredentialsValid}
           className="bg-white text-gray-700 px-6 py-3 rounded-lg border border-gray-300 hover:bg-gray-50 flex items-center space-x-3 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+          title={credentialsError ? `Cannot sign in: ${credentialsError}` : 'Sign in with Google to access documents'}
         >
           <img 
             src="https://www.google.com/favicon.ico" 
             alt="Google" 
             className="w-5 h-5"
           />
-          <span>Sign in with Google</span>
+          <span>
+            {!credentialsLoaded ? 'Loading credentials...' : 
+             credentialsError ? 'Credentials required' :
+             'Sign in with Google'}
+          </span>
         </button>
+        
+        {!credentialsLoaded && !credentialsError && (
+          <div style={{ marginTop: '12px', color: '#6b7280', fontSize: '14px' }}>
+            Fetching Google Docs credentials from runtime environment...
+          </div>
+        )}
       </div>
     );
   }
