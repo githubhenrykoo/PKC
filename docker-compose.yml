@@ -19,7 +19,7 @@ services:
       start_period: 10s
 
   pkc-app:
-    image: henry768/pkc@sha256:4bb03cbc5a7c97d22543367c4be089512f2a62f6b871106150bff4cf6ee68a23
+    image: henry768/pkc@sha256:fd37862a6fb83be03e39e905bfe09df2ab51482df8798f34d7350c3d81872e17
     container_name: pkc-app
     restart: unless-stopped
     ports:

@@ -436,14 +436,14 @@
     if (placeholder) placeholder.classList.add('hidden');
     rendererSlot.classList.remove('hidden');
 
-    // Create AI Chat container
+    // Create RAG container
     rendererSlot.innerHTML = `
       <div id="ai-chat-container" class="h-full w-full">
-        <!-- AI Chat will be rendered here -->
+        <!-- RAG interface will be rendered here -->
       </div>
     `;
 
-    // Load the AI Chat interface
+    // Load the RAG interface
     loadAIChatInterface();
   }
 
@@ -520,21 +520,21 @@
       // Import React and create root
       const React = await import('react');
       const { createRoot } = await import('react-dom/client');
-      const { ChatInterface } = await import('../chat/chat-interface');
+      const { RAGBrowser } = await import('../RAG/RAGBrowser');
 
-      // Create React root and render chat interface
+      // Create React root and render RAG interface
       const root = createRoot(container);
-      root.render(React.createElement(ChatInterface, { 
+      root.render(React.createElement(RAGBrowser, { 
         className: 'h-full' 
       }));
     } catch (error) {
-      console.error('Failed to load AI Chat interface:', error);
+      console.error('Failed to load RAG interface:', error);
       container.innerHTML = `
         <div class="h-full flex items-center justify-center">
           <div class="text-center p-8">
             <div class="text-red-500 text-4xl mb-4">⚠️</div>
-            <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">Failed to Load Chat</h3>
-            <p class="text-gray-600 dark:text-gray-400 mb-4">Unable to initialize the AI chat interface.</p>
+            <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">Failed to Load RAG</h3>
+            <p class="text-gray-600 dark:text-gray-400 mb-4">Unable to initialize the RAG interface.</p>
             <p class="text-sm text-gray-500 dark:text-gray-500">Error: ${error instanceof Error ? error.message : 'Unknown error'}</p>
           </div>
         </div>
