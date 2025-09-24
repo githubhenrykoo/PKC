@@ -251,3 +251,21 @@ export const logEnvironmentStatus = (): void => {
   console.log('🕐 Last Updated:', new Date().toISOString());
   console.groupEnd();
 };
+
+/**
+ * Get Google Calendar credentials from runtime environment
+ */
+export const getGoogleCredentials = () => {
+  if (typeof window === 'undefined') return null;
+  
+  const env = window.RUNTIME_ENV || {};
+  return {
+    apiKey: env.PUBLIC_GOOGLE_API_KEY || '',
+    clientId: env.PUBLIC_GOOGLE_CLIENT_ID || '',
+    clientSecret: env.PUBLIC_GOOGLE_CLIENT_SECRET || '',
+    hasApiKey: !!(env.PUBLIC_GOOGLE_API_KEY),
+    hasClientId: !!(env.PUBLIC_GOOGLE_CLIENT_ID),
+    hasClientSecret: !!(env.PUBLIC_GOOGLE_CLIENT_SECRET),
+    isValid: !!(env.PUBLIC_GOOGLE_API_KEY && env.PUBLIC_GOOGLE_CLIENT_ID && env.PUBLIC_GOOGLE_CLIENT_SECRET)
+  };
+};
