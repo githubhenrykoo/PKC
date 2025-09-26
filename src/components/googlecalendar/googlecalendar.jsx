@@ -98,8 +98,8 @@ const GoogleCalendar = ({ className = '' }) => {
   const [view, setView] = useState('grid');
   const [searchTerm, setSearchTerm] = useState('');
   const [configError, setConfigError] = useState(false);
-  const [mcardSyncStatus, setMcardSyncStatus] = useState(null);
-  const [mcardSyncError, setMcardSyncError] = useState(null);
+  const [isExportingToMCard, setIsExportingToMCard] = useState(false);
+  const [exportStatus, setExportStatus] = useState('');
 
   // Initialize Google API
   useEffect(() => {
@@ -186,8 +186,8 @@ const GoogleCalendar = ({ className = '' }) => {
       const events = response.result.items || [];
       setEvents(events);
       
-      // Send events to MCard
-      await sendEventsToMCard(events);
+      // Send events to API endpoint
+      await sendEventsToContext(events);
       
       // Calculate today's meetings
       const today = new Date();
@@ -211,18 +211,12 @@ const GoogleCalendar = ({ className = '' }) => {
       
       if (err.error === 'popup_blocked_by_browser') {
         setError('Please allow popups for this site to sign in with Google.');
-      } else if (err.error === 'popup_closed_by_user') {
-        setError('Sign-in popup was closed. Please try again.');
       } else if (err.error === 'access_denied') {
         setError('Access denied. Please grant calendar access to view your events.');
-      } else if (err.error === 'coop_policy_error') {
-        setError('Browser security policy blocked the sign-in. Please try refreshing the page or using a different browser.');
       } else if (err.error === 'immediate_failed') {
         setError('Authentication failed. Please try again.');
       } else if (err.message && err.message.includes('Cross-Origin-Opener-Policy')) {
         setError('Browser security policy blocked the sign-in process. Please try using a different browser or disable enhanced tracking protection for this site.');
-      } else if (err.message) {
-        setError(err.message);
       } else {
         setError('Failed to sign in. Please try again.');
       }
@@ -253,45 +247,67 @@ const GoogleCalendar = ({ className = '' }) => {
     }
   };
 
-  const sendEventsToMCard = async (events) => {
-    console.log('🔄 [React] sendEventsToMCard called with', events.length, 'events');
-    
+  const sendEventsToContext = async (events) => {
     try {
-      setMcardSyncStatus('syncing');
-      setMcardSyncError(null);
+      const today = new Date();
+      const oneWeekFromNow = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000);
+      const oneMonthFromNow = new Date(today.getFullYear(), today.getMonth() + 1, today.getDate());
 
-      // Check if MCard service is available
-      if (!googleCalendarMCardService) {
-        throw new Error('Google Calendar MCard service not available');
-      }
+      // Filter events for different time periods
+      const todayEvents = events.filter(event => {
+        const eventDate = new Date(event.start.dateTime || event.start.date);
+        return eventDate.toDateString() === today.toDateString();
+      });
 
-      // Get user email if available
-      const userEmail = window.gapi?.client?.getToken()?.access_token ? 
-        'google_calendar_user' : 'unknown_user';
+      const weekEvents = events.filter(event => {
+        const eventDate = new Date(event.start.dateTime || event.start.date);
+        return eventDate <= oneWeekFromNow && eventDate >= today;
+      });
 
-      console.log('📤 [React] Starting MCard sync for user:', userEmail);
+      const monthEvents = events.filter(event => {
+        const eventDate = new Date(event.start.dateTime || event.start.date);
+        return eventDate <= oneMonthFromNow && eventDate >= today;
+      });
 
-      // Save events to MCard using the new service
-      const result = await googleCalendarMCardService.saveAllEventsToMCard(events, userEmail);
-      
-      console.log('✅ [React] MCard sync result:', result);
+      // Format events data
+      const eventsContext = {
+        today: todayEvents.map(event => ({
+          summary: event.summary,
+          start: event.start.dateTime || event.start.date,
+          end: event.end.dateTime || event.end.date
+        })),
+        week: weekEvents.map(event => ({
+          summary: event.summary,
+          start: event.start.dateTime || event.start.date,
+          end: event.end.dateTime || event.end.date
+        })),
+        month: monthEvents.map(event => ({
+          summary: event.summary,
+          start: event.start.dateTime || event.start.date,
+          end: event.end.dateTime || event.end.date
+        }))
+      };
 
-      setMcardSyncStatus('success');
-      console.log(`✅ [React] Successfully synced ${result.savedCount} events to MCard`);
-      
-      // Show success message briefly
-      setTimeout(() => setMcardSyncStatus(null), 3000);
-      
+      // Send to API
+      await fetch('http://localhost:4321/api/card-collection', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          action: 'add',
+          card: {
+            content: {
+              dimensionType: 'abstractSpecification',
+              context: JSON.stringify(eventsContext),
+              goal: '',
+              successCriteria: ''
+            }
+          }
+        })
+      });
     } catch (error) {
-      console.error('❌ [React] Error syncing events to MCard:', error);
-      setMcardSyncStatus('error');
-      setMcardSyncError(error.message || 'Failed to sync events to MCard');
-      
-      // Clear error after 5 seconds
-      setTimeout(() => {
-        setMcardSyncStatus(null);
-        setMcardSyncError(null);
-      }, 5000);
+      console.error('Error sending events to context:', error);
     }
   };
 
@@ -308,8 +324,8 @@ const GoogleCalendar = ({ className = '' }) => {
       const response = await listEvents();
       const events = response.result.items || [];
       
-      // Send events to MCard
-      await sendEventsToMCard(events);
+      // Send events to context
+      await sendEventsToContext(events);
       
       // Calculate today's meetings
       const today = new Date();
@@ -344,6 +360,58 @@ const GoogleCalendar = ({ className = '' }) => {
       }
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  // Manual export to MCard function
+  const handleExportToMCard = async () => {
+    if (!events || events.length === 0) {
+      setExportStatus('No events to export');
+      setTimeout(() => setExportStatus(''), 3000);
+      return;
+    }
+
+    try {
+      setIsExportingToMCard(true);
+      setExportStatus('Exporting events to MCard...');
+
+      // Get user email if available
+      const userEmail = window.gapi?.client?.getToken()?.access_token ? 
+        'google_calendar_user' : 'unknown_user';
+
+      console.log('📤 Manual export: Starting MCard sync for user:', userEmail);
+      console.log('📤 Manual export: Exporting', events.length, 'events to MCard');
+
+      // Use the MCard service to save all events
+      const result = await googleCalendarMCardService.saveAllEventsToMCard(events, userEmail);
+      
+      console.log('✅ Manual export: MCard sync result:', result);
+
+      // Also send to context API (following the example pattern)
+      await sendEventsToContext(events);
+
+      const statusMessage = `✅ Successfully exported ${result.savedCount} events to MCard!` + 
+        (result.skippedCount > 0 ? ` (${result.skippedCount} birthday events skipped)` : '') +
+        (result.failedCount > 0 ? ` (${result.failedCount} failed)` : '');
+      
+      setExportStatus(statusMessage);
+      console.log(`✅ Manual export: Successfully synced ${result.savedCount} events to MCard, ${result.skippedCount} skipped, ${result.failedCount} failed`);
+      
+      // Clear status after 5 seconds
+      setTimeout(() => {
+        setExportStatus('');
+        setIsExportingToMCard(false);
+      }, 5000);
+      
+    } catch (error) {
+      console.error('❌ Manual export: Error syncing events to MCard:', error);
+      setExportStatus(`❌ Export failed: ${error.message}`);
+      
+      // Clear error after 7 seconds
+      setTimeout(() => {
+        setExportStatus('');
+        setIsExportingToMCard(false);
+      }, 7000);
     }
   };
 
@@ -413,38 +481,20 @@ const GoogleCalendar = ({ className = '' }) => {
             )}
           </div>
 
-          {/* MCard Sync Status */}
-          {mcardSyncStatus && (
+          {/* Export Status Display */}
+          {exportStatus && (
             <div className={`rounded-lg p-3 text-sm ${
-              mcardSyncStatus === 'syncing' 
-                ? 'bg-yellow-50 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300'
-                : mcardSyncStatus === 'success'
+              exportStatus.includes('✅') 
                 ? 'bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-300'
-                : 'bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-300'
+                : exportStatus.includes('❌')
+                ? 'bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-300'
+                : 'bg-yellow-50 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300'
             }`}>
               <div className="flex items-center gap-2">
-                {mcardSyncStatus === 'syncing' && (
-                  <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-yellow-600 border-t-transparent"></div>
-                    <span>Syncing events to MCard...</span>
-                  </>
+                {isExportingToMCard && (
+                  <div className="animate-spin rounded-full h-4 w-4 border-2 border-current border-t-transparent"></div>
                 )}
-                {mcardSyncStatus === 'success' && (
-                  <>
-                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                    </svg>
-                    <span>Events successfully saved to MCard!</span>
-                  </>
-                )}
-                {mcardSyncStatus === 'error' && (
-                  <>
-                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                    </svg>
-                    <span>Failed to sync to MCard: {mcardSyncError}</span>
-                  </>
-                )}
+                <span>{exportStatus}</span>
               </div>
             </div>
           )}
@@ -494,6 +544,26 @@ const GoogleCalendar = ({ className = '' }) => {
                   <span className="sr-only">Refresh</span>
                 </button>
                 <ViewToggle view={view} onViewChange={setView} />
+                <button
+                  onClick={handleExportToMCard}
+                  disabled={isLoading || isExportingToMCard || events.length === 0}
+                  className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  title="Export all events to MCard"
+                >
+                  {isExportingToMCard ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                      <span>Exporting...</span>
+                    </>
+                  ) : (
+                    <>
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10" />
+                      </svg>
+                      <span>Export to MCard</span>
+                    </>
+                  )}
+                </button>
                 <button
                   onClick={handleSignOut}
                   disabled={isLoading}

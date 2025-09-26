@@ -1,0 +1,202 @@
+---
+// GoogleDocsWrapper.astro - Astro wrapper for Google Docs component with runtime environment support
+import { getGoogleCredentials } from '../../utils/runtime-env.js';
+
+// Server-side credential validation
+let serverCredentials: any = null;
+let serverCredentialsError: string | null = null;
+
+try {
+  // Note: On server-side, we can't access window.RUNTIME_ENV
+  // The actual credential loading happens client-side
+  console.log('🔄 GoogleDocsWrapper: Server-side initialization');
+} catch (error: unknown) {
+  const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
+  console.error('❌ Error initializing Google Docs:', errorMessage);
+  serverCredentialsError = errorMessage;
+}
+---
+
+<div id="google-docs-wrapper" class="w-full h-full">
+  <!-- Loading state -->
+  <div id="google-docs-loading" class="flex items-center justify-center min-h-screen bg-gray-50">
+    <div class="text-center">
+      <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+      <p class="text-gray-600">Initializing Google Docs...</p>
+    </div>
+  </div>
+
+  <!-- React component container -->
+  <div id="google-docs-container" class="hidden">
+    <!-- GoogleDocsPanel will be mounted here -->
+  </div>
+
+  <!-- Error state -->
+  <div id="google-docs-error" class="hidden items-center justify-center min-h-screen bg-gray-50">
+    <div class="text-center max-w-md mx-auto p-6">
+      <div class="text-red-600 text-6xl mb-4">⚠️</div>
+      <h2 class="text-xl font-semibold text-gray-900 mb-2">Google Docs Initialization Failed</h2>
+      <p class="text-gray-600 mb-4" id="error-message">
+        Failed to initialize Google Docs component. Please check your configuration.
+      </p>
+      <button 
+        id="retry-button"
+        class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+      >
+        Retry
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+  import GoogleDocsPanel from './googledocs.jsx';
+  import { createElement } from 'react';
+  import { createRoot } from 'react-dom/client';
+  import { getGoogleCredentials, startEnvironmentWatcher } from '../../utils/runtime-env';
+
+  // Initialize Google Docs component
+  async function initializeGoogleDocs() {
+    console.log('🔄 GoogleDocsWrapper: Initializing client-side...');
+    
+    const loadingEl = document.getElementById('google-docs-loading');
+    const containerEl = document.getElementById('google-docs-container');
+    const errorEl = document.getElementById('google-docs-error');
+    const errorMessageEl = document.getElementById('error-message');
+
+    try {
+      // Start environment watcher for real-time credential updates
+      startEnvironmentWatcher();
+      
+      // Wait a moment for environment to load
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // Validate credentials
+      const credentials = getGoogleCredentials();
+      console.log('🔑 GoogleDocsWrapper: Credentials status:', {
+        loaded: !!credentials,
+        valid: credentials?.isValid || false,
+        hasApiKey: credentials?.hasApiKey || false,
+        hasClientId: credentials?.hasClientId || false,
+        hasClientSecret: credentials?.hasClientSecret || false
+      });
+
+      // Hide loading, show container
+      if (loadingEl) loadingEl.classList.add('hidden');
+      if (containerEl) containerEl.classList.remove('hidden');
+      if (errorEl) errorEl.classList.add('hidden');
+
+      // Mount React component
+      if (containerEl) {
+        const root = createRoot(containerEl);
+        root.render(createElement(GoogleDocsPanel));
+      }
+
+      console.log('✅ GoogleDocsWrapper: Component mounted successfully');
+
+      // Listen for credential updates
+      window.addEventListener('google-docs-credentials-updated', (event) => {
+        console.log('🔄 GoogleDocsWrapper: Credentials updated:', (event as CustomEvent).detail);
+        // Component will handle the update internally
+      });
+
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
+      console.error('❌ GoogleDocsWrapper: Initialization failed:', errorMessage);
+      
+      // Show error state
+      if (loadingEl) loadingEl.classList.add('hidden');
+      if (containerEl) containerEl.classList.add('hidden');
+      if (errorEl) errorEl.classList.remove('hidden');
+      
+      if (errorMessageEl) {
+        errorMessageEl.textContent = `Initialization failed: ${errorMessage}`;
+      }
+    }
+  }
+
+  // Retry functionality
+  function setupRetry() {
+    const retryButton = document.getElementById('retry-button');
+    if (retryButton) {
+      retryButton.addEventListener('click', () => {
+        console.log('🔄 GoogleDocsWrapper: Retrying initialization...');
+        
+        // Reset UI state
+        const loadingEl = document.getElementById('google-docs-loading');
+        const containerEl = document.getElementById('google-docs-container');
+        const errorEl = document.getElementById('google-docs-error');
+        
+        if (loadingEl) loadingEl.classList.remove('hidden');
+        if (containerEl) containerEl.classList.add('hidden');
+        if (errorEl) errorEl.classList.add('hidden');
+        
+        // Retry initialization
+        setTimeout(() => initializeGoogleDocs(), 500);
+      });
+    }
+  }
+
+  // Initialize when DOM is ready
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
+      setupRetry();
+      initializeGoogleDocs();
+    });
+  } else {
+    setupRetry();
+    initializeGoogleDocs();
+  }
+
+  // Handle page visibility changes
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) {
+      console.log('🔄 GoogleDocsWrapper: Page became visible, checking environment...');
+      // Environment watcher will handle updates automatically
+    }
+  });
+
+  // Cleanup on page unload
+  window.addEventListener('beforeunload', () => {
+    console.log('🧹 GoogleDocsWrapper: Cleaning up...');
+    // Environment watcher cleanup is handled automatically
+  });
+</script>
+
+<style>
+  #google-docs-wrapper {
+    width: 100%;
+    height: 100%;
+    min-height: 100vh;
+  }
+
+  /* Loading animation */
+  @keyframes spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
+  .animate-spin {
+    animation: spin 1s linear infinite;
+  }
+
+  /* Ensure proper styling for the Google Docs component */
+  #google-docs-container {
+    width: 100%;
+    height: 100%;
+    min-height: 100vh;
+  }
+
+  /* Error state styling */
+  #google-docs-error {
+    background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+  }
+
+  /* Responsive design */
+  @media (max-width: 768px) {
+    #google-docs-wrapper {
+      padding: 1rem;
+    }
+  }
+</style>

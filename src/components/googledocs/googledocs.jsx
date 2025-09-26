@@ -1,8 +1,12 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { marked } from 'marked';
+import { googleDocsService } from './google-docs.js';
+import { googleDocsMCardService } from './google-docs-mcard-service.js';
+import { getGoogleCredentials } from '../../utils/runtime-env.ts';
 
 const GoogleDocsPanel = () => {
   const [gapiInited, setGapiInited] = useState(false);
+  const [gisInited, setGisInited] = useState(false);
   const [tokenClient, setTokenClient] = useState(null);
   const [editorContent, setEditorContent] = useState('');
   const [saveStatus, setSaveStatus] = useState('');
@@ -11,136 +15,83 @@ const GoogleDocsPanel = () => {
   const [selectedDocId, setSelectedDocId] = useState(null);
   const [showUrlInput, setShowUrlInput] = useState(false);
   const [docUrlInput, setDocUrlInput] = useState('');
-  // Removed sync-related state variables
-
-  // Removed text formatting functions and toolbar
-
-  // Dynamic credentials from runtime environment
-  const [credentials, setCredentials] = useState({
-    CLIENT_ID: '',
-    API_KEY: '',
-    CLIENT_SECRET: ''
-  });
+  
+  // Runtime environment credentials
+  const [credentials, setCredentials] = useState(null);
   const [credentialsLoaded, setCredentialsLoaded] = useState(false);
   const [credentialsError, setCredentialsError] = useState(null);
   
+  // MCard sync status
+  const [mcardSyncStatus, setMcardSyncStatus] = useState('');
+  const [isSyncing, setIsSyncing] = useState(false);
+  
   const SCOPES = 'https://www.googleapis.com/auth/documents https://www.googleapis.com/auth/drive.readonly';
 
-  // Function to fetch credentials from runtime environment
+  // Fetch credentials from runtime environment
   const fetchRuntimeCredentials = useCallback(async () => {
     try {
-      const timestamp = Date.now();
-      const response = await fetch(`/runtime-env.json?t=${timestamp}`, { 
-        cache: 'no-store',
-        headers: {
-          'Cache-Control': 'no-cache, no-store, must-revalidate',
-          'Pragma': 'no-cache',
-          'Expires': '0'
-        }
-      });
+      console.log('🔄 Fetching Google Docs credentials from runtime environment...');
+      const creds = getGoogleCredentials();
       
-      if (response.ok) {
-        const env = await response.json();
-        const newCredentials = {
-          CLIENT_ID: env.PUBLIC_GOOGLE_CLIENT_ID || '',
-          API_KEY: env.PUBLIC_GOOGLE_API_KEY || '',
-          CLIENT_SECRET: env.PUBLIC_GOOGLE_CLIENT_SECRET || ''
-        };
-        
-        setCredentials(newCredentials);
+      if (creds && creds.isValid) {
+        setCredentials(creds);
         setCredentialsLoaded(true);
         setCredentialsError(null);
         
-        console.log('🔑 Google Docs credentials updated from runtime environment:', {
-          hasApiKey: !!newCredentials.API_KEY,
-          hasClientId: !!newCredentials.CLIENT_ID,
-          hasClientSecret: !!newCredentials.CLIENT_SECRET,
-          timestamp: new Date().toISOString()
+        console.log('✅ Google Docs credentials loaded:', {
+          hasApiKey: creds.hasApiKey,
+          hasClientId: creds.hasClientId,
+          hasClientSecret: creds.hasClientSecret,
+          isValid: creds.isValid
         });
         
-        return newCredentials;
+        return creds;
       } else {
-        throw new Error(`Failed to fetch runtime environment: ${response.status}`);
+        const errorMsg = 'Invalid or missing Google Docs credentials';
+        setCredentialsError(errorMsg);
+        setCredentialsLoaded(true);
+        console.error('❌', errorMsg);
+        return null;
       }
     } catch (error) {
-      console.error('❌ Error fetching Google Docs credentials from runtime environment:', error);
-      
-      // Don't fallback to build-time environment variables
-      setCredentials({
-        CLIENT_ID: '',
-        API_KEY: '',
-        CLIENT_SECRET: ''
-      });
-      setCredentialsLoaded(true);
+      console.error('❌ Error fetching Google Docs credentials:', error);
       setCredentialsError(error.message);
-      
-      return {
-        CLIENT_ID: '',
-        API_KEY: '',
-        CLIENT_SECRET: ''
-      };
+      setCredentialsLoaded(true);
+      return null;
     }
   }, []);
 
-  // Validate credentials (pure function without state updates)
+  // Validate credentials
   const validateCredentials = useCallback((creds) => {
-    const missing = [];
-    if (!creds.API_KEY || creds.API_KEY.trim() === '') missing.push('PUBLIC_GOOGLE_API_KEY');
-    if (!creds.CLIENT_ID || creds.CLIENT_ID.trim() === '') missing.push('PUBLIC_GOOGLE_CLIENT_ID');
-    if (!creds.CLIENT_SECRET || creds.CLIENT_SECRET.trim() === '') missing.push('PUBLIC_GOOGLE_CLIENT_SECRET');
-    
-    if (missing.length > 0) {
-      const errorMsg = `Missing or invalid Google Docs credentials: ${missing.join(', ')}. Please check your runtime environment configuration.`;
-      setCredentialsError(errorMsg);
-      return false;
-    }
-    
-    setCredentialsError(null);
-    return true;
+    if (!creds) return false;
+    return creds.isValid && creds.hasApiKey && creds.hasClientId && creds.hasClientSecret;
   }, []);
-
-  // Compute credentials validity without side effects
-  const areCredentialsValid = useMemo(() => {
-    if (!credentialsLoaded) return false;
-    return !!(credentials.API_KEY && credentials.API_KEY.trim() !== '' &&
-              credentials.CLIENT_ID && credentials.CLIENT_ID.trim() !== '' &&
-              credentials.CLIENT_SECRET && credentials.CLIENT_SECRET.trim() !== '');
-  }, [credentials, credentialsLoaded]);
 
   useEffect(() => {
-    // First, fetch credentials from runtime environment
+    // Initialize component with runtime credentials
     const initializeComponent = async () => {
       console.log('🔄 Initializing Google Docs component...');
       
       try {
+        // First fetch credentials
         const creds = await fetchRuntimeCredentials();
         if (!validateCredentials(creds)) {
-          console.error('❌ Invalid Google Docs credentials');
+          console.error('❌ Invalid Google Docs credentials, skipping API initialization');
           return;
         }
         
-        // Load Google API script after credentials are loaded
-        const loadGoogleApi = () => {
-          const script1 = document.createElement('script');
-          script1.src = 'https://accounts.google.com/gsi/client';
-          script1.async = true;
-          script1.defer = true;
-          
-          const script2 = document.createElement('script');
-          script2.src = 'https://apis.google.com/js/api.js';
-          script2.onload = gapiLoaded;
-          
-          // Add Google Picker API script
-          const script3 = document.createElement('script');
-          script3.src = 'https://apis.google.com/js/platform.js';
-          script3.onload = () => setPickerInited(true);
-          
-          document.body.appendChild(script1);
-          document.body.appendChild(script2);
-          document.body.appendChild(script3);
-        };
-
-        loadGoogleApi();
+        // Initialize the service with credentials
+        await googleDocsService.loadGoogleAPIs();
+        setGapiInited(true);
+        setGisInited(true);
+        
+        // Load Google Picker API script
+        const pickerScript = document.createElement('script');
+        pickerScript.src = 'https://apis.google.com/js/platform.js';
+        pickerScript.onload = () => setPickerInited(true);
+        document.head.appendChild(pickerScript);
+        
+        console.log('✅ Google Docs component initialized successfully');
         
       } catch (error) {
         console.error('❌ Failed to initialize Google Docs component:', error);
@@ -151,21 +102,27 @@ const GoogleDocsPanel = () => {
     initializeComponent();
 
     // Listen for runtime environment changes
-    const handleRuntimeEnvChange = async (event) => {
+    const handleRuntimeEnvChange = async () => {
       console.log('🔄 Runtime environment changed, refreshing Google Docs credentials...');
       try {
         const creds = await fetchRuntimeCredentials();
         if (validateCredentials(creds)) {
-          // Reset component state if credentials changed
+          // Reset component state when credentials change
           setGapiInited(false);
+          setGisInited(false);
           setTokenClient(null);
           setSelectedDocId(null);
           setEditorContent('');
           setSaveStatus('Credentials updated - please re-authenticate');
           
+          // Reinitialize with new credentials
+          await googleDocsService.loadGoogleAPIs();
+          setGapiInited(true);
+          setGisInited(true);
+          
           console.log('✅ Google Docs credentials refreshed');
           
-          // Dispatch custom event to notify about credential changes
+          // Dispatch custom event
           window.dispatchEvent(new CustomEvent('google-docs-credentials-updated', {
             detail: {
               newCredentials: creds,
@@ -192,72 +149,47 @@ const GoogleDocsPanel = () => {
     };
   }, [fetchRuntimeCredentials, validateCredentials]);
 
-  const gapiLoaded = () => {
-    window.gapi.load('client', initializeGapiClient);
-  };
-
-  const initializeGapiClient = async () => {
-    try {
-      await window.gapi.client.init({
-        apiKey: credentials.API_KEY,
-        discoveryDocs: ["https://docs.googleapis.com/$discovery/rest?version=v1"],
-      });
-      setGapiInited(true);
-    } catch (error) {
-      console.error('Error initializing GAPI client:', error);
-    }
-  };
-
-  const handleAuthClick = () => {
-    // Multiple safety checks to prevent authentication with invalid credentials
-    if (!window.google || !gapiInited || !credentialsLoaded) {
-      console.warn('❌ Google Docs: Cannot authenticate - API not ready');
+  // Handle authentication using the service
+  const handleAuthClick = useCallback(async () => {
+    // Check if APIs are ready and credentials are valid
+    if (!gapiInited || !gisInited || !credentialsLoaded) {
+      console.warn('❌ Google Docs: APIs not ready or credentials not loaded');
+      setSaveStatus('Please wait for initialization to complete...');
+      setTimeout(() => setSaveStatus(''), 3000);
       return;
     }
 
-    // Check for credential errors
     if (credentialsError) {
-      console.warn('❌ Google Docs: Cannot authenticate - credential error:', credentialsError);
+      console.warn('❌ Google Docs: Credential error:', credentialsError);
       setSaveStatus('Authentication blocked: Invalid credentials');
       setTimeout(() => setSaveStatus(''), 3000);
       return;
     }
 
-    // Validate credentials before attempting authentication
     if (!validateCredentials(credentials)) {
-      console.warn('❌ Google Docs: Cannot authenticate - invalid credentials');
+      console.warn('❌ Google Docs: Invalid credentials');
       setSaveStatus('Authentication blocked: Missing or invalid credentials');
       setTimeout(() => setSaveStatus(''), 3000);
       return;
     }
 
-    // Additional check for empty credentials
-    if (!credentials.CLIENT_ID || !credentials.API_KEY || !credentials.CLIENT_SECRET) {
-      console.warn('❌ Google Docs: Cannot authenticate - empty credentials');
-      setSaveStatus('Authentication blocked: Credentials not loaded');
-      setTimeout(() => setSaveStatus(''), 3000);
-      return;
-    }
-
     try {
-      const newTokenClient = window.google.accounts.oauth2.initTokenClient({
-        client_id: credentials.CLIENT_ID,
-        scope: SCOPES,
-        callback: async (tokenResponse) => {
-          await window.gapi.client.setToken(tokenResponse);
-          // After successful authentication, don't automatically open picker
-          // Let user choose between picker and URL input
-        },
-      });
+      setSaveStatus('Authenticating...');
+      const tokenResponse = await googleDocsService.authenticate();
       
-      setTokenClient(newTokenClient);
-      newTokenClient.requestAccessToken();
-    } catch (error) {
-      console.error('❌ Google Docs: Error during authentication setup:', error);
-      setSaveStatus('Authentication failed: Invalid credentials');
+      // Set tokenClient to trigger UI updates
+      setTokenClient(true);
+      
+      setSaveStatus('Authentication successful! You can now access Google Docs.');
       setTimeout(() => setSaveStatus(''), 3000);
+      
+      console.log('✅ Google Docs: Authentication completed successfully');
+    } catch (error) {
+      console.error('❌ Google Docs: Authentication failed:', error);
+      setSaveStatus(`Authentication failed: ${error.message}`);
+      setTimeout(() => setSaveStatus(''), 5000);
     }
-  };
+  }, [gapiInited, gisInited, credentialsLoaded, credentialsError, credentials, validateCredentials]);
   
   // Toggle URL input visibility
   const toggleUrlInput = () => {
@@ -265,29 +197,9 @@ const GoogleDocsPanel = () => {
     setDocUrlInput('');
   };
   
-  // Extract document ID from Google Docs URL
+  // Extract document ID from Google Docs URL using service
   const extractDocIdFromUrl = (url) => {
-    try {
-      // Handle different Google Docs URL formats
-      const patterns = [
-        /https:\/\/docs\.google\.com\/document\/d\/([a-zA-Z0-9_-]+)(\/|$)/,  // Standard format
-        /https:\/\/docs\.google\.com\/document\/u\/\d+\/d\/([a-zA-Z0-9_-]+)(\/|$)/,  // User-specific format
-        /https:\/\/drive\.google\.com\/open\?id=([a-zA-Z0-9_-]+)/,  // Drive link format
-        /https:\/\/drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)(\/|$)/  // Drive file format
-      ];
-      
-      for (const pattern of patterns) {
-        const match = url.match(pattern);
-        if (match && match[1]) {
-          return match[1];
-        }
-      }
-      
-      throw new Error('Invalid Google Docs URL format');
-    } catch (error) {
-      console.error('Error extracting document ID:', error);
-      return null;
-    }
+    return googleDocsService.extractDocIdFromUrl(url);
   };
   
   // Handle URL submission
@@ -311,44 +223,6 @@ const GoogleDocsPanel = () => {
     setShowUrlInput(false);
   };
   
-  // Create and render a Google Picker
-  const createPicker = () => {
-    if (!window.google || !pickerInited || !tokenClient) {
-      console.error('Google Picker API not loaded or user not authenticated');
-      return;
-    }
-    
-    // Hide URL input if shown
-    setShowUrlInput(false);
-    
-    // Load the picker API
-    window.gapi.load('picker', () => {
-      const view = new window.google.picker.DocsView(window.google.picker.ViewId.DOCS)
-      .setMimeTypes('application/vnd.google-apps.document')
-      .setMode(window.google.picker.DocsViewMode.LIST);
-      
-      const picker = new window.google.picker.PickerBuilder()
-        .enableFeature(window.google.picker.Feature.NAV_HIDDEN)
-        .setAppId(credentials.CLIENT_ID.split('-')[0])
-        .setOAuthToken(window.gapi.client.getToken().access_token)
-        .addView(view)
-        .setTitle('Select a Google Document')
-        .setCallback(pickerCallback)
-        .build();
-        
-      picker.setVisible(true);
-    });
-  };
-  
-  const pickerCallback = (data) => {
-    if (data.action === window.google.picker.Action.PICKED) {
-      const document = data.docs[0];
-      const docId = document.id;
-      setSelectedDocId(docId);
-      // Load the markdown version directly from export URL
-      loadMarkdownVersion(docId);
-    }
-  };
 
   // All other load functions removed - only using direct markdown export
 
@@ -461,185 +335,220 @@ const GoogleDocsPanel = () => {
     dangerouslySetInnerHTML={renderMarkdown(editorContent)}
   />
 
-  const handleExportMarkdown = () => {
-    // Use Google Docs direct export URL for Markdown format
+  const handleExportMarkdown = useCallback(async () => {
     if (!selectedDocId) {
       console.error('No document ID available');
       setSaveStatus('Export failed: No document ID');
       setTimeout(() => setSaveStatus(''), 3000);
       return;
     }
-    
-    // Create the  export URL using the direct Google Docs export endpoint
-    const exportUrl = `https://docs.google.com/document/d/${selectedDocId}/export?format=md`;
-    
-    try {
-      // Open the URL in a new tab to trigger download
-      window.open(exportUrl, '_blank');
-      
-      setSaveStatus('Exported as Markdown');
-      setTimeout(() => setSaveStatus(''), 2000);
-    } catch (error) {
-      console.error('Error exporting document:', error);
-      setSaveStatus('Export failed');
+
+    if (!googleDocsService.isAuthenticated()) {
+      setSaveStatus('Please authenticate first');
       setTimeout(() => setSaveStatus(''), 3000);
+      return;
     }
-  };
+
+    try {
+      setSaveStatus('Exporting document...');
+      const result = await googleDocsService.exportAsMarkdown(selectedDocId);
+      
+      if (result.success) {
+        setSaveStatus(`Exported as ${result.filename}`);
+        setTimeout(() => setSaveStatus(''), 3000);
+        
+        // Also update the editor content with the exported markdown
+        setEditorContent(result.markdown);
+      }
+    } catch (error) {
+      console.error('❌ Export failed:', error);
+      setSaveStatus(`Export failed: ${error.message}`);
+      setTimeout(() => setSaveStatus(''), 5000);
+    }
+  }, [selectedDocId]);
   
   // Function to load the markdown version of a Google Doc
-  const sendToMCard = async (markdownContent) => {
-    try {
-      const response = await fetch('http://localhost:4321/api/card-collection', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          action: 'add',
-          card: {
-            content: {
-              dimensionType: 'abstractSpecification',
-              context: markdownContent,
-              goal: '',
-              successCriteria: ''
-            }
-          }
-        })
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to send to MCard');
-      }
-
-      setSaveStatus('Sent to MCard successfully');
-      setTimeout(() => setSaveStatus(''), 2000);
-    } catch (error) {
-      console.error('Error sending to MCard:', error);
-      setSaveStatus('Failed to send to MCard');
-      setTimeout(() => setSaveStatus(''), 2000);
+  const sendToMCard = useCallback(async (markdownContent, documentInfo = {}, fullDocument = null) => {
+    if (!markdownContent && !fullDocument) {
+      console.warn('❌ No content to send to MCard');
+      return;
     }
-  };
 
-  const loadMarkdownVersion = async (docId) => {
+    try {
+      setIsSyncing(true);
+      setMcardSyncStatus('Saving to MCard...');
+      
+      // Create comprehensive JSON document structure
+      const jsonDocument = {
+        type: 'google_docs_document',
+        documentId: selectedDocId || 'unknown',
+        title: documentInfo.title || fullDocument?.title || 'Google Docs Document',
+        
+        // Content in multiple formats
+        content: {
+          markdown: markdownContent,
+          originalDocument: fullDocument ? {
+            documentId: fullDocument.documentId,
+            title: fullDocument.title,
+            body: fullDocument.body,
+            documentStyle: fullDocument.documentStyle,
+            namedStyles: fullDocument.namedStyles,
+            revisionId: fullDocument.revisionId,
+            suggestionsViewMode: fullDocument.suggestionsViewMode
+          } : null
+        },
+        
+        // Metadata
+        metadata: {
+          source: 'google_docs_integration',
+          exported_at: new Date().toISOString(),
+          word_count: markdownContent ? markdownContent.split(/\s+/).filter(word => word.length > 0).length : 0,
+          character_count: markdownContent ? markdownContent.length : 0,
+          paragraph_count: markdownContent ? markdownContent.split('\n').filter(line => line.trim().length > 0).length : 0,
+          
+          // Document properties from Google Docs
+          document_properties: fullDocument ? {
+            revision_id: fullDocument.revisionId,
+            suggestions_view_mode: fullDocument.suggestionsViewMode,
+            document_style: fullDocument.documentStyle,
+            has_named_styles: !!(fullDocument.namedStyles?.styles),
+            content_elements_count: fullDocument.body?.content?.length || 0
+          } : null,
+          
+          // Additional info
+          ...documentInfo
+        },
+        
+        // Processing info
+        processing: {
+          processed_at: new Date().toISOString(),
+          format: 'json',
+          version: '1.0',
+          processor: 'google_docs_mcard_integration'
+        }
+      };
+
+      // Save the JSON document to MCard
+      const result = await googleDocsMCardService.saveDocument(jsonDocument);
+      
+      if (result.success) {
+        setMcardSyncStatus('✅ Saved to MCard successfully');
+        console.log('✅ Document saved to MCard in JSON format:', result);
+      }
+      
+      setTimeout(() => {
+        setMcardSyncStatus('');
+        setIsSyncing(false);
+      }, 3000);
+      
+    } catch (error) {
+      console.error('❌ Error sending to MCard:', error);
+      setMcardSyncStatus(`❌ Failed to save: ${error.message}`);
+      setTimeout(() => {
+        setMcardSyncStatus('');
+        setIsSyncing(false);
+      }, 5000);
+    }
+  }, [selectedDocId]);
+
+  // Create and render a Google Picker
+  const createPicker = useCallback(() => {
+    if (!window.google || !pickerInited || !googleDocsService.isAuthenticated()) {
+      console.error('Google Picker API not loaded or user not authenticated');
+      setSaveStatus('Please authenticate first to use document picker');
+      setTimeout(() => setSaveStatus(''), 3000);
+      return;
+    }
+    
+    // Hide URL input if shown
+    setShowUrlInput(false);
+    
+    // Load the picker API
+    window.gapi.load('picker', () => {
+      const view = new window.google.picker.DocsView(window.google.picker.ViewId.DOCS)
+        .setMimeTypes('application/vnd.google-apps.document')
+        .setMode(window.google.picker.DocsViewMode.LIST);
+      
+      const picker = new window.google.picker.PickerBuilder()
+        .enableFeature(window.google.picker.Feature.NAV_HIDDEN)
+        .setAppId(credentials?.clientId?.split('-')[0] || '')
+        .setOAuthToken(window.gapi.client.getToken()?.access_token)
+        .addView(view)
+        .setTitle('Select a Google Document')
+        .setCallback(pickerCallback)
+        .build();
+        
+      picker.setVisible(true);
+    });
+  }, [pickerInited, credentials, credentialsLoaded]);
+  
+  // Handle picker selection
+  const pickerCallback = useCallback((data) => {
+    if (data.action === window.google.picker.Action.PICKED) {
+      const document = data.docs[0];
+      const docId = document.id;
+      setSelectedDocId(docId);
+      // Load the document content
+      loadMarkdownVersion(docId);
+      setSaveStatus(`Selected: ${document.name}`);
+      setTimeout(() => setSaveStatus(''), 3000);
+    }
+  }, []);
+
+  const loadMarkdownVersion = useCallback(async (docId) => {
     try {
       if (!docId) {
         console.error('No document ID provided');
         return;
       }
       
-      setSaveStatus('Loading markdown version...');
+      setSaveStatus('Loading document...');
       
-      // First try direct export URL
-      const exportUrl = `https://docs.google.com/document/d/${docId}/export?format=md`;
-      
-      try {
-        const response = await fetch(exportUrl);
-        if (response.ok) {
-          const mdContent = await response.text();
-          setEditorContent(mdContent);
-          setSaveStatus('Markdown loaded');
-          // Automatically send to MCard
-          await sendToMCard(mdContent);
-          return mdContent;
-        }
-      } catch (exportError) {
-        console.log('Direct export failed, trying OAuth...', exportError);
-      }
-      
-      // If direct export fails, try OAuth
-      if (!window.gapi?.client) {
-        setSaveStatus('Initializing Google API...');
-        await new Promise((resolve) => window.gapi.load('client', resolve));
-        await window.gapi.client.init({
-          apiKey: credentials.API_KEY,
-          discoveryDocs: ["https://docs.googleapis.com/$discovery/rest?version=v1"],
-        });
-      }
-
-      // Check if we have a valid token
-      if (!window.gapi.client.getToken()) {
+      // Check if authenticated
+      if (!googleDocsService.isAuthenticated()) {
         setSaveStatus('Authentication required');
-        if (!tokenClient) {
-          const newTokenClient = window.google.accounts.oauth2.initTokenClient({
-            client_id: credentials.CLIENT_ID,
-            scope: SCOPES,
-            callback: async (tokenResponse) => {
-              await window.gapi.client.setToken(tokenResponse);
-              // After authentication, retry loading
-              await loadMarkdownVersion(docId);
-            },
-          });
-          setTokenClient(newTokenClient);
-          newTokenClient.requestAccessToken();
-          return;
-        } else {
-          tokenClient.requestAccessToken();
+        try {
+          await googleDocsService.authenticate();
+        } catch (authError) {
+          setSaveStatus(`Authentication failed: ${authError.message}`);
+          setTimeout(() => setSaveStatus(''), 5000);
           return;
         }
       }
 
-      // Fetch document content using Google Docs API
-      const response = await window.gapi.client.docs.documents.get({
-        documentId: docId
-      });
-
-      // Convert Google Docs content to markdown
-      let markdown = '';
-      const doc = response.result;
-      const content = doc.body.content;
-
-      content.forEach(element => {
-        if (element.paragraph) {
-          const paragraph = element.paragraph;
-          let text = '';
-          
-          paragraph.elements.forEach(elem => {
-            if (elem.textRun) {
-              const style = elem.textRun.textStyle || {};
-              let formattedText = elem.textRun.content;
-
-              if (style.bold) formattedText = `**${formattedText}**`;
-              if (style.italic) formattedText = `*${formattedText}*`;
-              
-              text += formattedText;
-            }
-          });
-
-          // Handle different paragraph styles
-          if (paragraph.paragraphStyle?.namedStyleType?.includes('HEADING')) {
-            const level = parseInt(paragraph.paragraphStyle.namedStyleType.slice(-1));
-            text = '#'.repeat(level) + ' ' + text;
-          }
-
-          markdown += text + (text.endsWith('\n') ? '' : '\n');
-        }
-      });
-
-      setEditorContent(markdown);
-      setSaveStatus('Document loaded via API');
-      // Automatically send to MCard
-      await sendToMCard(markdown);
-      return markdown;
-
+      try {
+        // Get document using the service
+        const doc = await googleDocsService.getDocument(docId);
+        const markdown = googleDocsService.convertDocToMarkdown(doc);
+        
+        setEditorContent(markdown);
+        setSaveStatus('Document loaded successfully');
+        
+        // Automatically send to MCard with full document data
+        await sendToMCard(markdown, { title: doc.title }, doc);
+        
+        return markdown;
+      } catch (error) {
+        console.error('❌ Failed to load document:', error);
+        setSaveStatus(`Failed to load document: ${error.message}`);
+        setTimeout(() => setSaveStatus(''), 5000);
+      }
     } catch (error) {
-      console.error('Error loading document:', error);
-      setSaveStatus('Failed to load document');
-      setTimeout(() => setSaveStatus(''), 2000);
-      return null;
+      console.error('❌ Error in loadMarkdownVersion:', error);
+      setSaveStatus(`Error: ${error.message}`);
+      setTimeout(() => setSaveStatus(''), 5000);
     }
-  };
+  }, []);
 
-  // If not authenticated, show centered sign-in button
-  if (!tokenClient) {
+  // Show loading screen only while initializing, not when ready for authentication
+  if (!credentialsLoaded || !gapiInited || !gisInited) {
     return (
       <div style={{
         display: 'flex',
-        flexDirection: 'column',
         justifyContent: 'center',
         alignItems: 'center',
         minHeight: '100vh',
         backgroundColor: '#f8f9fa',
-        padding: '20px',
       }}>
         {credentialsError && (
           <div style={{
@@ -662,7 +571,7 @@ const GoogleDocsPanel = () => {
         
         <button 
           onClick={handleAuthClick}
-          disabled={!gapiInited || !credentialsLoaded || !!credentialsError || !areCredentialsValid}
+          disabled={!gapiInited || !gisInited || !credentialsLoaded || !!credentialsError}
           className="bg-white text-gray-700 px-6 py-3 rounded-lg border border-gray-300 hover:bg-gray-50 flex items-center space-x-3 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
           title={credentialsError ? `Cannot sign in: ${credentialsError}` : 'Sign in with Google to access documents'}
         >
@@ -674,6 +583,7 @@ const GoogleDocsPanel = () => {
           <span>
             {!credentialsLoaded ? 'Loading credentials...' : 
              credentialsError ? 'Credentials required' :
+             !gapiInited || !gisInited ? 'Initializing...' :
              'Sign in with Google'}
           </span>
         </button>
@@ -687,7 +597,7 @@ const GoogleDocsPanel = () => {
     );
   }
 
-  // If authenticated, show the regular content
+  // Main interface - show regardless of authentication status
   return (
     <div className="google-docs-panel" style={{
       maxWidth: '850px',
@@ -697,6 +607,25 @@ const GoogleDocsPanel = () => {
       display: 'flex',
       flexDirection: 'column',
     }}>
+      {/* Credential error display */}
+      {credentialsError && (
+        <div style={{
+          backgroundColor: '#fef2f2',
+          border: '1px solid #fecaca',
+          borderRadius: '8px',
+          padding: '16px',
+          margin: '16px',
+          textAlign: 'center',
+        }}>
+          <div style={{ color: '#dc2626', fontWeight: '600', marginBottom: '8px' }}>
+            Credential Error
+          </div>
+          <div style={{ color: '#7f1d1d', fontSize: '14px' }}>
+            {credentialsError}
+          </div>
+        </div>
+      )}
+      
       <div style={{
         padding: '8px 16px',
         borderBottom: '1px solid #e0e0e0',
@@ -709,7 +638,43 @@ const GoogleDocsPanel = () => {
         zIndex: 100,
       }}>
         <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-          {tokenClient && !selectedDocId && (
+          {/* Show sign-in button if not authenticated */}
+          {!googleDocsService.isAuthenticated() && (
+            <button
+              onClick={handleAuthClick}
+              disabled={!gapiInited || !gisInited || !credentialsLoaded || !!credentialsError}
+              style={{
+                backgroundColor: '#4285f4',
+                color: 'white',
+                padding: '8px 16px',
+                border: 'none',
+                borderRadius: '4px',
+                fontSize: '14px',
+                fontWeight: '500',
+                cursor: 'pointer',
+                opacity: (!gapiInited || !gisInited || !credentialsLoaded || !!credentialsError) ? 0.5 : 1,
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px'
+              }}
+              title={credentialsError ? `Cannot sign in: ${credentialsError}` : 'Sign in with Google to access documents'}
+            >
+              <img 
+                src="https://www.google.com/favicon.ico" 
+                alt="Google" 
+                style={{ width: '16px', height: '16px' }}
+              />
+              <span>
+                {!credentialsLoaded ? 'Loading...' : 
+                 credentialsError ? 'Credentials Error' :
+                 !gapiInited || !gisInited ? 'Initializing...' :
+                 'Sign in with Google'}
+              </span>
+            </button>
+          )}
+          
+          {/* Show document selection if authenticated */}
+          {googleDocsService.isAuthenticated() && !selectedDocId && (
             <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
               {!showUrlInput ? (
                 <>
@@ -809,7 +774,7 @@ const GoogleDocsPanel = () => {
         
         {/* Moved buttons to the right */}
         <div style={{ display: 'flex', gap: '8px' }}>
-          {tokenClient && selectedDocId && (
+          {googleDocsService.isAuthenticated() && selectedDocId && (
             <>
               <button
                 onClick={createPicker}
@@ -904,56 +869,3 @@ const GoogleDocsPanel = () => {
 };
 
 export default GoogleDocsPanel;
-
-// Add this CSS to style the numbered lists and headings like Google Docs
-const editorStyles = {
-  '.editor-content ol': {
-    listStyleType: 'decimal',
-    marginLeft: '40px',
-    paddingLeft: '0',
-    lineHeight: '1.5',
-  },
-  '.editor-content ol li': {
-    padding: '4px 0',
-    color: '#202124',
-    fontSize: '11pt',
-    fontFamily: '"Google Sans", Roboto, Arial, sans-serif',
-  },
-  '.editor-content ol ol': {
-    listStyleType: 'lower-alpha',
-  },
-  '.editor-content ol ol ol': {
-    listStyleType: 'lower-roman',
-  }
-};
-
-// Update the editor container to include the styles
-const renderEditor = () => (
-  <div
-    className="editor-content"
-    contentEditable
-    style={{
-      minHeight: '200px',
-      padding: '20px',
-      border: '1px solid #e0e0e0',
-      borderRadius: '4px',
-      outline: 'none',
-      backgroundColor: '#ffffff',
-      ...editorStyles
-    }}
-    onInput={(e) => handleEditorChange(e)}
-    dangerouslySetInnerHTML={{ __html: editorContent }}
-  />
-);
-
-// Add this function to handle list indentation
-const handleKeyDown = (e) => {
-  if (e.key === 'Tab') {
-    e.preventDefault();
-    if (e.shiftKey) {
-      document.execCommand('outdent', false, null);
-    } else {
-      document.execCommand('indent', false, null);
-    }
-  }
-};

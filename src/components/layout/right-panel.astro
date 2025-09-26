@@ -1,5 +1,5 @@
 ---
-// Right panel with Google Calendar integration
+// Right panel with navigation buttons for Google services
 ---
 <aside class="rounded-lg bg-[var(--surface)] border border-black/5 dark:border-white/10 p-4">
   <h2 class="text-sm font-semibold opacity-70 mb-2">Right Panel</h2>
@@ -16,6 +16,9 @@
       </svg>
       <span class="text-sm">View Calendar</span>
     </button>
+    <div class="mt-2 text-xs text-gray-500 dark:text-gray-400">
+      Manage your events and schedules
+    </div>
   </div>
 
   <!-- Google Docs Section -->
@@ -31,7 +34,7 @@
       <span class="text-sm">Open Docs</span>
     </button>
     <div class="mt-2 text-xs text-gray-500 dark:text-gray-400">
-      Google Docs integration
+      Access and edit documents
     </div>
   </div>
 
@@ -48,7 +51,7 @@
       <span class="text-sm">View Slides</span>
     </button>
     <div class="mt-2 text-xs text-gray-500 dark:text-gray-400">
-      Google Slides presentations
+      Create and view presentations
     </div>
   </div>
 
@@ -80,28 +83,24 @@
     
     if (calendarBtn) {
       calendarBtn.addEventListener('click', () => {
-        // Show Google Calendar in the center content area
         showGoogleCalendar();
       });
     }
 
     if (googleDocsBtn) {
       googleDocsBtn.addEventListener('click', () => {
-        // Show Google Docs in the center content area
         showGoogleDocs();
       });
     }
 
     if (googleSlidesBtn) {
       googleSlidesBtn.addEventListener('click', () => {
-        // Show Google Slides in the center content area
         showGoogleSlides();
       });
     }
 
     if (aiChatBtn) {
       aiChatBtn.addEventListener('click', () => {
-        // Show AI Chat in the center content area
         showAIChat();
       });
     }
@@ -131,320 +130,41 @@
     if (placeholder) placeholder.classList.add('hidden');
     rendererSlot.classList.remove('hidden');
 
-    // Create Google Calendar container
-    rendererSlot.innerHTML = `
-      <div id="google-calendar-container" class="h-full w-full">
-        <!-- Google Calendar will be rendered here -->
-      </div>
-    `;
-
-    // Load the Google Calendar interface directly
-    loadGoogleCalendarInterface();
+    // Load the actual Google Calendar React component
+    loadGoogleCalendarComponent(rendererSlot);
   }
 
-  function loadGoogleCalendarInterface() {
-    const container = document.getElementById('google-calendar-container');
-    if (!container) return;
-
-    // Create the calendar interface
-    container.innerHTML = `
-      <div class="h-full p-4 space-y-4">
-        <div class="flex justify-between items-center">
-          <h2 class="text-xl font-bold dark:text-white">Google Calendar</h2>
-          <button 
-            id="google-signin-btn"
-            class="bg-white text-gray-700 px-4 py-2 rounded-lg border border-gray-300 hover:bg-gray-50 flex items-center space-x-2 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <img 
-              src="https://www.google.com/favicon.ico" 
-              alt="Google" 
-              class="w-4 h-4"
-            />
-            <span id="signin-text">Sign in with Google</span>
-          </button>
-        </div>
-        
-        <div id="calendar-content" class="hidden space-y-4">
-          <!-- Calendar events will be rendered here -->
-        </div>
-        
-        <div id="calendar-loading" class="hidden">
-          <div class="flex items-center justify-center py-8">
-            <div class="text-center">
-              <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-2"></div>
-              <p class="text-sm opacity-70">Loading calendar...</p>
-            </div>
-          </div>
-        </div>
-        
-        <div id="calendar-error" class="hidden bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-300 rounded-lg p-4 text-center">
-          <div class="text-4xl mb-2">⚠️</div>
-          <p class="text-sm" id="error-message">Failed to load calendar</p>
-        </div>
-      </div>
-    `;
-
-    // Initialize the calendar functionality
-    initializeGoogleCalendar();
-  }
-
-  async function initializeGoogleCalendar() {
-    const signInBtn = document.getElementById('google-signin-btn');
-    const signInText = document.getElementById('signin-text');
-    const calendarContent = document.getElementById('calendar-content');
-    const calendarPlaceholder = document.getElementById('calendar-placeholder');
-    const calendarLoading = document.getElementById('calendar-loading');
-    const calendarError = document.getElementById('calendar-error');
-    const errorMessage = document.getElementById('error-message');
-
-    let isAuthenticated = false;
-    let isLoading = false;
-
-    // Import Google Calendar functions
-    let googleCalendarAPI: any;
+  async function loadGoogleCalendarComponent(rendererSlot) {
     try {
-      const module = await import('../googlecalendar/google-calendar.js');
-      googleCalendarAPI = module;
-    } catch (error) {
-      console.error('Failed to load Google Calendar API module:', error);
-      showError('Failed to load Google Calendar API');
-      return;
-    }
+      // Import React and create root
+      const React = await import('react');
+      const { createRoot } = await import('react-dom/client');
+      const { default: GoogleCalendar } = await import('../googlecalendar/googlecalendar.jsx');
 
-    function showLoading() {
-      isLoading = true;
-      if (signInBtn) (signInBtn as HTMLButtonElement).disabled = true;
-      hideAllStates();
-      if (calendarLoading) calendarLoading.classList.remove('hidden');
-    }
-
-    function showContent() {
-      isLoading = false;
-      if (signInBtn) (signInBtn as HTMLButtonElement).disabled = false;
-      hideAllStates();
-      if (calendarContent) calendarContent.classList.remove('hidden');
-    }
-
-    function showPlaceholder() {
-      isLoading = false;
-      if (signInBtn) (signInBtn as HTMLButtonElement).disabled = false;
-      hideAllStates();
-      if (calendarPlaceholder) calendarPlaceholder.classList.remove('hidden');
-    }
-
-    function showError(message: string) {
-      isLoading = false;
-      if (signInBtn) (signInBtn as HTMLButtonElement).disabled = false;
-      hideAllStates();
-      if (errorMessage) errorMessage.textContent = message;
-      if (calendarError) calendarError.classList.remove('hidden');
-    }
-
-    function hideAllStates() {
-      [calendarContent, calendarPlaceholder, calendarLoading, calendarError].forEach(el => {
-        if (el) el.classList.add('hidden');
-      });
-    }
-
-    function updateSignInButton() {
-      if (!signInBtn || !signInText) return;
-
-      if (isAuthenticated) {
-        signInText.textContent = 'Sign Out';
-        signInBtn.className = 'bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 flex items-center space-x-2 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed';
-      } else {
-        signInText.textContent = 'Sign in with Google';
-        signInBtn.className = 'bg-white text-gray-700 px-4 py-2 rounded-lg border border-gray-300 hover:bg-gray-50 flex items-center space-x-2 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed';
-      }
-    }
-
-    async function handleSignIn() {
-      try {
-        showLoading();
-        await googleCalendarAPI.signIn();
-        isAuthenticated = true;
-        updateSignInButton();
-        await loadEvents();
-      } catch (error) {
-        console.error('Sign in failed:', error);
-        showError('Sign in failed. Please check your Google API credentials.');
-      }
-    }
-
-    async function handleSignOut() {
-      try {
-        showLoading();
-        await googleCalendarAPI.signOut();
-        isAuthenticated = false;
-        updateSignInButton();
-        showPlaceholder();
-      } catch (error) {
-        console.error('Sign out failed:', error);
-        showError('Sign out failed. Please try again.');
-      }
-    }
-
-    async function loadEvents() {
-      try {
-        showLoading();
-        const response = await googleCalendarAPI.listEvents();
-        const events = response.result.items || [];
-        renderEvents(events);
-      } catch (error) {
-        console.error('Failed to load events:', error);
-        showError('Failed to load calendar events. Please try again.');
-      }
-    }
-
-    function renderEvents(events: any[]) {
-      if (!calendarContent) return;
-
-      const today = new Date();
-      const todayEvents = events.filter((event: any) => {
-        const eventDate = new Date(event.start.dateTime || event.start.date);
-        return eventDate.toDateString() === today.toDateString();
-      });
-
-      const upcomingEvents = events.slice(0, 8); // Show next 8 events
-
-      calendarContent.innerHTML = `
-        <div class="space-y-4">
-          <!-- Today's Events Summary -->
-          <div class="bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-lg p-3">
-            <h3 class="font-semibold mb-2">Today's Schedule</h3>
-            ${todayEvents.length > 0 
-              ? `<p class="text-sm">You have ${todayEvents.length} ${todayEvents.length === 1 ? 'meeting' : 'meetings'} today</p>`
-              : '<p class="text-sm">No meetings today, would you like to take a vacation?</p>'
-            }
-          </div>
-
-          <!-- Upcoming Events -->
-          <div>
-            <h3 class="font-semibold mb-3 dark:text-white">Upcoming Events</h3>
-            <div class="space-y-2 max-h-80 overflow-y-auto">
-              ${upcomingEvents.length === 0 
-                ? '<p class="text-sm text-gray-500 dark:text-gray-400">No upcoming events</p>'
-                : upcomingEvents.map((event: any) => renderEventCard(event)).join('')
-              }
-            </div>
-          </div>
-
-          <!-- Actions -->
-          <div class="flex justify-center gap-2 pt-4">
-            <button 
-              id="refresh-events-btn"
-              class="px-3 py-1.5 text-blue-600 dark:text-blue-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors flex items-center gap-1 text-sm"
-            >
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
-              </svg>
-              Refresh
-            </button>
-          </div>
-        </div>
-      `;
-
-      // Bind refresh button
-      const refreshBtn = document.getElementById('refresh-events-btn');
-      if (refreshBtn) {
-        refreshBtn.addEventListener('click', () => loadEvents());
-      }
-
-      showContent();
-    }
-
-    function renderEventCard(event: any) {
-      const date = new Date(event.start.dateTime || event.start.date);
-      const formattedDate = date.toLocaleString('en-US', {
-        weekday: 'short',
-        month: 'short',
-        day: 'numeric',
-        hour: 'numeric',
-        minute: '2-digit'
-      });
-
-      return `
-        <div class="bg-white dark:bg-gray-700 rounded-lg shadow-sm border border-gray-200 dark:border-gray-600 p-3 hover:shadow-md transition-shadow">
-          <div class="flex items-start gap-3">
-            <div class="text-xs text-blue-600 dark:text-blue-400 whitespace-nowrap font-medium">
-              ${formattedDate}
-            </div>
-            <div class="flex-1 min-w-0">
-              <h4 class="font-medium text-sm dark:text-white truncate">${event.summary || 'Untitled Event'}</h4>
-              ${event.description 
-                ? `<p class="text-xs text-gray-600 dark:text-gray-300 mt-1 line-clamp-2">${event.description.substring(0, 100)}${event.description.length > 100 ? '...' : ''}</p>`
-                : ''
-              }
-            </div>
-          </div>
-        </div>
-      `;
-    }
-
-    // Initialize Google API
-    try {
-      showLoading();
-      await googleCalendarAPI.loadGoogleApi();
+      // Create container for the React component
+      rendererSlot.innerHTML = `<div id="google-calendar-container" class="h-full w-full"></div>`;
+      const container = document.getElementById('google-calendar-container');
       
-      // Check if already authenticated
-      if (typeof window !== 'undefined' && (window as any).gapi && (window as any).gapi.client.getToken()) {
-        isAuthenticated = true;
-        updateSignInButton();
-        await loadEvents();
-      } else {
-        showPlaceholder();
+      if (container) {
+        // Create React root and render Google Calendar component
+        const root = createRoot(container);
+        root.render(React.createElement(GoogleCalendar, { 
+          className: 'h-full' 
+        }));
       }
     } catch (error) {
-      console.error('Failed to initialize Google Calendar:', error);
-      showError('Failed to initialize Google Calendar. Please check your API credentials.');
+      console.error('Failed to load Google Calendar component:', error);
+      rendererSlot.innerHTML = `
+        <div class="h-full flex items-center justify-center">
+          <div class="text-center p-8">
+            <div class="text-red-500 text-4xl mb-4">⚠️</div>
+            <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">Failed to Load Google Calendar</h3>
+            <p class="text-gray-600 dark:text-gray-400 mb-4">Unable to initialize the Google Calendar interface.</p>
+            <p class="text-sm text-gray-500 dark:text-gray-500">Error: ${error instanceof Error ? error.message : 'Unknown error'}</p>
+          </div>
+        </div>
+      `;
     }
-
-    // Bind sign-in button
-    if (signInBtn) {
-      signInBtn.addEventListener('click', () => {
-        if (isAuthenticated) {
-          handleSignOut();
-        } else {
-          handleSignIn();
-        }
-      });
-    }
-  }
-
-  function showAIChat() {
-    const contentTitle = document.getElementById('content-title');
-    const contentType = document.getElementById('content-type');
-    const contentTimestamp = document.getElementById('content-timestamp');
-    const placeholder = document.getElementById('content-placeholder');
-    const rendererSlot = document.getElementById('renderer-slot');
-
-    if (!contentTitle || !rendererSlot) return;
-
-    // Update header
-    contentTitle.innerHTML = `
-      <svg class="w-5 h-5 inline mr-2" fill="currentColor" viewBox="0 0 20 20">
-        <path d="M2 5a2 2 0 012-2h7a2 2 0 012 2v4a2 2 0 01-2 2H9l-3 3v-3H4a2 2 0 01-2-2V5z"/>
-        <path d="M15 7v2a4 4 0 01-4 4H9.828l-1.766 1.767c.28.149.599.233.938.233h2l3 3v-3h2a2 2 0 002-2V9a2 2 0 00-2-2h-1z"/>
-      </svg>
-      AI Assistant
-    `;
-    
-    if (contentType) contentType.textContent = 'Ollama LLM with RAG';
-    if (contentTimestamp) contentTimestamp.textContent = new Date().toLocaleString();
-
-    // Hide placeholder and show renderer slot
-    if (placeholder) placeholder.classList.add('hidden');
-    rendererSlot.classList.remove('hidden');
-
-    // Create RAG container
-    rendererSlot.innerHTML = `
-      <div id="ai-chat-container" class="h-full w-full">
-        <!-- RAG interface will be rendered here -->
-      </div>
-    `;
-
-    // Load the RAG interface
-    loadAIChatInterface();
   }
 
   function showGoogleDocs() {
@@ -471,70 +191,36 @@
     if (placeholder) placeholder.classList.add('hidden');
     rendererSlot.classList.remove('hidden');
 
-    // Create Google Docs container
-    rendererSlot.innerHTML = `
-      <div id="google-docs-container" class="h-full w-full">
-        <!-- Google Docs will be rendered here -->
-      </div>
-    `;
-
-    // Load the Google Docs interface
-    loadGoogleDocsInterface();
+    // Load the actual Google Docs React component
+    loadGoogleDocsComponent(rendererSlot);
   }
 
-  async function loadGoogleDocsInterface() {
-    const container = document.getElementById('google-docs-container');
-    if (!container) return;
-
+  async function loadGoogleDocsComponent(rendererSlot) {
     try {
       // Import React and create root
       const React = await import('react');
       const { createRoot } = await import('react-dom/client');
-      const { default: GoogleDocsPanel } = await import('../../components/googledocs/googledocs.jsx');
+      const { default: GoogleDocsPanel } = await import('../googledocs/googledocs.jsx');
 
-      // Create React root and render Google Docs interface
-      const root = createRoot(container);
-      root.render(React.createElement(GoogleDocsPanel, { 
-        className: 'h-full' 
-      }));
+      // Create container for the React component
+      rendererSlot.innerHTML = `<div id="google-docs-container" class="h-full w-full"></div>`;
+      const container = document.getElementById('google-docs-container');
+      
+      if (container) {
+        // Create React root and render Google Docs component
+        const root = createRoot(container);
+        root.render(React.createElement(GoogleDocsPanel, { 
+          className: 'h-full' 
+        }));
+      }
     } catch (error) {
-      console.error('Failed to load Google Docs interface:', error);
-      container.innerHTML = `
+      console.error('Failed to load Google Docs component:', error);
+      rendererSlot.innerHTML = `
         <div class="h-full flex items-center justify-center">
           <div class="text-center p-8">
             <div class="text-red-500 text-4xl mb-4">⚠️</div>
             <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">Failed to Load Google Docs</h3>
             <p class="text-gray-600 dark:text-gray-400 mb-4">Unable to initialize the Google Docs interface.</p>
-            <p class="text-sm text-gray-500 dark:text-gray-500">Error: ${error instanceof Error ? error.message : 'Unknown error'}</p>
-          </div>
-        </div>
-      `;
-    }
-  }
-
-  async function loadAIChatInterface() {
-    const container = document.getElementById('ai-chat-container');
-    if (!container) return;
-
-    try {
-      // Import React and create root
-      const React = await import('react');
-      const { createRoot } = await import('react-dom/client');
-      const { RAGBrowser } = await import('../RAG/RAGBrowser');
-
-      // Create React root and render RAG interface
-      const root = createRoot(container);
-      root.render(React.createElement(RAGBrowser, { 
-        className: 'h-full' 
-      }));
-    } catch (error) {
-      console.error('Failed to load RAG interface:', error);
-      container.innerHTML = `
-        <div class="h-full flex items-center justify-center">
-          <div class="text-center p-8">
-            <div class="text-red-500 text-4xl mb-4">⚠️</div>
-            <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">Failed to Load RAG</h3>
-            <p class="text-gray-600 dark:text-gray-400 mb-4">Unable to initialize the RAG interface.</p>
             <p class="text-sm text-gray-500 dark:text-gray-500">Error: ${error instanceof Error ? error.message : 'Unknown error'}</p>
           </div>
         </div>
@@ -566,40 +252,98 @@
     if (placeholder) placeholder.classList.add('hidden');
     rendererSlot.classList.remove('hidden');
 
-    // Create Google Slides container
-    rendererSlot.innerHTML = `
-      <div id="google-slides-container" class="h-full w-full">
-        <!-- Google Slides will be rendered here -->
-      </div>
-    `;
-
-    // Load the Google Slides interface
-    loadGoogleSlidesInterface();
+    // Load the actual Google Slides React component
+    loadGoogleSlidesComponent(rendererSlot);
   }
 
-  async function loadGoogleSlidesInterface() {
-    const container = document.getElementById('google-slides-container');
-    if (!container) return;
-
+  async function loadGoogleSlidesComponent(rendererSlot) {
     try {
       // Import React and create root
       const React = await import('react');
       const { createRoot } = await import('react-dom/client');
       const { default: GoogleSlidesPanel } = await import('../googleslides/googleslides.jsx');
 
-      // Create React root and render Google Slides interface
-      const root = createRoot(container);
-      root.render(React.createElement(GoogleSlidesPanel, { 
-        className: 'h-full' 
-      }));
+      // Create container for the React component
+      rendererSlot.innerHTML = `<div id="google-slides-container" class="h-full w-full"></div>`;
+      const container = document.getElementById('google-slides-container');
+      
+      if (container) {
+        // Create React root and render Google Slides component
+        const root = createRoot(container);
+        root.render(React.createElement(GoogleSlidesPanel, { 
+          className: 'h-full' 
+        }));
+      }
     } catch (error) {
-      console.error('Failed to load Google Slides interface:', error);
-      container.innerHTML = `
+      console.error('Failed to load Google Slides component:', error);
+      rendererSlot.innerHTML = `
         <div class="h-full flex items-center justify-center">
           <div class="text-center p-8">
             <div class="text-red-500 text-4xl mb-4">⚠️</div>
             <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">Failed to Load Google Slides</h3>
             <p class="text-gray-600 dark:text-gray-400 mb-4">Unable to initialize the Google Slides interface.</p>
+            <p class="text-sm text-gray-500 dark:text-gray-500">Error: ${error instanceof Error ? error.message : 'Unknown error'}</p>
+          </div>
+        </div>
+      `;
+    }
+  }
+
+  function showAIChat() {
+    const contentTitle = document.getElementById('content-title');
+    const contentType = document.getElementById('content-type');
+    const contentTimestamp = document.getElementById('content-timestamp');
+    const placeholder = document.getElementById('content-placeholder');
+    const rendererSlot = document.getElementById('renderer-slot');
+
+    if (!contentTitle || !rendererSlot) return;
+
+    // Update header
+    contentTitle.innerHTML = `
+      <svg class="w-5 h-5 inline mr-2" fill="currentColor" viewBox="0 0 20 20">
+        <path d="M2 5a2 2 0 012-2h7a2 2 0 012 2v4a2 2 0 01-2 2H9l-3 3v-3H4a2 2 0 01-2-2V5z"/>
+        <path d="M15 7v2a4 4 0 01-4 4H9.828l-1.766 1.767c.28.149.599.233.938.233h2l3 3v-3h2a2 2 0 002-2V9a2 2 0 00-2-2h-1z"/>
+      </svg>
+      AI Assistant
+    `;
+    
+    if (contentType) contentType.textContent = 'RAG-enabled AI Chat';
+    if (contentTimestamp) contentTimestamp.textContent = new Date().toLocaleString();
+
+    // Hide placeholder and show renderer slot
+    if (placeholder) placeholder.classList.add('hidden');
+    rendererSlot.classList.remove('hidden');
+
+    // Load the RAG Browser component
+    loadAIChatComponent(rendererSlot);
+  }
+
+  async function loadAIChatComponent(rendererSlot) {
+    try {
+      // Import React and create root
+      const React = await import('react');
+      const { createRoot } = await import('react-dom/client');
+      const { RAGBrowser } = await import('../RAG/RAGBrowser');
+
+      // Create container for the React component
+      rendererSlot.innerHTML = `<div id="ai-chat-container" class="h-full w-full"></div>`;
+      const container = document.getElementById('ai-chat-container');
+      
+      if (container) {
+        // Create React root and render RAG Browser component
+        const root = createRoot(container);
+        root.render(React.createElement(RAGBrowser, { 
+          className: 'h-full' 
+        }));
+      }
+    } catch (error) {
+      console.error('Failed to load AI Chat component:', error);
+      rendererSlot.innerHTML = `
+        <div class="h-full flex items-center justify-center">
+          <div class="text-center p-8">
+            <div class="text-red-500 text-4xl mb-4">⚠️</div>
+            <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">Failed to Load AI Chat</h3>
+            <p class="text-gray-600 dark:text-gray-400 mb-4">Unable to initialize the AI Chat interface.</p>
             <p class="text-sm text-gray-500 dark:text-gray-500">Error: ${error instanceof Error ? error.message : 'Unknown error'}</p>
           </div>
         </div>

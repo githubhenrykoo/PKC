@@ -208,7 +208,7 @@ class GoogleSlidesMCardService {
   }
 
   /**
-   * Create a readable text summary of presentations
+   * Create a readable JSON summary of presentations
    */
   async saveReadableSummaryToMCard(presentations, userEmail = 'unknown_user') {
     try {
@@ -221,47 +221,78 @@ class GoogleSlidesMCardService {
         return modifiedDate >= oneWeekAgo;
       });
 
-      // Create readable summary
-      let summary = `# Google Slides Summary\n\n`;
-      summary += `**Sync Date:** ${now.toLocaleDateString()} ${now.toLocaleTimeString()}\n`;
-      summary += `**User:** ${userEmail}\n`;
-      summary += `**Total Presentations:** ${presentations.length}\n\n`;
+      // Create structured JSON summary
+      const readableSummary = {
+        type: 'google_slides_readable_summary',
+        title: 'Google Slides Summary',
+        syncInfo: {
+          syncDate: now.toISOString(),
+          syncDateFormatted: `${now.toLocaleDateString()} ${now.toLocaleTimeString()}`,
+          user: userEmail,
+          totalPresentations: presentations.length
+        },
+        recentPresentations: {
+          title: 'Recently Modified Presentations',
+          count: recentPresentations.length,
+          timeframe: 'Last 7 days',
+          presentations: recentPresentations.length === 0 ? [] : recentPresentations.map((presentation, index) => {
+            const modifiedDate = new Date(presentation.modifiedTime || '');
+            return {
+              index: index + 1,
+              name: presentation.name,
+              id: presentation.id,
+              lastModified: modifiedDate.toISOString(),
+              lastModifiedFormatted: `${modifiedDate.toLocaleDateString()} ${modifiedDate.toLocaleTimeString()}`,
+              link: presentation.webViewLink,
+              thumbnailLink: presentation.thumbnailLink,
+              owners: presentation.owners?.map(owner => ({
+                displayName: owner.displayName || owner.emailAddress,
+                emailAddress: owner.emailAddress
+              })) || []
+            };
+          }),
+          message: recentPresentations.length === 0 ? 'No presentations modified in the last week. Time to create something new! 🎨' : null
+        },
+        allPresentations: {
+          title: 'All Presentations (Most Recent 15)',
+          count: Math.min(presentations.length, 15),
+          presentations: presentations.slice(0, 15).map((presentation, index) => {
+            const modifiedDate = new Date(presentation.modifiedTime || '');
+            return {
+              index: index + 1,
+              name: presentation.name,
+              id: presentation.id,
+              lastModified: modifiedDate.toISOString(),
+              lastModifiedFormatted: modifiedDate.toLocaleDateString(),
+              link: presentation.webViewLink,
+              thumbnailLink: presentation.thumbnailLink,
+              owners: presentation.owners?.map(owner => ({
+                displayName: owner.displayName || owner.emailAddress,
+                emailAddress: owner.emailAddress
+              })) || []
+            };
+          })
+        },
+        tips: [
+          'Use these presentations for your next meeting or project',
+          'Click the links to open them in Google Slides',
+          'Check the thumbnails for quick visual reference'
+        ],
+        metadata: {
+          source: 'google_slides',
+          format: 'json',
+          version: '1.0',
+          generatedAt: now.toISOString()
+        }
+      };
 
-      // Recent presentations
-      summary += `## Recently Modified Presentations (${recentPresentations.length})\n\n`;
-      if (recentPresentations.length === 0) {
-        summary += `No presentations modified in the last week. Time to create something new! 🎨\n\n`;
-      } else {
-        recentPresentations.forEach((presentation, index) => {
-          const modifiedDate = new Date(presentation.modifiedTime || '');
-          
-          summary += `${index + 1}. **${presentation.name}**\n`;
-          summary += `   - Last Modified: ${modifiedDate.toLocaleDateString()} ${modifiedDate.toLocaleTimeString()}\n`;
-          summary += `   - Link: ${presentation.webViewLink}\n`;
-          if (presentation.owners && presentation.owners.length > 0) {
-            const ownerNames = presentation.owners.map(owner => owner.displayName || owner.emailAddress).join(', ');
-            summary += `   - Owner(s): ${ownerNames}\n`;
-          }
-          summary += `\n`;
-        });
-      }
-
-      // All presentations (most recent 15)
-      const topPresentations = presentations.slice(0, 15);
-      summary += `## All Presentations (Most Recent 15)\n\n`;
-      topPresentations.forEach((presentation, index) => {
-        const modifiedDate = new Date(presentation.modifiedTime || '');
-        summary += `${index + 1}. **${presentation.name}** - Modified: ${modifiedDate.toLocaleDateString()}\n`;
-        summary += `   - Link: ${presentation.webViewLink}\n`;
-      });
-
-      summary += `\n---\n\n`;
-      summary += `💡 **Tip:** Use these presentations for your next meeting or project. Click the links to open them in Google Slides!\n`;
+      // Convert to formatted JSON
+      const summaryJson = JSON.stringify(readableSummary, null, 2);
 
       // Save readable summary
-      const response = await this.mcardService.storeContent(summary);
+      const response = await this.mcardService.storeContent(summaryJson);
 
-      console.log(`✅ Saved readable presentations summary to MCard:`, response.hash);
+      console.log(`✅ Saved readable presentations summary (JSON format) to MCard:`, response.hash);
       return response.hash;
     } catch (error) {
       console.error('❌ Failed to save readable presentations summary to MCard:', error);

@@ -152,6 +152,73 @@
       }
     }
 
+    // Send events to context API (following the example pattern)
+    async sendEventsToContext(events) {
+      try {
+        const today = new Date();
+        const oneWeekFromNow = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000);
+        const oneMonthFromNow = new Date(today.getFullYear(), today.getMonth() + 1, today.getDate());
+
+        // Filter events for different time periods
+        const todayEvents = events.filter(event => {
+          const eventDate = new Date(event.start.dateTime || event.start.date);
+          return eventDate.toDateString() === today.toDateString();
+        });
+
+        const weekEvents = events.filter(event => {
+          const eventDate = new Date(event.start.dateTime || event.start.date);
+          return eventDate <= oneWeekFromNow && eventDate >= today;
+        });
+
+        const monthEvents = events.filter(event => {
+          const eventDate = new Date(event.start.dateTime || event.start.date);
+          return eventDate <= oneMonthFromNow && eventDate >= today;
+        });
+
+        // Format events data
+        const eventsContext = {
+          today: todayEvents.map(event => ({
+            summary: event.summary,
+            start: event.start.dateTime || event.start.date,
+            end: event.end.dateTime || event.end.date
+          })),
+          week: weekEvents.map(event => ({
+            summary: event.summary,
+            start: event.start.dateTime || event.start.date,
+            end: event.end.dateTime || event.end.date
+          })),
+          month: monthEvents.map(event => ({
+            summary: event.summary,
+            start: event.start.dateTime || event.start.date,
+            end: event.end.dateTime || event.end.date
+          }))
+        };
+
+        // Send to API
+        await fetch('http://localhost:4321/api/card-collection', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            action: 'add',
+            card: {
+              content: {
+                dimensionType: 'abstractSpecification',
+                context: JSON.stringify(eventsContext),
+                goal: '',
+                successCriteria: ''
+              }
+            }
+          })
+        });
+
+        console.log('✅ [Astro] Successfully sent events to context API');
+      } catch (error) {
+        console.error('❌ [Astro] Error sending events to context:', error);
+      }
+    }
+
     async sendEventsToMCard(events) {
       console.log('🔄 sendEventsToMCard called with', events.length, 'events');
       
@@ -175,6 +242,9 @@
         const result = await googleCalendarMCardService.saveAllEventsToMCard(events, userEmail);
         
         console.log('✅ MCard sync result:', result);
+
+        // Also send to context API (following the example pattern)
+        await this.sendEventsToContext(events);
 
         this.mcardSyncStatus = 'success';
         console.log(`✅ Successfully synced ${result.savedCount} events to MCard`);
@@ -268,7 +338,7 @@
 
           <!-- Today's Events -->
           <div class="bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-lg p-3">
-            <h3 class="font-semibold mb-2">Today's Schedule</h3>
+            <h3 class="font-semibold mb-2">zToday's Schedule</h3>
             ${todayEvents.length > 0 
               ? `<p class="text-sm">You have ${todayEvents.length} ${todayEvents.length === 1 ? 'meeting' : 'meetings'} today</p>`
               : '<p class="text-sm">No meetings today, would you like to take a vacation?</p>'
