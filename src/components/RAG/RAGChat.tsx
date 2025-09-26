@@ -3,6 +3,36 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { RAGQueryResult, RAGHealthResponse, RAGStats } from '@/services/RAGService';
 
+// Utility function to remove markdown formatting
+const stripMarkdown = (text: string): string => {
+  return text
+    // Remove bold formatting (**text** or __text__)
+    .replace(/\*\*(.*?)\*\*/g, '$1')
+    .replace(/__(.*?)__/g, '$1')
+    // Remove italic formatting (*text* or _text_)
+    .replace(/\*(.*?)\*/g, '$1')
+    .replace(/_(.*?)_/g, '$1')
+    // Remove headers (# ## ### etc.)
+    .replace(/^#{1,6}\s+/gm, '')
+    // Remove bullet points (- or * at start of line)
+    .replace(/^[\s]*[-*]\s+/gm, '')
+    // Remove numbered lists (1. 2. etc.)
+    .replace(/^[\s]*\d+\.\s+/gm, '')
+    // Remove code blocks (```code```)
+    .replace(/```[\s\S]*?```/g, '')
+    // Remove inline code (`code`)
+    .replace(/`([^`]+)`/g, '$1')
+    // Remove links [text](url)
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+    // Remove strikethrough (~~text~~)
+    .replace(/~~(.*?)~~/g, '$1')
+    // Remove blockquotes (> text)
+    .replace(/^>\s+/gm, '')
+    // Clean up extra whitespace and newlines
+    .replace(/\n\s*\n/g, '\n')
+    .trim();
+};
+
 interface ChatMessage {
   id: string;
   type: 'user' | 'assistant';
@@ -59,11 +89,11 @@ export function RAGChat({ onQuery, health, stats, loading, onRetrieveFromMCard, 
     try {
       const result = await onQuery(query, maxSources);
       
-      // Add assistant response
+      // Add assistant response with markdown stripped
       const assistantMessage: ChatMessage = {
         id: (Date.now() + 1).toString(),
         type: 'assistant',
-        content: result.answer,
+        content: stripMarkdown(result.answer),
         timestamp: new Date(),
         result,
       };
