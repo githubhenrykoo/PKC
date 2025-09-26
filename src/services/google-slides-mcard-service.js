@@ -301,6 +301,167 @@ class GoogleSlidesMCardService {
   }
 
   /**
+   * Save JSON editor data to MCard
+   */
+  async saveJsonEditorToMCard(presentationId, originalJson, editedJson, changes, userEmail = 'unknown_user') {
+    try {
+      const now = new Date();
+      
+      // Create a comprehensive JSON editor document
+      const jsonEditorDocument = {
+        type: 'google_slides_json_editor',
+        presentationId: presentationId,
+        editSession: {
+          timestamp: now.toISOString(),
+          user: userEmail,
+          changesCount: changes.length
+        },
+        originalData: originalJson,
+        editedData: editedJson,
+        detectedChanges: changes.map(change => ({
+          type: change.type,
+          objectId: change.objectId,
+          slideIndex: change.slideIndex,
+          elementIndex: change.elementIndex,
+          textIndex: change.textIndex,
+          description: this.getChangeDescription(change)
+        })),
+        metadata: {
+          source: 'google_slides_json_editor',
+          format: 'json',
+          version: '1.0',
+          savedAt: now.toISOString()
+        }
+      };
+
+      // Convert to JSON string for storage
+      const jsonEditorJson = JSON.stringify(jsonEditorDocument, null, 2);
+
+      // Save to MCard
+      const response = await this.mcardService.storeContent(jsonEditorJson);
+
+      console.log(`✅ Saved JSON editor session for presentation "${presentationId}" to MCard:`, response.hash);
+      return response.hash;
+    } catch (error) {
+      console.error(`❌ Failed to save JSON editor session to MCard:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Save JSON editor changes summary to MCard (human-readable format)
+   */
+  async saveJsonEditorSummaryToMCard(presentationId, presentationTitle, changes, userEmail = 'unknown_user') {
+    try {
+      const now = new Date();
+      
+      // Create a human-readable summary of JSON editor changes
+      const changesSummary = {
+        type: 'google_slides_json_editor_summary',
+        title: 'Google Slides JSON Editor Changes Summary',
+        presentation: {
+          id: presentationId,
+          title: presentationTitle || 'Untitled Presentation'
+        },
+        editSession: {
+          timestamp: now.toISOString(),
+          timestampFormatted: `${now.toLocaleDateString()} ${now.toLocaleTimeString()}`,
+          user: userEmail,
+          totalChanges: changes.length
+        },
+        changes: changes.length === 0 ? [] : changes.map((change, index) => ({
+          changeNumber: index + 1,
+          type: change.type,
+          slideNumber: (change.slideIndex || 0) + 1,
+          description: this.getChangeDescription(change),
+          details: this.getChangeDetails(change)
+        })),
+        summary: {
+          textChanges: changes.filter(c => c.type === 'replaceAllText').length,
+          styleChanges: changes.filter(c => c.type === 'updateTextStyle').length,
+          message: changes.length === 0 
+            ? 'No changes were made in this JSON editor session.' 
+            : `Successfully applied ${changes.length} change${changes.length === 1 ? '' : 's'} to the presentation.`
+        },
+        tips: [
+          'JSON editor allows direct manipulation of presentation structure',
+          'Changes are applied in real-time to Google Slides',
+          'All edit sessions are automatically saved to MCard for reference'
+        ],
+        metadata: {
+          source: 'google_slides_json_editor',
+          format: 'summary',
+          version: '1.0',
+          generatedAt: now.toISOString()
+        }
+      };
+
+      // Convert to formatted JSON
+      const summaryJson = JSON.stringify(changesSummary, null, 2);
+
+      // Save summary to MCard
+      const response = await this.mcardService.storeContent(summaryJson);
+
+      console.log(`✅ Saved JSON editor changes summary to MCard:`, response.hash);
+      return response.hash;
+    } catch (error) {
+      console.error('❌ Failed to save JSON editor summary to MCard:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get human-readable description of a change
+   */
+  getChangeDescription(change) {
+    switch (change.type) {
+      case 'replaceAllText':
+        return `Text content changed from "${change.originalText}" to "${change.newText}"`;
+      case 'updateTextStyle':
+        const styleChanges = [];
+        if (change.style.foregroundColor !== change.originalStyle.foregroundColor) {
+          styleChanges.push('color');
+        }
+        if (change.style.fontSize !== change.originalStyle.fontSize) {
+          styleChanges.push('font size');
+        }
+        if (change.style.bold !== change.originalStyle.bold) {
+          styleChanges.push(change.style.bold ? 'bold added' : 'bold removed');
+        }
+        if (change.style.italic !== change.originalStyle.italic) {
+          styleChanges.push(change.style.italic ? 'italic added' : 'italic removed');
+        }
+        if (change.style.underline !== change.originalStyle.underline) {
+          styleChanges.push(change.style.underline ? 'underline added' : 'underline removed');
+        }
+        return `Text style changed: ${styleChanges.join(', ')}`;
+      default:
+        return `Unknown change type: ${change.type}`;
+    }
+  }
+
+  /**
+   * Get detailed information about a change
+   */
+  getChangeDetails(change) {
+    const details = {
+      objectId: change.objectId,
+      slideIndex: change.slideIndex,
+      elementIndex: change.elementIndex
+    };
+
+    if (change.type === 'replaceAllText') {
+      details.originalText = change.originalText;
+      details.newText = change.newText;
+    } else if (change.type === 'updateTextStyle') {
+      details.styleChanges = change.style;
+      details.originalStyle = change.originalStyle;
+    }
+
+    return details;
+  }
+
+  /**
    * Get MCard service health status
    */
   async getMCardStatus() {

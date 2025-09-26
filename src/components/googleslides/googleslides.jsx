@@ -4,6 +4,7 @@ import {
   createPresentation, updateSlideText, addSlide, deleteSlide, addTextBox, addImage
 } from './google-slides.js';
 import { googleSlidesMCardService } from '../../services/google-slides-mcard-service.js';
+import { ollamaService } from '../../services/ollama-service.js';
 
 const GoogleSlides = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -23,10 +24,33 @@ const GoogleSlides = () => {
   const [originalJson, setOriginalJson] = useState(null);
   const [editedJson, setEditedJson] = useState('');
   const [jsonChanges, setJsonChanges] = useState([]);
+  const [jsonEditorSyncStatus, setJsonEditorSyncStatus] = useState(null);
+  
+  // Ollama Chatbot states
+  const [showChatbot, setShowChatbot] = useState(false);
+  const [chatMessages, setChatMessages] = useState([]);
+  const [chatInput, setChatInput] = useState('');
+  const [chatLoading, setChatLoading] = useState(false);
+  const [ollamaAvailable, setOllamaAvailable] = useState(false);
+  const [selectedSlideForRewrite, setSelectedSlideForRewrite] = useState(null);
+  const [rewriteInstruction, setRewriteInstruction] = useState('');
 
   useEffect(() => {
     initializeGoogleSlides();
+    checkOllamaAvailability();
   }, []);
+
+  // Check Ollama availability
+  const checkOllamaAvailability = async () => {
+    try {
+      const available = await ollamaService.isAvailable();
+      setOllamaAvailable(available);
+      console.log('🤖 Ollama availability:', available);
+    } catch (error) {
+      console.error('❌ Error checking Ollama availability:', error);
+      setOllamaAvailable(false);
+    }
+  };
 
   // Handle keyboard events for modals
   useEffect(() => {
@@ -179,6 +203,434 @@ const GoogleSlides = () => {
     }
   };
 
+  const sendJsonEditorToMCard = async (originalJson, editedJson, changes) => {
+    console.log('🔄 sendJsonEditorToMCard called with', changes.length, 'changes');
+    
+    try {
+      setJsonEditorSyncStatus('syncing');
+
+      // Check if MCard service is available
+      if (!googleSlidesMCardService) {
+        throw new Error('Google Slides MCard service not available');
+      }
+
+      // Get user email if available
+      const userEmail = window.gapi?.client?.getToken()?.access_token ? 
+        'google_slides_user' : 'unknown_user';
+
+      console.log('📤 Starting JSON editor MCard sync for user:', userEmail);
+
+      // Save JSON editor session to MCard
+      const jsonEditorHash = await googleSlidesMCardService.saveJsonEditorToMCard(
+        selectedPresentation.id, 
+        originalJson, 
+        editedJson, 
+        changes, 
+        userEmail
+      );
+
+      // Save human-readable summary
+      const summaryHash = await googleSlidesMCardService.saveJsonEditorSummaryToMCard(
+        selectedPresentation.id,
+        selectedPresentation.name,
+        changes,
+        userEmail
+      );
+      
+      console.log('✅ JSON editor MCard sync result:', { jsonEditorHash, summaryHash });
+
+      setJsonEditorSyncStatus('success');
+      console.log(`✅ Successfully synced JSON editor session with ${changes.length} changes to MCard`);
+      
+      // Show success message briefly
+      setTimeout(() => {
+        setJsonEditorSyncStatus(null);
+      }, 3000);
+      
+    } catch (error) {
+      console.error('❌ Error syncing JSON editor to MCard:', error);
+      setJsonEditorSyncStatus('error');
+      
+      // Clear error after 5 seconds
+      setTimeout(() => {
+        setJsonEditorSyncStatus(null);
+      }, 5000);
+    }
+  };
+
+  const autoSaveJsonToMCard = async (presentationDetails, presentationInfo) => {
+    console.log('🔄 autoSaveJsonToMCard called - automatically saving JSON data on editor open');
+    
+    try {
+      setJsonEditorSyncStatus('syncing');
+
+      // Check if MCard service is available
+      if (!googleSlidesMCardService) {
+        throw new Error('Google Slides MCard service not available');
+      }
+
+      // Get user email if available
+      const userEmail = window.gapi?.client?.getToken()?.access_token ? 
+        'google_slides_user' : 'unknown_user';
+
+      console.log('📤 Auto-saving JSON data to MCard for user:', userEmail);
+
+      // Save the raw JSON presentation data automatically
+      const jsonData = JSON.stringify(presentationDetails, null, 2);
+      
+      // Create an auto-save document
+      const autoSaveDocument = {
+        type: 'google_slides_json_auto_save',
+        presentationId: presentationInfo.id,
+        presentationTitle: presentationInfo.name || 'Untitled Presentation',
+        autoSaveSession: {
+          timestamp: new Date().toISOString(),
+          user: userEmail,
+          trigger: 'json_editor_opened'
+        },
+        presentationData: presentationDetails,
+        metadata: {
+          source: 'google_slides_json_editor_auto_save',
+          format: 'json',
+          version: '1.0',
+          savedAt: new Date().toISOString(),
+          slideCount: presentationDetails?.slides?.length || 0,
+          totalElements: presentationDetails?.slides?.reduce((total, slide) => 
+            total + (slide?.pageElements?.length || 0), 0) || 0
+        }
+      };
+
+      // Save auto-save document to MCard
+      const autoSaveJson = JSON.stringify(autoSaveDocument, null, 2);
+      const autoSaveHash = await googleSlidesMCardService.mcardService.storeContent(autoSaveJson);
+
+      // Also save a human-readable summary for auto-save
+      const autoSaveSummary = {
+        type: 'google_slides_json_auto_save_summary',
+        title: 'Google Slides JSON Auto-Save Summary',
+        presentation: {
+          id: presentationInfo.id,
+          title: presentationInfo.name || 'Untitled Presentation'
+        },
+        autoSaveSession: {
+          timestamp: new Date().toISOString(),
+          timestampFormatted: `${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}`,
+          user: userEmail,
+          trigger: 'JSON Editor Opened'
+        },
+        presentationStats: {
+          totalSlides: presentationDetails?.slides?.length || 0,
+          totalElements: presentationDetails?.slides?.reduce((total, slide) => 
+            total + (slide?.pageElements?.length || 0), 0) || 0,
+          presentationSize: `${Math.round(JSON.stringify(presentationDetails).length / 1024)} KB`
+        },
+        summary: {
+          message: 'Presentation JSON data automatically saved when JSON editor was opened.',
+          purpose: 'Backup and reference copy of presentation structure'
+        },
+        tips: [
+          'This auto-save happens every time someone opens the JSON editor',
+          'Use this data to restore or analyze presentation structure',
+          'All presentation elements and properties are preserved'
+        ],
+        metadata: {
+          source: 'google_slides_json_editor_auto_save',
+          format: 'summary',
+          version: '1.0',
+          generatedAt: new Date().toISOString()
+        }
+      };
+
+      const summaryJson = JSON.stringify(autoSaveSummary, null, 2);
+      const summaryHash = await googleSlidesMCardService.mcardService.storeContent(summaryJson);
+      
+      console.log('✅ JSON auto-save MCard sync result:', { autoSaveHash, summaryHash });
+
+      setJsonEditorSyncStatus('success');
+      console.log(`✅ Successfully auto-saved JSON data to MCard`);
+      
+      // Show success message briefly
+      setTimeout(() => {
+        setJsonEditorSyncStatus(null);
+      }, 3000);
+      
+    } catch (error) {
+      console.error('❌ Error auto-saving JSON to MCard:', error);
+      setJsonEditorSyncStatus('error');
+      
+      // Clear error after 5 seconds
+      setTimeout(() => {
+        setJsonEditorSyncStatus(null);
+      }, 5000);
+    }
+  };
+
+  // Chatbot functions
+  const toggleChatbot = () => {
+    setShowChatbot(!showChatbot);
+    if (!showChatbot && chatMessages.length === 0) {
+      // Add welcome message with examples
+      const welcomeMessage = `Hello! 🤖 I'm your AI assistant for Google Slides. I can automatically rewrite and apply changes to your slides!
+
+**What I can do:**
+• Rewrite slide content in different styles
+• Apply changes directly to Google Slides
+• Save all changes to MCard automatically
+
+**Try these commands:**
+• "Make slide 1 more professional"
+• "Rewrite slide 2 to be casual"
+• "Change slide 3 to be engaging"
+• "Make slide 1 concise"
+
+**Quick Actions:** Use the buttons above for instant rewriting!
+
+How can I help you today?`;
+
+      setChatMessages([{
+        role: 'assistant',
+        content: welcomeMessage,
+        timestamp: new Date().toISOString()
+      }]);
+    }
+  };
+
+  const sendChatMessage = async () => {
+    if (!chatInput.trim() || chatLoading) return;
+
+    const userMessage = {
+      role: 'user',
+      content: chatInput.trim(),
+      timestamp: new Date().toISOString()
+    };
+
+    setChatMessages(prev => [...prev, userMessage]);
+    const originalInput = chatInput.trim();
+    setChatInput('');
+    setChatLoading(true);
+
+    try {
+      // Check if this is a rewrite request
+      const rewriteRequest = parseRewriteRequest(originalInput);
+      
+      if (rewriteRequest) {
+        // Handle automatic rewrite request
+        console.log('🤖 Detected rewrite request:', rewriteRequest);
+        
+        const confirmMessage = {
+          role: 'assistant',
+          content: `🎯 I understand you want to rewrite slide ${rewriteRequest.slideNumber} to be ${rewriteRequest.style}. Let me do that for you right now!`,
+          timestamp: new Date().toISOString()
+        };
+        setChatMessages(prev => [...prev, confirmMessage]);
+        
+        // Automatically execute the rewrite
+        await rewriteSlideContent(rewriteRequest.slideIndex, rewriteRequest.style);
+        
+      } else {
+        // Handle regular chat
+        const response = await ollamaService.chat(userMessage.content, chatMessages);
+        
+        const assistantMessage = {
+          role: 'assistant',
+          content: response,
+          timestamp: new Date().toISOString()
+        };
+
+        setChatMessages(prev => [...prev, assistantMessage]);
+      }
+    } catch (error) {
+      console.error('❌ Error sending chat message:', error);
+      const errorMessage = {
+        role: 'assistant',
+        content: 'Sorry, I encountered an error. Please make sure Ollama is running on localhost:11434 and try again.',
+        timestamp: new Date().toISOString(),
+        isError: true
+      };
+      setChatMessages(prev => [...prev, errorMessage]);
+    } finally {
+      setChatLoading(false);
+    }
+  };
+
+  // Parse natural language rewrite requests
+  const parseRewriteRequest = (input) => {
+    const lowerInput = input.toLowerCase();
+    
+    // Patterns to detect rewrite requests
+    const rewritePatterns = [
+      /(?:rewrite|make|change)\s+slide\s+(\d+)\s+(?:to be\s+)?(?:more\s+)?(\w+)/i,
+      /slide\s+(\d+)\s+(?:should be|to be|make it)\s+(?:more\s+)?(\w+)/i,
+      /make\s+slide\s+(\d+)\s+(?:more\s+)?(\w+)/i,
+      /(?:change|update)\s+slide\s+(\d+)\s+(?:to\s+)?(?:be\s+)?(?:more\s+)?(\w+)/i
+    ];
+    
+    for (const pattern of rewritePatterns) {
+      const match = input.match(pattern);
+      if (match) {
+        const slideNumber = parseInt(match[1]);
+        const style = match[2].toLowerCase();
+        
+        // Validate slide number
+        if (slideNumber > 0 && slideNumber <= (presentationDetails?.slides?.length || 0)) {
+          // Map common style variations
+          const styleMap = {
+            'professional': 'professional',
+            'formal': 'formal',
+            'casual': 'casual',
+            'friendly': 'casual',
+            'engaging': 'engaging',
+            'interesting': 'engaging',
+            'concise': 'concise',
+            'brief': 'concise',
+            'short': 'concise',
+            'detailed': 'detailed',
+            'comprehensive': 'detailed'
+          };
+          
+          const mappedStyle = styleMap[style] || style;
+          
+          return {
+            slideNumber: slideNumber,
+            slideIndex: slideNumber - 1,
+            style: mappedStyle
+          };
+        }
+      }
+    }
+    
+    return null;
+  };
+
+  const rewriteSlideContent = async (slideIndex, instruction) => {
+    if (!presentationDetails || !presentationDetails.slides) return;
+
+    const slide = presentationDetails.slides[slideIndex];
+    if (!slide) return;
+
+    try {
+      setChatLoading(true);
+      
+      // Add processing message to chat
+      const processingMessage = {
+        role: 'assistant',
+        content: `🔄 Processing slide ${slideIndex + 1}... Rewriting text to be ${instruction} and applying changes to Google Slides...`,
+        timestamp: new Date().toISOString()
+      };
+      setChatMessages(prev => [...prev, processingMessage]);
+      
+      // Extract original text for comparison
+      const originalTexts = ollamaService.extractTextFromSlide(slide);
+      console.log(`📝 Found ${originalTexts.length} text elements to rewrite in slide ${slideIndex + 1}`);
+      
+      // Extract and rewrite slide text
+      const rewrittenElements = await ollamaService.rewriteSlideText(slide, instruction);
+      
+      if (rewrittenElements.length === 0) {
+        throw new Error('No text elements found to rewrite');
+      }
+
+      console.log(`✏️ Rewritten ${rewrittenElements.length} text elements`);
+
+      // Create batch update requests for the rewritten text
+      const requests = [];
+      rewrittenElements.forEach(element => {
+        requests.push({
+          deleteText: {
+            objectId: element.objectId,
+            textRange: { type: 'ALL' }
+          }
+        });
+        requests.push({
+          insertText: {
+            objectId: element.objectId,
+            text: element.rewrittenText,
+            insertionIndex: 0
+          }
+        });
+      });
+
+      console.log(`🔄 Applying ${requests.length} changes to Google Slides...`);
+
+      // Apply changes to Google Slides automatically
+      const response = await window.gapi.client.slides.presentations.batchUpdate({
+        presentationId: selectedPresentation.id,
+        requests: requests
+      });
+
+      console.log('✅ Slide rewrite applied to Google Slides:', response);
+
+      // Refresh presentation details to reflect changes
+      const updatedResponse = await getPresentation(selectedPresentation.id);
+      const updatedDetails = updatedResponse.result || updatedResponse;
+      setPresentationDetails(updatedDetails);
+      setOriginalJson(updatedDetails);
+      setEditedJson(JSON.stringify(updatedDetails, null, 2));
+
+      // Create detailed success message with before/after comparison
+      let comparisonText = `✅ **Slide ${slideIndex + 1} Successfully Updated!**\n\n`;
+      comparisonText += `🎯 **Style Applied**: ${instruction}\n`;
+      comparisonText += `📝 **Text Elements Changed**: ${rewrittenElements.length}\n\n`;
+      
+      // Show before/after for first few elements
+      rewrittenElements.slice(0, 2).forEach((element, idx) => {
+        const originalElement = originalTexts.find(orig => orig.objectId === element.objectId);
+        if (originalElement) {
+          comparisonText += `**Text ${idx + 1}:**\n`;
+          comparisonText += `Before: "${originalElement.text}"\n`;
+          comparisonText += `After: "${element.rewrittenText}"\n\n`;
+        }
+      });
+
+      if (rewrittenElements.length > 2) {
+        comparisonText += `... and ${rewrittenElements.length - 2} more text elements updated.\n\n`;
+      }
+
+      comparisonText += `🔄 **Changes Applied**: Automatically updated in Google Slides and JSON editor\n`;
+      comparisonText += `💾 **Auto-saved**: Changes saved to MCard database`;
+
+      const successMessage = {
+        role: 'assistant',
+        content: comparisonText,
+        timestamp: new Date().toISOString()
+      };
+      setChatMessages(prev => [...prev, successMessage]);
+
+      // Also save the rewrite session to MCard
+      await sendJsonEditorToMCard(originalJson, updatedDetails, [{
+        type: 'ai_rewrite',
+        slideIndex: slideIndex,
+        instruction: instruction,
+        elementsChanged: rewrittenElements.length,
+        originalTexts: originalTexts.map(t => t.text),
+        rewrittenTexts: rewrittenElements.map(e => e.rewrittenText)
+      }]);
+
+    } catch (error) {
+      console.error('❌ Error rewriting slide content:', error);
+      const errorMessage = {
+        role: 'assistant',
+        content: `❌ **Failed to rewrite slide ${slideIndex + 1}**\n\nError: ${error.message}\n\n💡 **Troubleshooting:**\n- Make sure Ollama is running on localhost:11434\n- Check that you're signed in to Google Slides\n- Verify the slide has text content to rewrite`,
+        timestamp: new Date().toISOString(),
+        isError: true
+      };
+      setChatMessages(prev => [...prev, errorMessage]);
+    } finally {
+      setChatLoading(false);
+    }
+  };
+
+  const quickRewriteSlide = async (slideIndex, instruction) => {
+    const userMessage = {
+      role: 'user',
+      content: `Rewrite slide ${slideIndex + 1} to be ${instruction}`,
+      timestamp: new Date().toISOString()
+    };
+    setChatMessages(prev => [...prev, userMessage]);
+    
+    await rewriteSlideContent(slideIndex, instruction);
+  };
+
   const formatDate = (dateString) => {
     if (!dateString) return 'Unknown';
     const date = new Date(dateString);
@@ -233,6 +685,10 @@ const GoogleSlides = () => {
       setPresentationDetails(details);
       setOriginalJson(details);
       setEditedJson(JSON.stringify(details, null, 2));
+      
+      // Automatically save JSON data to MCard when editor is opened
+      await autoSaveJsonToMCard(details, presentation);
+      
     } catch (error) {
       console.error('Error loading presentation details:', error);
       setError('Failed to load presentation for editing: ' + (error.message || 'Unknown error'));
@@ -542,7 +998,11 @@ const GoogleSlides = () => {
       setJsonChanges([]);
       
       setError(null);
-      alert(`Successfully applied ${requests.length} changes to the presentation!`);
+      
+      // Save JSON editor session to MCard
+      await sendJsonEditorToMCard(originalJson, editedData, changes);
+      
+      alert(`Successfully applied ${requests.length} changes to the presentation and saved to MCard!`);
       
     } catch (error) {
       console.error('Error applying JSON changes:', error);
@@ -621,6 +1081,49 @@ const GoogleSlides = () => {
             <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
           </svg>
           <span>Failed to sync to MCard: {mcardSyncError}</span>
+        </div>
+      );
+    }
+    
+    return (
+      <div className={`rounded-lg p-3 text-sm ${statusClass}`}>
+        {statusContent}
+      </div>
+    );
+  };
+
+  const renderJsonEditorSyncStatus = () => {
+    if (!jsonEditorSyncStatus) return null;
+
+    let statusClass = '';
+    let statusContent = '';
+    
+    if (jsonEditorSyncStatus === 'syncing') {
+      statusClass = 'bg-purple-50 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300';
+      statusContent = (
+        <div className="flex items-center gap-2">
+          <div className="animate-spin rounded-full h-4 w-4 border-2 border-purple-600 border-t-transparent"></div>
+          <span>Auto-saving JSON data to MCard...</span>
+        </div>
+      );
+    } else if (jsonEditorSyncStatus === 'success') {
+      statusClass = 'bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-300';
+      statusContent = (
+        <div className="flex items-center gap-2">
+          <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+          </svg>
+          <span>JSON data automatically saved to MCard!</span>
+        </div>
+      );
+    } else if (jsonEditorSyncStatus === 'error') {
+      statusClass = 'bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-300';
+      statusContent = (
+        <div className="flex items-center gap-2">
+          <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+            <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+          </svg>
+          <span>Failed to save JSON editor session to MCard</span>
         </div>
       );
     }
@@ -921,6 +1424,21 @@ const GoogleSlides = () => {
                   >
                     {jsonEditorMode ? 'Visual Editor' : 'JSON Editor'}
                   </button>
+                  {ollamaAvailable && (
+                    <button
+                      onClick={toggleChatbot}
+                      className={`px-3 py-1 text-sm rounded transition-colors flex items-center gap-2 ${
+                        showChatbot 
+                          ? 'bg-blue-600 text-white hover:bg-blue-700' 
+                          : 'bg-gray-200 text-gray-700 hover:bg-gray-300 dark:bg-gray-600 dark:text-gray-200 dark:hover:bg-gray-500'
+                      }`}
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                      </svg>
+                      AI Assistant
+                    </button>
+                  )}
                   <button
                     onClick={handleAddSlide}
                     disabled={loading || editorLoading}
@@ -961,7 +1479,7 @@ const GoogleSlides = () => {
                   /* JSON Editor Mode */
                   <div className="flex h-full">
                     {/* JSON Editor */}
-                    <div className="w-2/3 p-4 border-r border-gray-200 dark:border-gray-600">
+                    <div className={`${showChatbot ? 'w-1/2' : 'w-2/3'} p-4 border-r border-gray-200 dark:border-gray-600`}>
                       <div className="flex items-center justify-between mb-4">
                         <h4 className="font-semibold text-gray-900 dark:text-white">JSON Editor</h4>
                         <div className="flex gap-2">
@@ -985,6 +1503,9 @@ const GoogleSlides = () => {
                           </button>
                         </div>
                       </div>
+                      
+                      {/* JSON Editor MCard Sync Status */}
+                      {renderJsonEditorSyncStatus()}
                       <textarea
                         value={editedJson}
                         onChange={(e) => {
@@ -1003,8 +1524,101 @@ const GoogleSlides = () => {
                       />
                     </div>
                     
+                    {/* Chatbot Panel */}
+                    {showChatbot && (
+                      <div className="w-1/3 p-4 border-r border-gray-200 dark:border-gray-600 flex flex-col">
+                        <div className="flex items-center justify-between mb-4">
+                          <h4 className="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                            </svg>
+                            AI Assistant
+                          </h4>
+                          <div className="flex gap-2">
+                            {presentationDetails?.slides && (
+                              <select
+                                value={selectedSlideForRewrite || ''}
+                                onChange={(e) => setSelectedSlideForRewrite(e.target.value ? parseInt(e.target.value) : null)}
+                                className="text-xs px-2 py-1 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                              >
+                                <option value="">Select Slide</option>
+                                {presentationDetails.slides.map((_, index) => (
+                                  <option key={index} value={index}>Slide {index + 1}</option>
+                                ))}
+                              </select>
+                            )}
+                          </div>
+                        </div>
+                        
+                        {/* Quick Actions */}
+                        <div className="mb-4">
+                          <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">Quick Rewrite:</p>
+                          <div className="flex flex-wrap gap-1">
+                            {['formal', 'casual', 'professional', 'engaging', 'concise'].map((style) => (
+                              <button
+                                key={style}
+                                onClick={() => selectedSlideForRewrite !== null && quickRewriteSlide(selectedSlideForRewrite, style)}
+                                disabled={selectedSlideForRewrite === null || chatLoading}
+                                className="text-xs px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded hover:bg-blue-200 dark:hover:bg-blue-900/50 disabled:opacity-50 disabled:cursor-not-allowed"
+                              >
+                                {style}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Chat Messages */}
+                        <div className="flex-1 overflow-y-auto mb-4 space-y-2 max-h-64">
+                          {chatMessages.map((message, index) => (
+                            <div key={index} className={`p-2 rounded-lg text-sm ${
+                              message.role === 'user' 
+                                ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-900 dark:text-blue-100 ml-4' 
+                                : message.isError
+                                ? 'bg-red-100 dark:bg-red-900/30 text-red-900 dark:text-red-100 mr-4'
+                                : 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100 mr-4'
+                            }`}>
+                              <div className="font-medium text-xs opacity-70 mb-1">
+                                {message.role === 'user' ? 'You' : 'AI Assistant'}
+                              </div>
+                              <div className="whitespace-pre-wrap">{message.content}</div>
+                            </div>
+                          ))}
+                          {chatLoading && (
+                            <div className="bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100 mr-4 p-2 rounded-lg text-sm">
+                              <div className="flex items-center gap-2">
+                                <div className="animate-spin rounded-full h-3 w-3 border-2 border-gray-600 border-t-transparent"></div>
+                                <span>AI is thinking...</span>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Chat Input */}
+                        <div className="flex gap-2">
+                          <input
+                            type="text"
+                            value={chatInput}
+                            onChange={(e) => setChatInput(e.target.value)}
+                            onKeyPress={(e) => e.key === 'Enter' && sendChatMessage()}
+                            placeholder="Ask AI to rewrite or help with slides..."
+                            className="flex-1 text-sm px-3 py-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            disabled={chatLoading}
+                          />
+                          <button
+                            onClick={sendChatMessage}
+                            disabled={!chatInput.trim() || chatLoading}
+                            className="px-3 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                            </svg>
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                    
                     {/* Changes Preview */}
-                    <div className="w-1/3 p-4 overflow-y-auto">
+                    <div className={`${showChatbot ? 'w-1/6' : 'w-1/3'} p-4 overflow-y-auto`}>
                       <h4 className="font-semibold text-gray-900 dark:text-white mb-3">
                         Detected Changes ({jsonChanges.length})
                       </h4>
@@ -1078,6 +1692,32 @@ const GoogleSlides = () => {
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                               </svg>
                             </button>
+                            {ollamaAvailable && (
+                              <div className="relative group">
+                                <button
+                                  className="text-purple-600 dark:text-purple-400 hover:text-purple-800 dark:hover:text-purple-300 p-1 rounded"
+                                  title="AI Rewrite"
+                                >
+                                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                                  </svg>
+                                </button>
+                                <div className="absolute top-full left-0 mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded shadow-lg p-2 opacity-0 group-hover:opacity-100 transition-opacity z-10 min-w-max">
+                                  <div className="flex gap-1">
+                                    {['formal', 'casual', 'engaging'].map((style) => (
+                                      <button
+                                        key={style}
+                                        onClick={() => quickRewriteSlide(index, style)}
+                                        disabled={chatLoading}
+                                        className="text-xs px-2 py-1 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 rounded hover:bg-purple-200 dark:hover:bg-purple-900/50 disabled:opacity-50"
+                                      >
+                                        {style}
+                                      </button>
+                                    ))}
+                                  </div>
+                                </div>
+                              </div>
+                            )}
                             <button
                               onClick={() => handleAddTextBox(slide)}
                               className="text-green-600 dark:text-green-400 hover:text-green-800 dark:hover:text-green-300 p-1 rounded"
