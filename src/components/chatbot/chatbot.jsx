@@ -45,19 +45,7 @@ const Chatbot = () => {
         setMessages([{
           id: Date.now(),
           role: 'assistant',
-          content: `🤖 **Welcome to PKC AI Assistant!**
-
-I'm powered by Ollama and ready to help you with:
-• General questions and conversations
-• Code assistance and explanations  
-• Writing and content creation
-• Problem solving and analysis
-• Document summarization
-• And much more!
-
-**Available Models:** ${models.map(m => m.name).join(', ')}
-
-How can I assist you today?`,
+          content: `How can I assist you today?`,
           timestamp: new Date().toISOString()
         }]);
       } else {

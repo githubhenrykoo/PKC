@@ -6,7 +6,7 @@
 
   <!-- Google Services Section -->
   <div class="mt-4 pt-4 border-t border-black/5 dark:border-white/10">
-    <h3 class="text-sm font-semibold opacity-70 mb-3">Google Services</h3>
+    <h3 class="text-sm font-semibold opacity-70 mb-3">Productivity</h3>
 
     <button 
     id="google-calendar-btn"
@@ -36,6 +36,17 @@
       <path fill-rule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clip-rule="evenodd" />
     </svg>
     <span class="text-sm">Google Slides</span>
+    </button>
+  </div>
+    
+    <button 
+      id="notion-btn"
+      class="w-full text-left px-3 py-2 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors flex items-center gap-2"
+    >
+      <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+        <path d="M4.459 4.208c.746.606 1.781.54 3.042.444 1.26-.095 2.763-.24 4.41-.24 1.6 0 3.08.13 4.32.24 1.24.11 2.18.16 2.94-.04.76-.2 1.4-.64 1.9-1.3.5-.66.74-1.44.74-2.34h-4.5c0 .56-.1 1.02-.3 1.38-.2.36-.44.6-.74.72-.3.12-.64.16-1.02.12-.38-.04-.74-.14-1.08-.3-.34-.16-.63-.4-.87-.72-.24-.32-.4-.7-.48-1.14h-4.5c0 .9.24 1.68.74 2.34.5.66 1.14 1.1 1.9 1.3z"/>
+      </svg>
+      <span class="text-sm">Notion</span>
     </button>
   </div>
 
@@ -74,6 +85,7 @@
     const googleSlidesBtn = document.getElementById('google-slides-btn');
     const chatbotBtn = document.getElementById('chatbot-btn');
     const aiChatBtn = document.getElementById('ai-chat-btn');
+    const notionBtn = document.getElementById('notion-btn');
     
     if (calendarBtn) {
       calendarBtn.addEventListener('click', () => {
@@ -102,6 +114,12 @@
     if (aiChatBtn) {
       aiChatBtn.addEventListener('click', () => {
         showAIChat();
+      });
+    }
+
+    if (notionBtn) {
+      notionBtn.addEventListener('click', () => {
+        showNotion();
       });
     }
   });
@@ -347,6 +365,67 @@
             <div class="mt-4">
               <p class="text-xs text-gray-400 dark:text-gray-500">Make sure Ollama is running on localhost:11434</p>
             </div>
+          </div>
+        </div>
+      `;
+    }
+  }
+
+  function showNotion() {
+    const contentTitle = document.getElementById('content-title');
+    const contentType = document.getElementById('content-type');
+    const contentTimestamp = document.getElementById('content-timestamp');
+    const placeholder = document.getElementById('content-placeholder');
+    const rendererSlot = document.getElementById('renderer-slot');
+
+    if (!contentTitle || !rendererSlot) return;
+
+    // Update header
+    contentTitle.innerHTML = `
+      <svg class="w-5 h-5 inline mr-2" fill="currentColor" viewBox="0 0 24 24">
+        <path d="M4.459 4.208c.746.606 1.781.54 3.042.444 1.26-.095 2.763-.24 4.41-.24 1.6 0 3.08.13 4.32.24 1.24.11 2.18.16 2.94-.04.76-.2 1.4-.64 1.9-1.3.5-.66.74-1.44.74-2.34h-4.5c0 .56-.1 1.02-.3 1.38-.2.36-.44.6-.74.72-.3.12-.64.16-1.02.12-.38-.04-.74-.14-1.08-.3-.34-.16-.63-.4-.87-.72-.24-.32-.4-.7-.48-1.14h-4.5c0 .9.24 1.68.74 2.34.5.66 1.14 1.1 1.9 1.3z"/>
+      </svg>
+      Notion
+    `;
+    
+    if (contentType) contentType.textContent = 'Notion Integration';
+    if (contentTimestamp) contentTimestamp.textContent = new Date().toLocaleString();
+
+    // Hide placeholder and show renderer slot
+    if (placeholder) placeholder.classList.add('hidden');
+    rendererSlot.classList.remove('hidden');
+
+    // Load the actual Notion React component
+    loadNotionComponent(rendererSlot);
+  }
+
+  async function loadNotionComponent(rendererSlot) {
+    try {
+      // Import React and create root
+      const React = await import('react');
+      const { createRoot } = await import('react-dom/client');
+      const { default: NotionPanel } = await import('../notion/notion.jsx');
+
+      // Create container for the React component
+      rendererSlot.innerHTML = `<div id="notion-container" class="h-full w-full"></div>`;
+      const container = document.getElementById('notion-container');
+      
+      if (container) {
+        // Create React root and render Notion component
+        const root = createRoot(container);
+        root.render(React.createElement(NotionPanel, { 
+          className: 'h-full' 
+        }));
+      }
+    } catch (error) {
+      console.error('Failed to load Notion component:', error);
+      rendererSlot.innerHTML = `
+        <div class="h-full flex items-center justify-center">
+          <div class="text-center p-8">
+            <div class="text-red-500 text-4xl mb-4">⚠️</div>
+            <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">Failed to Load Notion</h3>
+            <p class="text-gray-600 dark:text-gray-400 mb-4">Unable to initialize the Notion interface.</p>
+            <p class="text-sm text-gray-500 dark:text-gray-500">Error: ${error instanceof Error ? error.message : 'Unknown error'}</p>
           </div>
         </div>
       `;

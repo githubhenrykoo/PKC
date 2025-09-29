@@ -19,7 +19,6 @@ const GoogleDocsPanel = () => {
   // Runtime environment credentials
   const [credentials, setCredentials] = useState(null);
   const [credentialsLoaded, setCredentialsLoaded] = useState(false);
-  const [credentialsError, setCredentialsError] = useState(null);
   
   // MCard sync status
   const [mcardSyncStatus, setMcardSyncStatus] = useState('');
@@ -36,7 +35,6 @@ const GoogleDocsPanel = () => {
       if (creds && creds.isValid) {
         setCredentials(creds);
         setCredentialsLoaded(true);
-        setCredentialsError(null);
         
         console.log('✅ Google Docs credentials loaded:', {
           hasApiKey: creds.hasApiKey,
@@ -47,15 +45,12 @@ const GoogleDocsPanel = () => {
         
         return creds;
       } else {
-        const errorMsg = 'Invalid or missing Google Docs credentials';
-        setCredentialsError(errorMsg);
+        console.warn('Google Docs: Missing required credentials');
         setCredentialsLoaded(true);
-        console.error('❌', errorMsg);
         return null;
       }
     } catch (error) {
       console.error('❌ Error fetching Google Docs credentials:', error);
-      setCredentialsError(error.message);
       setCredentialsLoaded(true);
       return null;
     }
@@ -95,7 +90,6 @@ const GoogleDocsPanel = () => {
         
       } catch (error) {
         console.error('❌ Failed to initialize Google Docs component:', error);
-        setCredentialsError(error.message);
       }
     };
 
@@ -159,13 +153,6 @@ const GoogleDocsPanel = () => {
       return;
     }
 
-    if (credentialsError) {
-      console.warn('❌ Google Docs: Credential error:', credentialsError);
-      setSaveStatus('Authentication blocked: Invalid credentials');
-      setTimeout(() => setSaveStatus(''), 3000);
-      return;
-    }
-
     if (!validateCredentials(credentials)) {
       console.warn('❌ Google Docs: Invalid credentials');
       setSaveStatus('Authentication blocked: Missing or invalid credentials');
@@ -189,7 +176,7 @@ const GoogleDocsPanel = () => {
       setSaveStatus(`Authentication failed: ${error.message}`);
       setTimeout(() => setSaveStatus(''), 5000);
     }
-  }, [gapiInited, gisInited, credentialsLoaded, credentialsError, credentials, validateCredentials]);
+  }, [gapiInited, gisInited, credentialsLoaded, credentials, validateCredentials]);
   
   // Toggle URL input visibility
   const toggleUrlInput = () => {
@@ -550,30 +537,11 @@ const GoogleDocsPanel = () => {
         minHeight: '100vh',
         backgroundColor: '#f8f9fa',
       }}>
-        {credentialsError && (
-          <div style={{
-            backgroundColor: '#fef2f2',
-            border: '1px solid #fecaca',
-            borderRadius: '8px',
-            padding: '16px',
-            marginBottom: '20px',
-            maxWidth: '500px',
-            textAlign: 'center',
-          }}>
-            <div style={{ color: '#dc2626', fontWeight: '600', marginBottom: '8px' }}>
-              Credential Error
-            </div>
-            <div style={{ color: '#7f1d1d', fontSize: '14px' }}>
-              {credentialsError}
-            </div>
-          </div>
-        )}
-        
         <button 
           onClick={handleAuthClick}
-          disabled={!gapiInited || !gisInited || !credentialsLoaded || !!credentialsError}
+          disabled={!gapiInited || !gisInited || !credentialsLoaded}
           className="bg-white text-gray-700 px-6 py-3 rounded-lg border border-gray-300 hover:bg-gray-50 flex items-center space-x-3 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
-          title={credentialsError ? `Cannot sign in: ${credentialsError}` : 'Sign in with Google to access documents'}
+          title="Sign in with Google to access documents"
         >
           <img 
             src="https://www.google.com/favicon.ico" 
@@ -582,13 +550,12 @@ const GoogleDocsPanel = () => {
           />
           <span>
             {!credentialsLoaded ? 'Loading credentials...' : 
-             credentialsError ? 'Credentials required' :
              !gapiInited || !gisInited ? 'Initializing...' :
              'Sign in with Google'}
           </span>
         </button>
         
-        {!credentialsLoaded && !credentialsError && (
+        {!credentialsLoaded && (
           <div style={{ marginTop: '12px', color: '#6b7280', fontSize: '14px' }}>
             Fetching Google Docs credentials from runtime environment...
           </div>
@@ -607,58 +574,33 @@ const GoogleDocsPanel = () => {
       display: 'flex',
       flexDirection: 'column',
     }}>
-      {/* Credential error display */}
-      {credentialsError && (
-        <div style={{
-          backgroundColor: '#fef2f2',
-          border: '1px solid #fecaca',
-          borderRadius: '8px',
-          padding: '16px',
-          margin: '16px',
-          textAlign: 'center',
-        }}>
-          <div style={{ color: '#dc2626', fontWeight: '600', marginBottom: '8px' }}>
-            Credential Error
-          </div>
-          <div style={{ color: '#7f1d1d', fontSize: '14px' }}>
-            {credentialsError}
-          </div>
-        </div>
-      )}
       
       <div style={{
         padding: '8px 16px',
         borderBottom: '1px solid #e0e0e0',
-        backgroundColor: '#ffffff',
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        position: 'sticky',
-        top: 0,
-        zIndex: 100,
+        backgroundColor: '#ffffff'
       }}>
         <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
           {/* Show sign-in button if not authenticated */}
           {!googleDocsService.isAuthenticated() && (
             <button
               onClick={handleAuthClick}
-              disabled={!gapiInited || !gisInited || !credentialsLoaded || !!credentialsError}
+              disabled={!gapiInited || !gisInited}
               style={{
                 backgroundColor: '#4285f4',
                 color: 'white',
-                padding: '8px 16px',
                 border: 'none',
                 borderRadius: '4px',
+                padding: '8px 16px',
                 fontSize: '14px',
                 fontWeight: '500',
                 cursor: 'pointer',
-                opacity: (!gapiInited || !gisInited || !credentialsLoaded || !!credentialsError) ? 0.5 : 1,
+                opacity: (!gapiInited || !gisInited) ? 0.5 : 1,
                 display: 'flex',
                 alignItems: 'center',
                 gap: '8px'
               }}
-              title={credentialsError ? `Cannot sign in: ${credentialsError}` : 'Sign in with Google to access documents'}
-            >
+              title="Sign in with Google to access documents">
               <img 
                 src="https://www.google.com/favicon.ico" 
                 alt="Google" 
@@ -666,7 +608,6 @@ const GoogleDocsPanel = () => {
               />
               <span>
                 {!credentialsLoaded ? 'Loading...' : 
-                 credentialsError ? 'Credentials Error' :
                  !gapiInited || !gisInited ? 'Initializing...' :
                  'Sign in with Google'}
               </span>
