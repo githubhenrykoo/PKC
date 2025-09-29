@@ -62,10 +62,28 @@ const EventCard = ({ event, view }) => {
     minute: '2-digit'
   });
 
+  // Calendar badge component
+  const CalendarBadge = () => {
+    if (!event.calendarName || event.isPrimary) return null;
+    
+    return (
+      <div className="flex items-center gap-1 mb-2">
+        <div 
+          className="w-3 h-3 rounded-full" 
+          style={{ backgroundColor: event.calendarColor || '#4285f4' }}
+        ></div>
+        <span className="text-xs text-gray-500 dark:text-gray-400 font-medium">
+          {event.calendarName}
+        </span>
+      </div>
+    );
+  };
+
   if (view === 'grid') {
     return (
       <div className="bg-white dark:bg-gray-700 rounded-lg shadow-sm border border-gray-200 dark:border-gray-600 p-4 hover:shadow-md transition-shadow">
         <div className="text-sm text-blue-600 dark:text-blue-400 mb-2">{formattedDate}</div>
+        <CalendarBadge />
         <h3 className="font-semibold text-lg dark:text-white mb-2">{event.summary}</h3>
         {event.description && (
           <p className="text-sm text-gray-600 dark:text-gray-300 line-clamp-3">{event.description}</p>
@@ -78,7 +96,8 @@ const EventCard = ({ event, view }) => {
     <div className="bg-white dark:bg-gray-700 rounded-lg shadow-sm border border-gray-200 dark:border-gray-600 p-4 hover:shadow-md transition-shadow">
       <div className="flex items-start gap-4">
         <div className="text-sm text-blue-600 dark:text-blue-400 whitespace-nowrap">{formattedDate}</div>
-        <div>
+        <div className="flex-1">
+          <CalendarBadge />
           <h3 className="font-semibold text-lg dark:text-white mb-2">{event.summary}</h3>
           {event.description && (
             <p className="text-sm text-gray-600 dark:text-gray-300">{event.description}</p>
@@ -100,6 +119,7 @@ const GoogleCalendar = ({ className = '' }) => {
   const [configError, setConfigError] = useState(false);
   const [isExportingToMCard, setIsExportingToMCard] = useState(false);
   const [exportStatus, setExportStatus] = useState('');
+  const [calendarSummary, setCalendarSummary] = useState(null);
 
   // Initialize Google API
   useEffect(() => {
@@ -323,6 +343,33 @@ const GoogleCalendar = ({ className = '' }) => {
       
       const response = await listEvents();
       const events = response.result.items || [];
+      
+      // Create calendar summary
+      const calendarMap = new Map();
+      let totalEvents = 0;
+      
+      events.forEach(event => {
+        const calendarName = event.calendarName || 'Primary Calendar';
+        const calendarId = event.calendarId || 'primary';
+        
+        if (!calendarMap.has(calendarId)) {
+          calendarMap.set(calendarId, {
+            name: calendarName,
+            color: event.calendarColor || '#4285f4',
+            eventCount: 0,
+            isPrimary: event.isPrimary || false
+          });
+        }
+        
+        calendarMap.get(calendarId).eventCount++;
+        totalEvents++;
+      });
+      
+      setCalendarSummary({
+        calendars: Array.from(calendarMap.values()),
+        totalCalendars: calendarMap.size,
+        totalEvents: totalEvents
+      });
       
       // Send events to context
       await sendEventsToContext(events);
@@ -574,6 +621,37 @@ const GoogleCalendar = ({ className = '' }) => {
               </div>
             </div>
             <FilterBar searchTerm={searchTerm} onSearchChange={setSearchTerm} />
+            
+            {/* Calendar Summary */}
+            {calendarSummary && calendarSummary.totalCalendars > 1 && (
+              <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="text-sm font-medium text-blue-900 dark:text-blue-100">
+                    Connected Calendars ({calendarSummary.totalCalendars})
+                  </h3>
+                  <span className="text-xs text-blue-700 dark:text-blue-300">
+                    {calendarSummary.totalEvents} total events
+                  </span>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {calendarSummary.calendars.map((calendar, index) => (
+                    <div key={index} className="flex items-center gap-1 text-xs bg-white dark:bg-gray-800 px-2 py-1 rounded border">
+                      <div 
+                        className="w-2 h-2 rounded-full" 
+                        style={{ backgroundColor: calendar.color }}
+                      ></div>
+                      <span className="text-gray-700 dark:text-gray-300">
+                        {calendar.name}
+                        {calendar.isPrimary && ' (Primary)'}
+                      </span>
+                      <span className="text-gray-500 dark:text-gray-400">
+                        ({calendar.eventCount})
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
           
           {isLoading ? (

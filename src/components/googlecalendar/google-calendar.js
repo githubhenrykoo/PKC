@@ -1,6 +1,6 @@
 // Google Calendar API configuration
 const DISCOVERY_DOC = 'https://www.googleapis.com/discovery/v1/apis/calendar/v3/rest';
-const SCOPES = 'https://www.googleapis.com/auth/calendar.readonly';
+const SCOPES = 'https://www.googleapis.com/auth/calendar.readonly https://www.googleapis.com/auth/calendar.events.readonly';
 
 // Dynamic credentials from runtime environment
 let CLIENT_ID = '';
@@ -298,8 +298,43 @@ export const signOut = async () => {
   }
 };
 
-// List calendar events
-export const listEvents = async () => {
+// List all calendars the user has access to
+export const listCalendars = async () => {
+  if (!isInitialized()) {
+    throw new Error('Google API not initialized');
+  }
+  
+  // Check if we have a token
+  if (!window.gapi.client.getToken()) {
+    throw new Error('Not signed in', { status: 401 });
+  }
+  
+  try {
+    const response = await window.gapi.client.calendar.calendarList.list({
+      'minAccessRole': 'reader'
+    });
+    
+    console.log('Available calendars:', response.result.items?.length || 0);
+    return response;
+  } catch (err) {
+    console.error('Error fetching calendars:', err);
+    
+    // Handle token expiration
+    if (err.status === 401) {
+      try {
+        await signIn();
+        return listCalendars(); // Try again after signing in
+      } catch (refreshErr) {
+        throw refreshErr;
+      }
+    }
+    
+    throw err;
+  }
+};
+
+// List events from a specific calendar
+export const listEventsFromCalendar = async (calendarId, maxResults = 50) => {
   if (!isInitialized()) {
     throw new Error('Google API not initialized');
   }
@@ -314,21 +349,100 @@ export const listEvents = async () => {
     timeMin.setHours(0, 0, 0, 0);
     
     const response = await window.gapi.client.calendar.events.list({
-      'calendarId': 'primary',
+      'calendarId': calendarId,
       'timeMin': timeMin.toISOString(),
       'showDeleted': false,
       'singleEvents': true,
-      'maxResults': 50,
+      'maxResults': maxResults,
       'orderBy': 'startTime'
     });
     
     return response;
   } catch (err) {
-    console.error('Error fetching events:', err);
+    console.error(`Error fetching events from calendar ${calendarId}:`, err);
     
     // Handle token expiration
     if (err.status === 401) {
-      // Token expired, try to refresh
+      try {
+        await signIn();
+        return listEventsFromCalendar(calendarId, maxResults);
+      } catch (refreshErr) {
+        throw refreshErr;
+      }
+    }
+    
+    // Don't throw for individual calendar errors - just return empty result
+    console.warn(`Skipping calendar ${calendarId} due to error:`, err.message);
+    return { result: { items: [] } };
+  }
+};
+
+// List calendar events from all accessible calendars
+export const listEvents = async () => {
+  if (!isInitialized()) {
+    throw new Error('Google API not initialized');
+  }
+  
+  // Check if we have a token
+  if (!window.gapi.client.getToken()) {
+    throw new Error('Not signed in', { status: 401 });
+  }
+  
+  try {
+    // First, get all calendars
+    const calendarsResponse = await listCalendars();
+    const calendars = calendarsResponse.result.items || [];
+    
+    console.log(`Fetching events from ${calendars.length} calendars...`);
+    
+    // Fetch events from all calendars in parallel
+    const eventPromises = calendars.map(async (calendar) => {
+      try {
+        const eventsResponse = await listEventsFromCalendar(calendar.id, 20); // Limit per calendar to avoid too many events
+        const events = eventsResponse.result.items || [];
+        
+        // Add calendar information to each event
+        return events.map(event => ({
+          ...event,
+          calendarId: calendar.id,
+          calendarName: calendar.summary,
+          calendarColor: calendar.backgroundColor || calendar.colorId,
+          isPrimary: calendar.primary || false
+        }));
+      } catch (err) {
+        console.warn(`Failed to fetch events from calendar ${calendar.summary}:`, err);
+        return [];
+      }
+    });
+    
+    // Wait for all calendar event fetches to complete
+    const allCalendarEvents = await Promise.all(eventPromises);
+    
+    // Flatten and merge all events
+    const allEvents = allCalendarEvents.flat();
+    
+    // Sort events by start time
+    allEvents.sort((a, b) => {
+      const aTime = new Date(a.start.dateTime || a.start.date);
+      const bTime = new Date(b.start.dateTime || b.start.date);
+      return aTime - bTime;
+    });
+    
+    console.log(`Total events fetched: ${allEvents.length} from ${calendars.length} calendars`);
+    
+    // Return in the same format as the original API
+    return {
+      result: {
+        items: allEvents,
+        summary: `Events from ${calendars.length} calendars`
+      }
+    };
+    
+  } catch (err) {
+    console.error('Error fetching events from all calendars:', err);
+    
+    // Handle token expiration
+    if (err.status === 401) {
       try {
         await signIn();
         return listEvents(); // Try again after signing in
