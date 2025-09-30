@@ -334,7 +334,7 @@ export const listCalendars = async () => {
 };
 
 // List events from a specific calendar
-export const listEventsFromCalendar = async (calendarId, maxResults = 50) => {
+export const listEventsFromCalendar = async (calendarId, maxResults = 50, daysInPast = 30, selectedDate = null, specificDate = false) => {
   if (!isInitialized()) {
     throw new Error('Google API not initialized');
   }
@@ -345,17 +345,39 @@ export const listEventsFromCalendar = async (calendarId, maxResults = 50) => {
   }
   
   try {
-    const timeMin = new Date();
-    timeMin.setHours(0, 0, 0, 0);
+    let timeMin, timeMax;
     
-    const response = await window.gapi.client.calendar.events.list({
+    if (selectedDate && specificDate) {
+      // If a specific date is selected, get events for that day only
+      timeMin = new Date(selectedDate);
+      timeMin.setHours(0, 0, 0, 0);
+      timeMax = new Date(selectedDate);
+      timeMax.setHours(23, 59, 59, 999);
+    } else if (selectedDate) {
+      // If a specific date is selected, get events for that month
+      timeMin = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1);
+      timeMax = new Date(selectedDate.getFullYear(), selectedDate.getMonth() + 1, 0, 23, 59, 59);
+    } else {
+      // Default behavior: get events from past days to future
+      timeMin = new Date();
+      timeMin.setDate(timeMin.getDate() - daysInPast);
+      timeMin.setHours(0, 0, 0, 0);
+    }
+    
+    const requestParams = {
       'calendarId': calendarId,
       'timeMin': timeMin.toISOString(),
       'showDeleted': false,
       'singleEvents': true,
       'maxResults': maxResults,
       'orderBy': 'startTime'
-    });
+    };
+    
+    if (timeMax) {
+      requestParams.timeMax = timeMax.toISOString();
+    }
+    
+    const response = await window.gapi.client.calendar.events.list(requestParams);
     
     return response;
   } catch (err) {
@@ -365,20 +387,33 @@ export const listEventsFromCalendar = async (calendarId, maxResults = 50) => {
     if (err.status === 401) {
       try {
         await signIn();
-        return listEventsFromCalendar(calendarId, maxResults);
+        return listEventsFromCalendar(calendarId, maxResults, daysInPast, selectedDate, specificDate);
       } catch (refreshErr) {
         throw refreshErr;
       }
     }
     
+    // Handle 403 Forbidden errors (no access to calendar or quota exceeded)
+    if (err.status === 403) {
+      // Check if it's a quota exceeded error
+      if (err.body && err.body.includes('rateLimitExceeded')) {
+        console.warn(`Quota exceeded for calendar ${calendarId}. Skipping to prevent authentication issues.`);
+        return { result: { items: [] } };
+      } else {
+        console.warn(`Access denied to calendar ${calendarId}. User may not have permission to read events from this calendar.`);
+        return { result: { items: [] } };
+      }
+    }
+    
     // Don't throw for individual calendar errors - just return empty result
-    console.warn(`Skipping calendar ${calendarId} due to error:`, err.message);
+    const errorMessage = err.message || err.body || err.statusText || 'Unknown error';
+    console.warn(`Skipping calendar ${calendarId} due to error (${err.status || 'unknown status'}):`, errorMessage);
     return { result: { items: [] } };
   }
 };
 
 // List calendar events from all accessible calendars
-export const listEvents = async () => {
+export const listEvents = async (selectedDate = null, specificDate = false) => {
   if (!isInitialized()) {
     throw new Error('Google API not initialized');
   }
@@ -398,7 +433,7 @@ export const listEvents = async () => {
     // Fetch events from all calendars in parallel
     const eventPromises = calendars.map(async (calendar) => {
       try {
-        const eventsResponse = await listEventsFromCalendar(calendar.id, 20); // Limit per calendar to avoid too many events
+        const eventsResponse = await listEventsFromCalendar(calendar.id, 20, 30, selectedDate, specificDate); // Show events from selected date or last 30 days
         const events = eventsResponse.result.items || [];
         
         // Add calendar information to each event
@@ -410,7 +445,15 @@ export const listEvents = async () => {
           isPrimary: calendar.primary || false
         }));
       } catch (err) {
-        console.warn(`Failed to fetch events from calendar ${calendar.summary}:`, err);
+        // More specific error handling for different error types
+        if (err.status === 403) {
+          console.warn(`Access denied to calendar "${calendar.summary}" (${calendar.id}). User may not have permission to read events.`);
+        } else if (err.status === 404) {
+          console.warn(`Calendar "${calendar.summary}" (${calendar.id}) not found. It may have been deleted or access revoked.`);
+        } else {
+          const errorMessage = err.message || err.body || err.statusText || 'Unknown error';
+          console.warn(`Failed to fetch events from calendar "${calendar.summary}" (${calendar.id}):`, errorMessage);
+        }
         return [];
       }
     });
@@ -428,24 +471,47 @@ export const listEvents = async () => {
       return aTime - bTime;
     });
     
-    console.log(`Total events fetched: ${allEvents.length} from ${calendars.length} calendars`);
+    // Count successful vs failed calendar fetches
+    const successfulCalendars = allCalendarEvents.filter(events => events.length > 0).length;
+    const totalCalendarsWithEvents = allCalendarEvents.filter(events => events.length >= 0).length;
+    
+    console.log(`Total events fetched: ${allEvents.length} from ${successfulCalendars}/${calendars.length} accessible calendars`);
+    
+    if (successfulCalendars < calendars.length) {
+      const skippedCount = calendars.length - totalCalendarsWithEvents;
+      if (skippedCount > 0) {
+        console.info(`Note: ${skippedCount} calendar(s) were skipped due to access restrictions. This is normal for calendars you don't have read permission for.`);
+      }
+    }
     
     // Return in the same format as the original API
     return {
       result: {
         items: allEvents,
-        summary: `Events from ${calendars.length} calendars`
+        summary: `Events from ${successfulCalendars}/${calendars.length} accessible calendars`
       }
     };
     
   } catch (err) {
     console.error('Error fetching events from all calendars:', err);
     
+    // Handle quota exceeded errors - don't sign out the user
+    if (err.status === 403 && err.body && err.body.includes('rateLimitExceeded')) {
+      console.warn('Google Calendar API quota exceeded. Please wait a moment before trying again.');
+      // Return empty result instead of throwing to prevent sign out
+      return {
+        result: {
+          items: [],
+          summary: 'Quota exceeded - please try again later'
+        }
+      };
+    }
+    
     // Handle token expiration
     if (err.status === 401) {
       try {
         await signIn();
-        return listEvents(); // Try again after signing in
+        return listEvents(selectedDate, specificDate); // Try again after signing in
       } catch (refreshErr) {
         throw refreshErr;
       }

@@ -51,7 +51,291 @@ const FilterBar = ({ searchTerm, onSearchChange }) => (
   </div>
 );
 
-const EventCard = ({ event, view }) => {
+const MonthNavigation = ({ selectedDate, onDateChange }) => {
+  const monthNames = [
+    'January', 'February', 'March', 'April', 'May', 'June',
+    'July', 'August', 'September', 'October', 'November', 'December'
+  ];
+
+  const currentMonth = selectedDate.getMonth();
+  const currentYear = selectedDate.getFullYear();
+
+  const goToPreviousMonth = () => {
+    const newDate = new Date(selectedDate);
+    newDate.setMonth(currentMonth - 1);
+    onDateChange(newDate);
+  };
+
+  const goToNextMonth = () => {
+    const newDate = new Date(selectedDate);
+    newDate.setMonth(currentMonth + 1);
+    onDateChange(newDate);
+  };
+
+  const goToCurrentMonth = () => {
+    onDateChange(new Date());
+  };
+
+  const isCurrentMonth = () => {
+    const now = new Date();
+    return currentMonth === now.getMonth() && currentYear === now.getFullYear();
+  };
+
+  return (
+    <div className="flex items-center justify-between bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
+      <button
+        onClick={goToPreviousMonth}
+        className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+        title="Previous Month"
+      >
+        <svg className="w-5 h-5 text-gray-600 dark:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+        </svg>
+      </button>
+      
+      <div className="flex items-center gap-4">
+        <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+          {monthNames[currentMonth]} {currentYear}
+        </h2>
+        {!isCurrentMonth() && (
+          <button
+            onClick={goToCurrentMonth}
+            className="px-3 py-1 text-sm bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 rounded-lg hover:bg-blue-200 dark:hover:bg-blue-800 transition-colors"
+          >
+            Today
+          </button>
+        )}
+      </div>
+      
+      <button
+        onClick={goToNextMonth}
+        className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+        title="Next Month"
+      >
+        <svg className="w-5 h-5 text-gray-600 dark:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+        </svg>
+      </button>
+    </div>
+  );
+};
+
+const CalendarList = ({ calendars, visibility, onToggleVisibility, onColorChange }) => {
+  const defaultColors = [
+    '#3B82F6', // Blue
+    '#EF4444', // Red
+    '#10B981', // Green
+    '#F59E0B', // Yellow
+    '#8B5CF6', // Purple
+    '#EC4899', // Pink
+    '#06B6D4', // Cyan
+    '#84CC16', // Lime
+    '#F97316', // Orange
+    '#6366F1', // Indigo
+  ];
+
+  if (!calendars || calendars.length === 0) {
+    return null;
+  }
+
+  return (
+    <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
+      <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">My Calendars</h3>
+      <div className="space-y-2">
+        {calendars.map((calendar, index) => {
+          const isVisible = visibility[calendar.id] !== false; // Default to visible
+          const calendarColor = calendar.color || defaultColors[index % defaultColors.length];
+          
+          return (
+            <div key={calendar.id} className="flex items-center justify-between group">
+              <div className="flex items-center gap-3 flex-1">
+                <label className="flex items-center gap-2 cursor-pointer flex-1">
+                  <input
+                    type="checkbox"
+                    checked={isVisible}
+                    onChange={(e) => onToggleVisibility(calendar.id, e.target.checked)}
+                    className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
+                  />
+                  <div 
+                    className="w-4 h-4 rounded-full border-2 border-white shadow-sm"
+                    style={{ backgroundColor: calendarColor }}
+                  ></div>
+                  <span className={`text-sm ${
+                    isVisible 
+                      ? 'text-gray-900 dark:text-white' 
+                      : 'text-gray-500 dark:text-gray-400 line-through'
+                  }`}>
+                    {calendar.name}
+                  </span>
+                  {calendar.isPrimary && (
+                    <span className="text-xs bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 px-2 py-0.5 rounded-full">
+                      Primary
+                    </span>
+                  )}
+                </label>
+                
+                {/* Color picker */}
+                <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+                  <input
+                    type="color"
+                    value={calendarColor}
+                    onChange={(e) => onColorChange(calendar.id, e.target.value)}
+                    className="w-6 h-6 rounded border-0 cursor-pointer"
+                    title="Change calendar color"
+                  />
+                </div>
+              </div>
+              
+              <div className="text-xs text-gray-500 dark:text-gray-400">
+                {calendar.eventCount === 0 ? 'No events' : `${calendar.eventCount} event${calendar.eventCount === 1 ? '' : 's'}`}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+      
+      {/* Quick actions */}
+      <div className="mt-4 pt-3 border-t border-gray-200 dark:border-gray-700">
+        <div className="flex gap-2">
+          <button
+            onClick={() => {
+              const newVisibility = {};
+              calendars.forEach(cal => {
+                newVisibility[cal.id] = true;
+              });
+              Object.keys(newVisibility).forEach(id => onToggleVisibility(id, true));
+            }}
+            className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
+          >
+            Show All
+          </button>
+          <span className="text-xs text-gray-400">•</span>
+          <button
+            onClick={() => {
+              calendars.forEach(cal => onToggleVisibility(cal.id, false));
+            }}
+            className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
+          >
+            Hide All
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const CalendarGrid = ({ selectedDate, onDateSelect }) => {
+  const currentMonth = selectedDate.getMonth();
+  const currentYear = selectedDate.getFullYear();
+  const today = new Date();
+  
+  // Get first day of the month and how many days in the month
+  const firstDayOfMonth = new Date(currentYear, currentMonth, 1);
+  const lastDayOfMonth = new Date(currentYear, currentMonth + 1, 0);
+  const daysInMonth = lastDayOfMonth.getDate();
+  const startingDayOfWeek = firstDayOfMonth.getDay(); // 0 = Sunday
+  
+  // Get days from previous month to fill the grid
+  const prevMonth = new Date(currentYear, currentMonth - 1, 0);
+  const daysInPrevMonth = prevMonth.getDate();
+  
+  // Create array of all days to display
+  const days = [];
+  
+  // Add days from previous month
+  for (let i = startingDayOfWeek - 1; i >= 0; i--) {
+    days.push({
+      date: daysInPrevMonth - i,
+      isCurrentMonth: false,
+      isPrevMonth: true,
+      fullDate: new Date(currentYear, currentMonth - 1, daysInPrevMonth - i)
+    });
+  }
+  
+  // Add days from current month
+  for (let date = 1; date <= daysInMonth; date++) {
+    days.push({
+      date,
+      isCurrentMonth: true,
+      isPrevMonth: false,
+      fullDate: new Date(currentYear, currentMonth, date)
+    });
+  }
+  
+  // Add days from next month to complete the grid (42 days = 6 weeks)
+  const remainingDays = 42 - days.length;
+  for (let date = 1; date <= remainingDays; date++) {
+    days.push({
+      date,
+      isCurrentMonth: false,
+      isPrevMonth: false,
+      fullDate: new Date(currentYear, currentMonth + 1, date)
+    });
+  }
+  
+  const isToday = (date) => {
+    return date.toDateString() === today.toDateString();
+  };
+  
+  const isSelected = (date) => {
+    return date.toDateString() === selectedDate.toDateString();
+  };
+  
+  const handleDateClick = (dayInfo) => {
+    if (!dayInfo.isCurrentMonth) {
+      // If clicking on prev/next month day, navigate to that month
+      const newDate = new Date(dayInfo.fullDate);
+      onDateSelect(newDate);
+    } else {
+      // If clicking on current month day, select that specific date
+      onDateSelect(dayInfo.fullDate);
+    }
+  };
+  
+  return (
+    <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
+      {/* Day headers */}
+      <div className="grid grid-cols-7 gap-1 mb-2">
+        {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((day, index) => (
+          <div key={index} className="text-center text-sm font-medium text-gray-500 dark:text-gray-400 py-2">
+            {day}
+          </div>
+        ))}
+      </div>
+      
+      {/* Calendar grid */}
+      <div className="grid grid-cols-7 gap-1">
+        {days.map((dayInfo, index) => {
+          const isCurrentDay = isToday(dayInfo.fullDate);
+          const isSelectedDay = isSelected(dayInfo.fullDate);
+          
+          return (
+            <button
+              key={index}
+              onClick={() => handleDateClick(dayInfo)}
+              className={`
+                h-10 w-10 rounded-full text-sm font-medium transition-colors
+                ${
+                  isSelectedDay
+                    ? 'bg-blue-600 text-white'
+                    : isCurrentDay
+                    ? 'bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-300'
+                    : dayInfo.isCurrentMonth
+                    ? 'text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700'
+                    : 'text-gray-400 dark:text-gray-600 hover:bg-gray-50 dark:hover:bg-gray-800'
+                }
+              `}
+            >
+              {dayInfo.date}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
+
+const EventCard = ({ event, view, calendarColor }) => {
   const date = new Date(event.start.dateTime || event.start.date);
   const formattedDate = date.toLocaleString('en-US', {
     weekday: 'short',
@@ -61,6 +345,8 @@ const EventCard = ({ event, view }) => {
     hour: 'numeric',
     minute: '2-digit'
   });
+  
+  const eventColor = calendarColor || event.calendarColor || '#3B82F6';
 
   // Calendar badge component
   const CalendarBadge = () => {
@@ -81,7 +367,13 @@ const EventCard = ({ event, view }) => {
 
   if (view === 'grid') {
     return (
-      <div className="bg-white dark:bg-gray-700 rounded-lg shadow-sm border border-gray-200 dark:border-gray-600 p-4 hover:shadow-md transition-shadow">
+      <div className="bg-white dark:bg-gray-700 rounded-lg shadow-sm border border-gray-200 dark:border-gray-600 p-4 hover:shadow-md transition-shadow relative">
+        {/* Calendar color indicator */}
+        <div 
+          className="absolute left-0 top-0 bottom-0 w-1 rounded-l-lg"
+          style={{ backgroundColor: eventColor }}
+        ></div>
+        
         <div className="text-sm text-blue-600 dark:text-blue-400 mb-2">{formattedDate}</div>
         <CalendarBadge />
         <h3 className="font-semibold text-lg dark:text-white mb-2">{event.summary}</h3>
@@ -93,8 +385,16 @@ const EventCard = ({ event, view }) => {
   }
 
   return (
-    <div className="bg-white dark:bg-gray-700 rounded-lg shadow-sm border border-gray-200 dark:border-gray-600 p-4 hover:shadow-md transition-shadow">
-      <div className="flex items-start gap-4">
+    <div className={`bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4 hover:shadow-md transition-shadow relative ${
+      view === 'list' ? 'mb-2' : ''
+    }`}>
+      {/* Calendar color indicator */}
+      <div 
+        className="absolute left-0 top-0 bottom-0 w-1 rounded-l-lg"
+        style={{ backgroundColor: eventColor }}
+      ></div>
+      
+      <div className="flex items-center gap-2">
         <div className="text-sm text-blue-600 dark:text-blue-400 whitespace-nowrap">{formattedDate}</div>
         <div className="flex-1">
           <CalendarBadge />
@@ -110,6 +410,7 @@ const EventCard = ({ event, view }) => {
 
 const GoogleCalendar = ({ className = '' }) => {
   const [events, setEvents] = useState([]);
+  const [allEvents, setAllEvents] = useState([]); // Store all events before filtering
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -120,6 +421,10 @@ const GoogleCalendar = ({ className = '' }) => {
   const [isExportingToMCard, setIsExportingToMCard] = useState(false);
   const [exportStatus, setExportStatus] = useState('');
   const [calendarSummary, setCalendarSummary] = useState(null);
+  const [selectedDate, setSelectedDate] = useState(new Date());
+  const [isSpecificDateSelected, setIsSpecificDateSelected] = useState(false);
+  const [availableCalendars, setAvailableCalendars] = useState([]);
+  const [calendarVisibility, setCalendarVisibility] = useState({});
 
   // Initialize Google API
   useEffect(() => {
@@ -188,6 +493,71 @@ const GoogleCalendar = ({ className = '' }) => {
     }
   }, []);
 
+  // Refetch events when selectedDate changes
+  useEffect(() => {
+    if (isAuthenticated && !isLoading) {
+      fetchEvents();
+    }
+  }, [selectedDate, isAuthenticated, isSpecificDateSelected]);
+
+  // Re-filter events when calendar visibility changes (without refetching from API)
+  useEffect(() => {
+    if (allEvents.length > 0) {
+      // Re-filter from all stored events without making new API calls
+      const visibleEvents = allEvents.filter(event => {
+        const calendarId = event.calendarId || 'primary';
+        return calendarVisibility[calendarId] !== false;
+      });
+      
+      console.log(`Filtered events: ${visibleEvents.length} visible out of ${allEvents.length} total`);
+      setEvents(visibleEvents);
+      
+      // Update calendar summary with new counts
+      if (availableCalendars.length > 0) {
+        setCalendarSummary(prev => prev ? {
+          ...prev,
+          totalEvents: visibleEvents.length
+        } : null);
+      }
+    }
+  }, [calendarVisibility, allEvents]);
+
+  // Handle date selection from calendar grid
+  const handleDateSelect = (date) => {
+    setSelectedDate(date);
+    setIsSpecificDateSelected(true);
+  };
+
+  // Handle month navigation (resets to month view)
+  const handleMonthChange = (date) => {
+    setSelectedDate(date);
+    setIsSpecificDateSelected(false);
+  };
+
+  // Handle calendar visibility toggle
+  const handleToggleCalendarVisibility = (calendarId, isVisible) => {
+    setCalendarVisibility(prev => ({
+      ...prev,
+      [calendarId]: isVisible
+    }));
+  };
+
+  // Handle calendar color change
+  const handleCalendarColorChange = (calendarId, color) => {
+    setAvailableCalendars(prev => 
+      prev.map(cal => 
+        cal.id === calendarId 
+          ? { ...cal, color }
+          : cal
+      )
+    );
+    
+    // Save color preference to localStorage
+    const savedColors = JSON.parse(localStorage.getItem('calendarColors') || '{}');
+    savedColors[calendarId] = color;
+    localStorage.setItem('calendarColors', JSON.stringify(savedColors));
+  };
+
   const handleSignIn = async () => {
     try {
       setError(null);
@@ -202,29 +572,11 @@ const GoogleCalendar = ({ className = '' }) => {
         localStorage.setItem('googleAuthToken', JSON.stringify(token));
       }
       
-      const response = await listEvents();
-      const events = response.result.items || [];
-      setEvents(events);
+      // Fetch events and calendar list using the main fetch function
+      await fetchEvents();
       
-      // Send events to API endpoint
-      await sendEventsToContext(events);
-      
-      // Calculate today's meetings
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      
-      const todayEvents = events.filter(event => {
-        const eventDate = new Date(event.start.dateTime || event.start.date);
-        eventDate.setHours(0, 0, 0, 0);
-        return eventDate.getTime() === today.getTime();
-      });
-      
-      // Set error message based on today's meetings
-      if (todayEvents.length > 0) {
-        setError(`You have ${todayEvents.length} meeting${todayEvents.length > 1 ? 's' : ''} today`);
-      } else {
-        setError('No meeting today, would you like to take a vacation?');
-      }
+      // Send events to MCard (this will be handled by fetchEvents now)
+      // The fetchEvents function will handle all calendar processing
       
     } catch (err) {
       console.error('Sign in error:', err);
@@ -255,6 +607,10 @@ const GoogleCalendar = ({ className = '' }) => {
       await signOut();
       setIsAuthenticated(false);
       setEvents([]);
+      setAllEvents([]);
+      setAvailableCalendars([]);
+      setCalendarVisibility({});
+      setCalendarSummary(null);
       
       // Clear the saved token from localStorage
       localStorage.removeItem('googleAuthToken');
@@ -332,7 +688,7 @@ const GoogleCalendar = ({ className = '' }) => {
   };
 
   // Update fetchEvents to include sending to context
-  const fetchEvents = async () => {
+  const fetchEvents = async (dateFilter = null) => {
     try {
       setError(null);
       setIsLoading(true);
@@ -341,69 +697,147 @@ const GoogleCalendar = ({ className = '' }) => {
         throw new Error('Google API not initialized');
       }
       
-      const response = await listEvents();
-      const events = response.result.items || [];
+      const response = await listEvents(dateFilter || selectedDate, isSpecificDateSelected);
+      const fetchedEvents = response.result.items || [];
       
-      // Create calendar summary
+      // Log summary of calendar access
+      console.log(`Successfully fetched events from accessible calendars. Total events: ${fetchedEvents.length}`);
+      if (response.result.summary) {
+        console.log(response.result.summary);
+      }
+      
+      // Store all events before filtering
+      setAllEvents(fetchedEvents);
+      
+      // Fetch all calendars (not just ones with events)
+      let allCalendars = [];
+      try {
+        const allCalendarsResponse = await window.gapi.client.calendar.calendarList.list({
+          minAccessRole: 'reader'
+        });
+        allCalendars = allCalendarsResponse.result.items || [];
+        console.log(`Found ${allCalendars.length} total calendars in user's account`);
+      } catch (calendarListError) {
+        console.warn('Failed to fetch complete calendar list, using calendars from events only:', calendarListError);
+        // Fallback: create calendar entries from events only
+        const eventCalendars = new Set();
+        fetchedEvents.forEach(event => {
+          const calendarId = event.calendarId || 'primary';
+          const calendarName = event.calendarName || 'Primary Calendar';
+          if (!eventCalendars.has(calendarId)) {
+            allCalendars.push({
+              id: calendarId,
+              summary: calendarName,
+              primary: event.isPrimary || false,
+              backgroundColor: event.calendarColor
+            });
+            eventCalendars.add(calendarId);
+          }
+        });
+      }
+      
+      // Create calendar summary with ALL calendars
       const calendarMap = new Map();
+      const savedColors = JSON.parse(localStorage.getItem('calendarColors') || '{}');
       let totalEvents = 0;
       
-      events.forEach(event => {
-        const calendarName = event.calendarName || 'Primary Calendar';
+      // First, add all calendars with zero event count
+      allCalendars.forEach(calendar => {
+        calendarMap.set(calendar.id, {
+          id: calendar.id,
+          name: calendar.summary,
+          eventCount: 0,
+          color: savedColors[calendar.id] || calendar.backgroundColor || calendar.colorId,
+          isPrimary: calendar.primary || false
+        });
+      });
+      
+      // Then, update event counts for calendars that have events
+      fetchedEvents.forEach(event => {
         const calendarId = event.calendarId || 'primary';
         
-        if (!calendarMap.has(calendarId)) {
-          calendarMap.set(calendarId, {
-            name: calendarName,
-            color: event.calendarColor || '#4285f4',
-            eventCount: 0,
-            isPrimary: event.isPrimary || false
-          });
+        if (calendarMap.has(calendarId)) {
+          const calendarInfo = calendarMap.get(calendarId);
+          calendarInfo.eventCount++;
+          totalEvents++;
         }
-        
-        calendarMap.get(calendarId).eventCount++;
-        totalEvents++;
+      });
+      
+      // Convert map to array for easier rendering
+      const calendarsArray = Array.from(calendarMap.values());
+      
+      // Update available calendars only if they changed
+      setAvailableCalendars(prev => {
+        const hasChanged = prev.length !== calendarsArray.length || 
+          calendarsArray.some(cal => !prev.find(p => p.id === cal.id));
+        return hasChanged ? calendarsArray : prev;
+      });
+      
+      // Initialize visibility for new calendars (default to visible)
+      setCalendarVisibility(prev => {
+        const newVisibility = { ...prev };
+        let hasChanges = false;
+        calendarsArray.forEach(cal => {
+          if (!(cal.id in newVisibility)) {
+            newVisibility[cal.id] = true;
+            hasChanges = true;
+          }
+        });
+        return hasChanges ? newVisibility : prev;
+      });
+      
+      // Filter events based on current calendar visibility
+      const visibleEvents = fetchedEvents.filter(event => {
+        const calendarId = event.calendarId || 'primary';
+        return calendarVisibility[calendarId] !== false; // Default to visible if not set
       });
       
       setCalendarSummary({
-        calendars: Array.from(calendarMap.values()),
-        totalCalendars: calendarMap.size,
-        totalEvents: totalEvents
+        calendars: calendarsArray,
+        totalCalendars: calendarsArray.length,
+        totalEvents: visibleEvents.length,
+        allEvents: totalEvents
       });
       
-      // Send events to context
-      await sendEventsToContext(events);
+      setEvents(visibleEvents);
       
-      // Calculate today's meetings
+      // Send events to context
+      await sendEventsToContext(visibleEvents);
+      
       const today = new Date();
       today.setHours(0, 0, 0, 0);
       
-      const todayEvents = events.filter(event => {
+      const todayEvents = visibleEvents.filter(event => {
         const eventDate = new Date(event.start.dateTime || event.start.date);
         eventDate.setHours(0, 0, 0, 0);
         return eventDate.getTime() === today.getTime();
       });
       
-      setEvents(events);
-      
       // Set error message based on today's meetings
       if (todayEvents.length > 0) {
         setError(`You have ${todayEvents.length} meeting${todayEvents.length > 1 ? 's' : ''} today`);
       } else {
-        setError('No meeting today, would you like to take a vacation?');
+        setError('No meeting today');
       }
       
     } catch (err) {
       console.error('Calendar fetch error:', err);
       
-      if (err.status === 403) {
+      // Handle quota exceeded errors without signing out
+      if (err.status === 403 && err.body && err.body.includes('rateLimitExceeded')) {
+        setError('Google Calendar API quota exceeded. Please wait a moment and try refreshing.');
+        // Don't sign out the user for quota issues
+      } else if (err.status === 403) {
         setError('Access denied. Please ensure you have granted calendar access and try signing in again.');
         setIsAuthenticated(false);
       } else if (err.status === 401) {
         setError('Your session has expired. Please sign in again.');
         setIsAuthenticated(false);
       } else {
-        setError('Failed to fetch calendar events. Please check your internet connection and try again.');
+        setError(`Failed to load calendar events: ${err.message || 'Unknown error'}`);
+      }
+      if (err.status === 0) {
+        setError('Failed to load calendar events. Please check your internet connection and try again.');
       }
     } finally {
       setIsLoading(false);
@@ -522,7 +956,7 @@ const GoogleCalendar = ({ className = '' }) => {
             ) : (
               <div className="bg-gray-50 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg p-3">
                 <p className="text-lg font-semibold">
-                  No meeting today, would you like to take a vacation?
+                  No meeting today
                 </p>
               </div>
             )}
@@ -566,11 +1000,36 @@ const GoogleCalendar = ({ className = '' }) => {
       ) : (
         <>
           <div className="flex flex-col gap-4">
+            {/* Month Navigation */}
+            <MonthNavigation 
+              selectedDate={selectedDate} 
+              onDateChange={handleMonthChange} 
+            />
+            
+            {/* Calendar Grid */}
+            <CalendarGrid 
+              selectedDate={selectedDate} 
+              onDateSelect={handleDateSelect} 
+            />
+            
+            {/* My Calendars List */}
+            <CalendarList 
+              calendars={availableCalendars}
+              visibility={calendarVisibility}
+              onToggleVisibility={handleToggleCalendarVisibility}
+              onColorChange={handleCalendarColorChange}
+            />
+            
             <div className="flex justify-between items-center">
-              <h2 className="text-xl font-bold dark:text-white">Upcoming Events</h2>
+              <h2 className="text-xl font-bold dark:text-white">
+                {isSpecificDateSelected 
+                  ? `Events for ${selectedDate.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}`
+                  : `Events for ${selectedDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}`
+                }
+              </h2>
               <div className="flex items-center gap-4">
                 <button
-                  onClick={fetchEvents}
+                  onClick={() => fetchEvents()}
                   disabled={isLoading}
                   className="flex items-center gap-2 px-4 py-2 text-blue-600 dark:text-blue-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   title="Refresh events"
@@ -623,14 +1082,14 @@ const GoogleCalendar = ({ className = '' }) => {
             <FilterBar searchTerm={searchTerm} onSearchChange={setSearchTerm} />
             
             {/* Calendar Summary */}
-            {calendarSummary && calendarSummary.totalCalendars > 1 && (
+            {calendarSummary && calendarSummary.totalCalendars > 0 && (
               <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
                 <div className="flex items-center justify-between mb-2">
                   <h3 className="text-sm font-medium text-blue-900 dark:text-blue-100">
-                    Connected Calendars ({calendarSummary.totalCalendars})
+                    All Calendars ({calendarSummary.totalCalendars})
                   </h3>
                   <span className="text-xs text-blue-700 dark:text-blue-300">
-                    {calendarSummary.totalEvents} total events
+                    {calendarSummary.totalEvents} visible events
                   </span>
                 </div>
                 <div className="flex flex-wrap gap-2">
@@ -645,7 +1104,7 @@ const GoogleCalendar = ({ className = '' }) => {
                         {calendar.isPrimary && ' (Primary)'}
                       </span>
                       <span className="text-gray-500 dark:text-gray-400">
-                        ({calendar.eventCount})
+                        ({calendar.eventCount === 0 ? 'no events' : calendar.eventCount})
                       </span>
                     </div>
                   ))}
@@ -665,9 +1124,17 @@ const GoogleCalendar = ({ className = '' }) => {
                   {searchTerm ? 'No events match your search' : 'No upcoming events'}
                 </p>
               ) : (
-                filteredEvents.map((event) => (
-                  <EventCard key={event.id} event={event} view={view} />
-                ))
+                filteredEvents.map((event) => {
+                  const calendar = availableCalendars.find(cal => cal.id === (event.calendarId || 'primary'));
+                  return (
+                    <EventCard 
+                      key={event.id} 
+                      event={event} 
+                      view={view} 
+                      calendarColor={calendar?.color}
+                    />
+                  );
+                })
               )}
             </div>
           )}
