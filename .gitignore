@@ -15,8 +15,7 @@ pnpm-debug.log*
 
 # Environment variables
 .env
-.env.*
-!.env.example
+
 
 # Runtime environment files
 public/runtime-env.js

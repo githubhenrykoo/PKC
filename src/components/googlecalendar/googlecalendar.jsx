@@ -335,6 +335,14 @@ const CalendarGrid = ({ selectedDate, onDateSelect }) => {
   );
 };
 
+// Helper component to render HTML content
+const HTMLContent = ({ html, className = '' }) => {
+  return <div 
+    className={className}
+    dangerouslySetInnerHTML={{ __html: html }} 
+  />;
+};
+
 const EventCard = ({ event, view, calendarColor }) => {
   const date = new Date(event.start.dateTime || event.start.date);
   const formattedDate = date.toLocaleString('en-US', {
@@ -378,7 +386,9 @@ const EventCard = ({ event, view, calendarColor }) => {
         <CalendarBadge />
         <h3 className="font-semibold text-lg dark:text-white mb-2">{event.summary}</h3>
         {event.description && (
-          <p className="text-sm text-gray-600 dark:text-gray-300 line-clamp-3">{event.description}</p>
+          <div className="text-sm text-gray-600 dark:text-gray-300 line-clamp-3">
+            <HTMLContent html={event.description} className="prose prose-sm dark:prose-invert max-w-none" />
+          </div>
         )}
       </div>
     );
@@ -400,7 +410,9 @@ const EventCard = ({ event, view, calendarColor }) => {
           <CalendarBadge />
           <h3 className="font-semibold text-lg dark:text-white mb-2">{event.summary}</h3>
           {event.description && (
-            <p className="text-sm text-gray-600 dark:text-gray-300">{event.description}</p>
+            <div className="text-sm text-gray-600 dark:text-gray-300">
+              <HTMLContent html={event.description} className="prose prose-sm dark:prose-invert max-w-none" />
+            </div>
           )}
         </div>
       </div>

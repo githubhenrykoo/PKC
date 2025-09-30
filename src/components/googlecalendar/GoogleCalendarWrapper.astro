@@ -390,7 +390,11 @@
         minute: '2-digit'
       });
 
-      return `
+      // Create a unique ID for this event's description container
+      const descriptionId = `event-desc-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+      
+      // Store the HTML content in a data attribute for later use
+      const html = `
         <div class="bg-white dark:bg-gray-700 rounded-lg shadow-sm border border-gray-200 dark:border-gray-600 p-3 hover:shadow-md transition-shadow">
           <div class="flex items-start gap-3">
             <div class="text-xs text-blue-600 dark:text-blue-400 whitespace-nowrap font-medium">
@@ -399,13 +403,31 @@
             <div class="flex-1 min-w-0">
               <h4 class="font-medium text-sm dark:text-white truncate">${event.summary || 'Untitled Event'}</h4>
               ${event.description 
-                ? `<p class="text-xs text-gray-600 dark:text-gray-300 mt-1 line-clamp-2">${event.description}</p>`
+                ? `<div id="${descriptionId}" class="text-xs text-gray-600 dark:text-gray-300 mt-1 line-clamp-2"></div>`
                 : ''
               }
             </div>
           </div>
         </div>
       `;
+      
+      // After the HTML is inserted, we'll set the innerHTML safely
+      setTimeout(() => {
+        const descElement = document.getElementById(descriptionId);
+        if (descElement && event.description) {
+          // Only set the innerHTML after the element exists in the DOM
+          descElement.innerHTML = event.description;
+          
+          // Make sure links open in a new tab
+          const links = descElement.getElementsByTagName('a');
+          for (let link of links) {
+            link.target = '_blank';
+            link.rel = 'noopener noreferrer';
+          }
+        }
+      }, 0);
+      
+      return html;
     }
 
     updateSignInButton() {
