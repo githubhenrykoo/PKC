@@ -11,12 +11,6 @@ services:
       - LOG_LEVEL=INFO
       # Add any other environment variables here
     restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:49384/v1/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 10s
 
   pkc-app:
     image: henry768/pkc@sha256:83a9d1665fa0e1da2ab87f0f8d035f1b22a9d55c21a5e8f4a7325d3abb1f6e4f
@@ -85,17 +79,28 @@ services:
           sleep 3
         done &&
         echo 'Ollama API is available!' &&
-        echo 'Pulling qwen3:0.6b model...' &&
         curl -s -X POST http://ollama:11434/api/pull -d '{"name":"qwen3:0.6b"}' &&
         echo 'Pulling nomic-embed-text model...' &&
         curl -s -X POST http://ollama:11434/api/pull -d '{"name":"nomic-embed-text"}' &&
         echo 'Model initialization completed successfully!'
 
-# Named volumes for data persistence
+  thingsboard:
+    image: thingsboard/tb-postgres
+    container_name: thingsboard
+    ports:
+      - "8080:8080"
+    environment:
+      - TB_QUEUE_TYPE=in-memory
+    volumes:
+      - tb_data:/data
+      - tb_logs:/var/log/thingsboard
+    restart: unless-stopped
+
 volumes:
   mcard-data:
   runtime_env:
   ollama_data:
   vector_data:
   log_data:
-    # This will be automatically created by Docker Compose
+  tb_data:
+  tb_logs:
