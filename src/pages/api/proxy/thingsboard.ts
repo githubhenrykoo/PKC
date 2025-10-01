@@ -132,6 +132,19 @@ export const GET: APIRoute = async ({ request }) => {
   try {
     const reqUrl = new URL(request.url);
     const target = buildTargetUrl(reqUrl);
+    // Return token for WS usage when explicitly requested
+    if (reqUrl.searchParams.get('getToken') === '1') {
+      // ensure login and return token
+      let token = process.env.THINGSBOARD_TOKEN || cachedToken || null;
+      if (!token) {
+        token = await loginIfNeeded();
+      }
+      const ok = Boolean(token && token.trim().length > 0);
+      return new Response(JSON.stringify({ ok, token: ok ? token : null }), {
+        status: ok ? 200 : 401,
+        headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
+      });
+    }
     // Debug mode: show token presence and target URL
     if (reqUrl.searchParams.get('debug') === '1') {
       const envToken = process.env.THINGSBOARD_TOKEN;

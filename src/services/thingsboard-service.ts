@@ -74,6 +74,26 @@ export class ThingsBoardService {
   }
 
   /**
+   * Get available timeseries keys for a device. Useful to build a selectable list of telemetry.
+   */
+  async getTimeseriesKeys(deviceId: string, options: { useProxy?: boolean } = {}): Promise<string[]> {
+    const { useProxy = true } = options;
+    const path = `/api/plugins/telemetry/DEVICE/${deviceId}/keys/timeseries`;
+
+    const url = useProxy
+      ? `/api/proxy/thingsboard?path=${encodeURIComponent(path)}`
+      : `${this.baseUrl}${path}`;
+
+    const res = await fetch(url);
+    if (!res.ok) {
+      throw new Error(`Failed to get telemetry keys: ${res.status} ${res.statusText}`);
+    }
+    const data = await res.json();
+    // TB returns an array of strings
+    return Array.isArray(data) ? (data as string[]) : [];
+  }
+
+  /**
    * Subscribe to live telemetry updates via WebSocket.
    * Requires an access token (tenant/device JWT) unless TB is configured for anonymous WS.
    * onMessage receives raw parsed message from TB WS API.
