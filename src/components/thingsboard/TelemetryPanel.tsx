@@ -17,6 +17,26 @@ export default function TelemetryPanel({ pageSize = 10, telemetryKeys = 'tempera
   const [wsActive, setWsActive] = useState<boolean>(false);
   const [wsNonce, setWsNonce] = useState<number>(0); // bump to force reconnect
 
+  // Normalize a list of telemetry points into [{ts, value}]
+  function normalizeSeries(arr: any): Array<{ ts: number; value: any }> {
+    if (!Array.isArray(arr)) return [];
+    return arr
+      .map((e: any) => {
+        if (Array.isArray(e) && e.length >= 2) {
+          // TB WS often returns [[ts, value]]
+          return { ts: Number(e[0]), value: e[1] };
+        }
+        if (e && typeof e === 'object') {
+          const ts = 'ts' in e ? Number((e as any).ts) : NaN;
+          const value = 'value' in e ? (e as any).value : undefined;
+          if (!Number.isNaN(ts)) return { ts, value };
+        }
+        // fallback
+        return { ts: Date.now(), value: e };
+      })
+      .filter((p) => typeof p.ts === 'number' && !Number.isNaN(p.ts));
+  }
+
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -103,8 +123,7 @@ export default function TelemetryPanel({ pageSize = 10, telemetryKeys = 'tempera
               const base: any = { ...(prev || {}) };
               Object.entries(incoming as Record<string, any>).forEach(([k, arr]) => {
                 const list = Array.isArray(arr) ? arr : (arr?.[k] || []);
-                const normalized = Array.isArray(list) ? list : [];
-                base[k] = normalized;
+                base[k] = normalizeSeries(list);
               });
               return base;
             });
@@ -124,6 +143,39 @@ export default function TelemetryPanel({ pageSize = 10, telemetryKeys = 'tempera
       setWsActive(false);
     };
   }, [selectedId, selectedKeys.join(','), availableKeys.join(','), wsNonce]);
+
+  // Polling fallback every 5s when WS is offline
+  useEffect(() => {
+    if (!selectedId) return;
+    const keysCsv = (selectedKeys.length > 0 ? selectedKeys : availableKeys).join(',');
+    if (!keysCsv) return;
+    if (wsActive) return; // only poll when offline
+
+    let cancelled = false;
+    const tick = async () => {
+      try {
+        const data = await thingsBoardService.getLatestTelemetry(selectedId, keysCsv, { useProxy: true });
+        if (!cancelled) setLatest(data);
+      } catch {
+        // ignore polling errors
+      }
+    };
+    // initial and interval
+    tick();
+    const id = setInterval(tick, 5000);
+    return () => {
+      cancelled = true;
+      clearInterval(id);
+    };
+  }, [selectedId, wsActive, selectedKeys.join(','), availableKeys.join(',')]);
+
+  // Auto-retry WS every 10s while offline
+  useEffect(() => {
+    if (!selectedId) return;
+    if (wsActive) return;
+    const id = setInterval(() => setWsNonce((n) => n + 1), 10000);
+    return () => clearInterval(id);
+  }, [selectedId, wsActive, selectedKeys.join(','), availableKeys.join(',')]);
 
   const deviceOptions = useMemo(() => {
     return devices.map((d) => ({
@@ -209,9 +261,11 @@ export default function TelemetryPanel({ pageSize = 10, telemetryKeys = 'tempera
                 {Object.entries(latest)
                   .filter(([key]) => selectedKeys.length === 0 || selectedKeys.includes(key))
                   .map(([key, arr]) => {
-                    const last = arr?.[arr.length - 1];
-                    const ts = last ? new Date(last.ts).toLocaleString() : '-';
-                    const val = last ? String(last.value) : '-';
+                    const series = Array.isArray(arr) ? arr : [];
+                    const last: any = series.length > 0 ? series[series.length - 1] : null;
+                    const tsNum = last && typeof last.ts !== 'undefined' ? Number(last.ts) : NaN;
+                    const ts = !Number.isNaN(tsNum) ? new Date(tsNum).toLocaleString() : '-';
+                    const val = typeof last?.value !== 'undefined' ? String(last.value) : '-';
                     return (
                       <tr key={key} className="border-b">
                         <td className="py-1 px-2 font-mono">{key}</td>
