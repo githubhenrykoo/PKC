@@ -1,5 +1,5 @@
 ---
-import TelemetryPanel from '../components/thingsboard/TelemetryPanel.tsx';
+import TelemetryPanel from '../components/thingsboard/TelemetryPanel';
 ---
 
 <html lang="en">
@@ -8,8 +8,14 @@ import TelemetryPanel from '../components/thingsboard/TelemetryPanel.tsx';
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>ThingsBoard Telemetry</title>
   </head>
-  <body class="p-6">
-    <h1 class="text-2xl font-bold mb-4">ThingsBoard Telemetry</h1>
-    <TelemetryPanel client:load />
+  <body class="min-h-screen bg-gray-50">
+    <main class="max-w-5xl mx-auto px-4 py-8">
+      <header class="mb-6">
+        <h1 class="text-3xl font-semibold tracking-tight">ThingsBoard Telemetry</h1>
+        <p class="text-sm text-gray-600 mt-1">Monitor device telemetry in realtime with WebSocket and fallback polling.</p>
+      </header>
+
+      <TelemetryPanel client:load />
+    </main>
   </body>
 </html>

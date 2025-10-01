@@ -185,11 +185,11 @@ export default function TelemetryPanel({ pageSize = 10, telemetryKeys = 'tempera
   }, [devices]);
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center gap-2">
-        <label className="text-sm font-medium">Device:</label>
+    <div className="space-y-6">
+      <div className="flex items-center gap-3 bg-white border rounded-xl shadow-sm px-4 py-3">
+        <label className="text-sm font-medium text-gray-700">Device</label>
         <select
-          className="border rounded px-2 py-1"
+          className="border rounded-md px-3 py-2 text-sm bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
           onChange={(e) => setSelectedId(e.target.value || null)}
           value={selectedId || ''}
         >
@@ -198,33 +198,41 @@ export default function TelemetryPanel({ pageSize = 10, telemetryKeys = 'tempera
             <option key={opt.id} value={opt.id}>{opt.name}</option>
           ))}
         </select>
-        <div className={`text-xs px-2 py-0.5 rounded ${wsActive ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-700'}`}>
+        <div className={`text-xs px-2 py-0.5 rounded-md font-medium ${wsActive ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-700'}`}>
           {wsActive ? 'WS: Live' : 'WS: Offline'}
         </div>
         <button
-          className="text-xs border rounded px-2 py-1 hover:bg-gray-50"
+          className="text-xs border rounded-md px-3 py-1.5 hover:bg-gray-50"
           onClick={() => setWsNonce((n) => n + 1)}
           disabled={!selectedId}
           title="Reconnect WebSocket"
         >
           Reconnect
         </button>
-        {loading && <span className="text-xs opacity-70">Loading devices...</span>}
+        {loading && <span className="text-xs text-gray-500">Loading devices...</span>}
         {error && <span className="text-xs text-red-600">{error}</span>}
       </div>
 
       {selectedId && (
-        <div className="border rounded p-4">
-          <h3 className="font-semibold mb-2">Select Telemetry Keys</h3>
+        <div className="bg-white border rounded-xl shadow-sm p-4">
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="font-semibold">Select Telemetry Keys</h3>
+            <span className="text-xs text-gray-500">{selectedKeys.length} selected</span>
+          </div>
           {availableKeys.length === 0 && (
-            <div className="text-sm opacity-70">No telemetry keys found for this device.</div>
+            <div className="text-sm text-gray-500">No telemetry keys found for this device.</div>
           )}
           {availableKeys.length > 0 && (
-            <div className="flex flex-wrap gap-3">
+            <div className="flex flex-wrap gap-2">
               {availableKeys.map((k) => {
                 const checked = selectedKeys.includes(k);
                 return (
-                  <label key={k} className="flex items-center gap-2 text-sm border rounded px-2 py-1">
+                  <label
+                    key={k}
+                    className={`flex items-center gap-2 text-sm border rounded-full px-3 py-1 transition-colors cursor-pointer select-none ${
+                      checked ? 'bg-blue-50 border-blue-300 text-blue-700' : 'bg-white hover:bg-gray-50'
+                    }`}
+                  >
                     <input
                       type="checkbox"
                       checked={checked}
@@ -243,21 +251,26 @@ export default function TelemetryPanel({ pageSize = 10, telemetryKeys = 'tempera
         </div>
       )}
 
-      <div className="border rounded p-4">
+      <div className="bg-white border rounded-xl shadow-sm p-4">
         <h3 className="font-semibold mb-2">Latest Telemetry</h3>
-        {!selectedId && <div className="text-sm opacity-70">Select a device to view telemetry.</div>}
-        {selectedId && !latest && <div className="text-sm opacity-70">No data.</div>}
+        {!selectedId && <div className="text-sm text-gray-500">Select a device to view telemetry.</div>}
+        {selectedId && !latest && <div className="text-sm text-gray-500">No data.</div>}
         {selectedId && latest && (
           <div className="text-sm overflow-x-auto">
-            <table className="min-w-full text-sm">
-              <thead>
+            <table className="min-w-full text-sm border-separate border-spacing-0 table-fixed">
+              <colgroup>
+                <col className="w-2/5" />
+                <col className="w-1/4" />
+                <col className="w-1/3" />
+              </colgroup>
+              <thead className="sticky top-0 bg-white">
                 <tr className="text-left border-b">
-                  <th className="py-1 px-2">Key</th>
-                  <th className="py-1 px-2">Value</th>
-                  <th className="py-1 px-2">Timestamp</th>
+                  <th className="py-2 px-3 text-gray-600">Key</th>
+                  <th className="py-2 px-3 text-gray-600 text-right">Value</th>
+                  <th className="py-2 px-3 text-gray-600">Timestamp</th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="[&>tr:nth-child(odd)]:bg-gray-50">
                 {Object.entries(latest)
                   .filter(([key]) => selectedKeys.length === 0 || selectedKeys.includes(key))
                   .map(([key, arr]) => {
@@ -267,10 +280,10 @@ export default function TelemetryPanel({ pageSize = 10, telemetryKeys = 'tempera
                     const ts = !Number.isNaN(tsNum) ? new Date(tsNum).toLocaleString() : '-';
                     const val = typeof last?.value !== 'undefined' ? String(last.value) : '-';
                     return (
-                      <tr key={key} className="border-b">
-                        <td className="py-1 px-2 font-mono">{key}</td>
-                        <td className="py-1 px-2">{val}</td>
-                        <td className="py-1 px-2 opacity-60">{ts}</td>
+                      <tr key={key} className="border-b last:border-0">
+                        <td className="py-2 px-3 font-mono text-gray-800 truncate">{key}</td>
+                        <td className="py-2 px-3 font-mono tabular-nums text-right">{val}</td>
+                        <td className="py-2 px-3 text-gray-500 whitespace-nowrap">{ts}</td>
                       </tr>
                     );
                   })}
