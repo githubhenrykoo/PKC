@@ -293,12 +293,15 @@ const preloadEntryUrl = '/src/services/preload-entry.ts';
         display: flex; 
         flex-direction: column; 
         min-height: 100svh; 
+        max-height: 100svh; /* Prevent root from growing beyond viewport */
+        overflow: hidden; /* Prevent root scrolling */
       }
       
       /* Header with relative positioning for z-index control */
       .app-header { 
         position: relative; 
         z-index: 10; 
+        flex-shrink: 0; /* Prevent header from shrinking */
       }
       
       /* Main area flexes to consume remaining viewport height */
@@ -306,6 +309,7 @@ const preloadEntryUrl = '/src/services/preload-entry.ts';
         flex: 1 1 auto; 
         min-height: 0; 
         display: flex; 
+        overflow: hidden; /* Prevent main from scrolling */
       }
 
       /* Grid container - Mobile-first responsive design */
@@ -317,7 +321,9 @@ const preloadEntryUrl = '/src/services/preload-entry.ts';
         display: grid;
         flex: 1 1 auto;
         min-height: 0;
+        max-height: 100%; /* Constrain container height */
         box-sizing: border-box;
+        overflow: hidden; /* Prevent container scrolling */
         
         /* Mobile-first: Vertical stacking */
         grid-template-columns: 1fr;
@@ -331,9 +337,20 @@ const preloadEntryUrl = '/src/services/preload-entry.ts';
         display: flex;
         flex-direction: column;
         min-height: 200px;
-        overflow: hidden;
         align-self: stretch;
         min-width: 0; /* allow center to expand without shrinking */
+      }
+      
+      /* Sidebar and right panel: fixed height, no scrolling */
+      .app-sidebar, .app-right {
+        overflow: hidden; /* Fixed panels don't scroll */
+        max-height: 100%; /* Constrain to container height */
+      }
+      
+      /* Center content: scrollable */
+      .app-content {
+        overflow: auto; /* Only center content scrolls */
+        max-height: 100%; /* Constrain to container height */
       }
       
       /* Mobile stacking order */
@@ -352,10 +369,17 @@ const preloadEntryUrl = '/src/services/preload-entry.ts';
         display: none; 
       }
       
-      /* Internal content scrolling */
-      .app-sidebar > *, .app-content > *, .app-right > * {
+      /* Internal content behavior */
+      .app-sidebar > *, .app-right > * {
         flex: 1;
-        overflow: auto;
+        overflow: hidden; /* Sidebar content doesn't scroll internally */
+        max-height: 100%;
+      }
+      
+      .app-content > * {
+        flex: 1;
+        overflow: auto; /* Center content can scroll internally */
+        max-height: 100%;
       }
 
       /* Footer - Full-width outside grid */
@@ -364,6 +388,7 @@ const preloadEntryUrl = '/src/services/preload-entry.ts';
         margin: 0;
         background: var(--surface);
         border-top: 2px solid color-mix(in_oklab, var(--text) 20%, transparent);
+        flex-shrink: 0; /* Prevent footer from shrinking */
       }
 
       /* Medium screens: Horizontal layout */
@@ -377,6 +402,16 @@ const preloadEntryUrl = '/src/services/preload-entry.ts';
         .app-sidebar, .app-content, .app-right {
           grid-row: 1;
           min-height: 0;
+          max-height: 100%; /* Ensure panels fit within container */
+        }
+        
+        /* Maintain scrolling behavior in horizontal layout */
+        .app-sidebar, .app-right {
+          overflow: hidden; /* Fixed sidebars */
+        }
+        
+        .app-content {
+          overflow: auto; /* Scrollable center */
         }
         
         .app-sidebar { grid-column: 1; }

@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 
-// Notion OAuth configuration - using environment variable
-const NOTION_AUTH_URL = import.meta.env.PUBLIC_NOTION_AUTH_URL;
-console.log('Available env variables:', Object.keys(import.meta.env));
-console.log('Notion Auth URL from env:', import.meta.env.PUBLIC_NOTION_AUTH_URL);
+// Dynamic credentials from runtime environment
+let NOTION_CLIENT_ID = '';
+let NOTION_CLIENT_SECRET = '';
+let NOTION_AUTH_URL = '';
 
 // Add the extractTitle helper function
 const extractTitle = (page) => {
@@ -24,6 +24,107 @@ const NotionPanel = ({ className = '' }) => {
   const [connected, setConnected] = useState(false); // Default to false until authenticated
   const [accessToken, setAccessToken] = useState(null);
   const [workspaceName, setWorkspaceName] = useState('');
+  
+  // Credential management state
+  const [credentials, setCredentials] = useState({
+    CLIENT_ID: '',
+    CLIENT_SECRET: '',
+    AUTH_URL: ''
+  });
+  const [credentialsLoaded, setCredentialsLoaded] = useState(false);
+  const [credentialsError, setCredentialsError] = useState(null);
+
+  // Function to fetch credentials from runtime environment
+  const fetchRuntimeCredentials = useCallback(async () => {
+    try {
+      const timestamp = Date.now();
+      const response = await fetch(`/runtime-env.json?t=${timestamp}`, { 
+        cache: 'no-store',
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0'
+        }
+      });
+      
+      if (response.ok) {
+        const env = await response.json();
+        const newCredentials = {
+          CLIENT_ID: env.PUBLIC_NOTION_CLIENT_ID || '',
+          CLIENT_SECRET: env.PUBLIC_NOTION_CLIENT_SECRET || '',
+          AUTH_URL: env.PUBLIC_NOTION_AUTH_URL || ''
+        };
+        
+        // Update global variables for backward compatibility
+        NOTION_CLIENT_ID = newCredentials.CLIENT_ID;
+        NOTION_CLIENT_SECRET = newCredentials.CLIENT_SECRET;
+        NOTION_AUTH_URL = newCredentials.AUTH_URL;
+        
+        setCredentials(newCredentials);
+        setCredentialsLoaded(true);
+        setCredentialsError(null);
+        
+        console.log('🔑 Notion credentials updated from runtime environment:', {
+          hasClientId: !!newCredentials.CLIENT_ID,
+          hasClientSecret: !!newCredentials.CLIENT_SECRET,
+          hasAuthUrl: !!newCredentials.AUTH_URL,
+          timestamp: new Date().toISOString()
+        });
+        
+        // Dispatch event for other components
+        window.dispatchEvent(new CustomEvent('notion-credentials-updated', {
+          detail: { credentials: newCredentials, timestamp: new Date().toISOString() }
+        }));
+        
+        return newCredentials;
+      } else {
+        throw new Error(`Failed to fetch runtime environment: ${response.status}`);
+      }
+    } catch (error) {
+      console.warn('⚠️ Failed to fetch runtime credentials, using fallback:', error);
+      
+      // Fallback to build-time environment variables
+      const fallbackCredentials = {
+        CLIENT_ID: import.meta.env.PUBLIC_NOTION_CLIENT_ID || '',
+        CLIENT_SECRET: import.meta.env.PUBLIC_NOTION_CLIENT_SECRET || '',
+        AUTH_URL: import.meta.env.PUBLIC_NOTION_AUTH_URL || ''
+      };
+      
+      NOTION_CLIENT_ID = fallbackCredentials.CLIENT_ID;
+      NOTION_CLIENT_SECRET = fallbackCredentials.CLIENT_SECRET;
+      NOTION_AUTH_URL = fallbackCredentials.AUTH_URL;
+      
+      setCredentials(fallbackCredentials);
+      setCredentialsLoaded(true);
+      setCredentialsError(error.message);
+      
+      return fallbackCredentials;
+    }
+  }, []);
+
+  // Validate credentials
+  const validateCredentials = useCallback((creds) => {
+    const missing = [];
+    if (!creds.CLIENT_ID) missing.push('CLIENT_ID');
+    if (!creds.CLIENT_SECRET) missing.push('CLIENT_SECRET');
+    if (!creds.AUTH_URL) missing.push('AUTH_URL');
+    
+    return {
+      isValid: missing.length === 0,
+      missing,
+      message: missing.length > 0 
+        ? `Missing Notion credentials: ${missing.join(', ')}. Please check your environment variables.`
+        : 'All Notion credentials are valid'
+    };
+  }, []);
+
+  // Initialize credentials on component mount
+  useEffect(() => {
+    fetchRuntimeCredentials();
+  }, [fetchRuntimeCredentials]);
+
+  // Listen for runtime environment changes (moved after handleLogout definition)
+  // This will be added after the handleLogout function
 
   // Check for existing token and listen for OAuth success
   useEffect(() => {
@@ -94,33 +195,24 @@ const NotionPanel = ({ className = '' }) => {
 
   const handleLogin = async () => {
     try {
-      // Load runtime environment to get current Notion credentials
-      const envResponse = await fetch('/runtime-env.json', {
-        cache: 'no-cache',
-        headers: {
-          'Cache-Control': 'no-cache, no-store, must-revalidate'
-        }
-      });
-
-      if (!envResponse.ok) {
-        throw new Error('Failed to load environment configuration');
+      // Ensure credentials are loaded
+      if (!credentialsLoaded) {
+        await fetchRuntimeCredentials();
       }
 
-      const env = await envResponse.json();
-      console.log('Environment loaded for Notion OAuth:', Object.keys(env));
+      // Validate credentials
+      const validation = validateCredentials(credentials);
+      if (!validation.isValid) {
+        throw new Error(validation.message);
+      }
 
-      const clientId = env.PUBLIC_NOTION_CLIENT_ID;
-      const authUrl = env.PUBLIC_NOTION_AUTH_URL;
+      const { CLIENT_ID, AUTH_URL } = credentials;
       
-      if (!clientId) {
-        throw new Error('Notion Client ID not configured. Please check your environment variables.');
-      }
-
       // Build OAuth URL dynamically
       const redirectUri = `${window.location.origin}/auth/notion/callback`;
       const state = Math.random().toString(36).substring(2, 15);
       
-      const oauthUrl = authUrl || `https://api.notion.com/v1/oauth/authorize?client_id=${clientId}&response_type=code&owner=user&redirect_uri=${encodeURIComponent(redirectUri)}&state=${state}`;
+      const oauthUrl = AUTH_URL || `https://api.notion.com/v1/oauth/authorize?client_id=${CLIENT_ID}&response_type=code&owner=user&redirect_uri=${encodeURIComponent(redirectUri)}&state=${state}`;
       
       console.log('Opening OAuth window with URL:', oauthUrl);
       
@@ -165,7 +257,30 @@ const NotionPanel = ({ className = '' }) => {
     setError(null);
   };
 
+  // Listen for runtime environment changes
+  useEffect(() => {
+    const handleRuntimeEnvChange = async () => {
+      console.log('🔄 Runtime environment changed, refreshing Notion credentials...');
+      const oldCredentials = { ...credentials };
+      const newCredentials = await fetchRuntimeCredentials();
+      
+      // If credentials changed significantly, reset connection
+      if (connected && (
+        oldCredentials.CLIENT_ID !== newCredentials.CLIENT_ID ||
+        oldCredentials.CLIENT_SECRET !== newCredentials.CLIENT_SECRET
+      )) {
+        console.log('🔄 Notion credentials changed, requiring re-authentication');
+        handleLogout();
+        setError('Credentials have been updated. Please reconnect to Notion.');
+      }
+    };
 
+    window.addEventListener('runtime-env-changed', handleRuntimeEnvChange);
+    
+    return () => {
+      window.removeEventListener('runtime-env-changed', handleRuntimeEnvChange);
+    };
+  }, [fetchRuntimeCredentials, credentials, connected, handleLogout]);
 
   const uploadToCardCollection = async (notionData) => {
     try {
@@ -357,25 +472,57 @@ const NotionPanel = ({ className = '' }) => {
     }}>
       <div className="controls">
         {!connected ? (
-          <button
-            onClick={handleLogin}
-            className="connect-button"
-            style={{
-              padding: '10px 20px',
-              backgroundColor: '#000',
-              color: '#fff',
-              border: 'none',
-              borderRadius: '4px',
-              cursor: 'pointer',
-              fontSize: '14px',
-              fontWeight: '500',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px'
-            }}
-          >
-            Connect to Notion
-          </button>
+          <div>
+            <button
+              onClick={handleLogin}
+              disabled={!credentialsLoaded || !validateCredentials(credentials).isValid}
+              className="connect-button"
+              style={{
+                padding: '10px 20px',
+                backgroundColor: (!credentialsLoaded || !validateCredentials(credentials).isValid) ? '#ccc' : '#000',
+                color: '#fff',
+                border: 'none',
+                borderRadius: '4px',
+                cursor: (!credentialsLoaded || !validateCredentials(credentials).isValid) ? 'not-allowed' : 'pointer',
+                fontSize: '14px',
+                fontWeight: '500',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px'
+              }}
+            >
+              {!credentialsLoaded ? 'Loading credentials...' : 'Connect to Notion'}
+            </button>
+            
+            {/* Show credential errors */}
+            {credentialsLoaded && !validateCredentials(credentials).isValid && (
+              <div style={{
+                marginTop: '8px',
+                padding: '8px',
+                backgroundColor: '#fee',
+                border: '1px solid #fcc',
+                borderRadius: '4px',
+                fontSize: '12px',
+                color: '#c33'
+              }}>
+                ⚠️ {validateCredentials(credentials).message}
+              </div>
+            )}
+            
+            {credentialsError && (
+              <div style={{
+                marginTop: '8px',
+                padding: '8px',
+                backgroundColor: '#fef3cd',
+                border: '1px solid #faebcc',
+                borderRadius: '4px',
+                fontSize: '12px',
+                color: '#8a6d3b'
+              }}>
+                ⚠️ Runtime environment error: {credentialsError}
+              </div>
+            )}
+          </div>
         ) : (
           <div className="input-group">
           <div style={{ position: 'relative', flex: 1 }}>
