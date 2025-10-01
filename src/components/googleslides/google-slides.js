@@ -336,7 +336,7 @@ export const listPresentations = async () => {
     const response = await window.gapi.client.drive.files.list({
       q: "mimeType='application/vnd.google-apps.presentation'",
       pageSize: 50,
-      fields: 'files(id,name,createdTime,modifiedTime,webViewLink,thumbnailLink,owners)',
+      fields: 'files(id,name,createdTime,modifiedTime,webViewLink,thumbnailLink)',
       orderBy: 'modifiedTime desc'
     });
     

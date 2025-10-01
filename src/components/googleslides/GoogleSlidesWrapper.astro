@@ -318,9 +318,6 @@
         minute: '2-digit'
       });
 
-      const ownerName = presentation.owners && presentation.owners.length > 0 
-        ? presentation.owners[0].displayName || presentation.owners[0].emailAddress 
-        : '';
 
       return `
         <div class="bg-white dark:bg-gray-700 rounded-lg shadow-sm border border-gray-200 dark:border-gray-600 p-3 hover:shadow-md transition-shadow">
@@ -341,7 +338,6 @@
             <div class="flex-1 min-w-0">
               <h4 class="font-medium text-sm dark:text-white truncate">${presentation.name || 'Untitled Presentation'}</h4>
               <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Modified: ${formattedDate}</p>
-              ${ownerName ? `<p class="text-xs text-gray-400 dark:text-gray-500">Owner: ${ownerName}</p>` : ''}
             </div>
 
             <!-- Actions -->

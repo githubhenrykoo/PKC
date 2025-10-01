@@ -1278,11 +1278,6 @@ How can I help you today?`;
                           <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                             Modified: {formatDate(presentation.modifiedTime)}
                           </p>
-                          {presentation.owners && presentation.owners.length > 0 && (
-                            <p className="text-xs text-gray-400 dark:text-gray-500">
-                              Owner: {presentation.owners[0].displayName || presentation.owners[0].emailAddress}
-                            </p>
-                          )}
                         </div>
 
                         {/* Actions */}

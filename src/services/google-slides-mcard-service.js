@@ -68,7 +68,6 @@ class GoogleSlidesMCardService {
         modifiedTime: presentation.modifiedTime,
         webViewLink: presentation.webViewLink,
         thumbnailLink: presentation.thumbnailLink,
-        owners: presentation.owners || [],
         slideCount: presentationDetails?.slides?.length || 0,
         slides: presentationDetails?.slides?.map(slide => ({
           objectId: slide.objectId,
@@ -203,7 +202,6 @@ class GoogleSlidesMCardService {
       modifiedTime: presentation.modifiedTime,
       webViewLink: presentation.webViewLink,
       thumbnailLink: presentation.thumbnailLink,
-      owners: presentation.owners?.map(owner => owner.displayName || owner.emailAddress) || []
     };
   }
 
@@ -244,11 +242,7 @@ class GoogleSlidesMCardService {
               lastModified: modifiedDate.toISOString(),
               lastModifiedFormatted: `${modifiedDate.toLocaleDateString()} ${modifiedDate.toLocaleTimeString()}`,
               link: presentation.webViewLink,
-              thumbnailLink: presentation.thumbnailLink,
-              owners: presentation.owners?.map(owner => ({
-                displayName: owner.displayName || owner.emailAddress,
-                emailAddress: owner.emailAddress
-              })) || []
+              thumbnailLink: presentation.thumbnailLink
             };
           }),
           message: recentPresentations.length === 0 ? 'No presentations modified in the last week. Time to create something new! 🎨' : null
@@ -265,11 +259,7 @@ class GoogleSlidesMCardService {
               lastModified: modifiedDate.toISOString(),
               lastModifiedFormatted: modifiedDate.toLocaleDateString(),
               link: presentation.webViewLink,
-              thumbnailLink: presentation.thumbnailLink,
-              owners: presentation.owners?.map(owner => ({
-                displayName: owner.displayName || owner.emailAddress,
-                emailAddress: owner.emailAddress
-              })) || []
+              thumbnailLink: presentation.thumbnailLink
             };
           })
         },

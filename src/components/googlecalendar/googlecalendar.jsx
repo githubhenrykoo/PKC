@@ -343,7 +343,249 @@ const HTMLContent = ({ html, className = '' }) => {
   />;
 };
 
-const EventCard = ({ event, view, calendarColor }) => {
+// Event Details Modal Component
+const EventDetailsModal = ({ event, isOpen, onClose, calendarColor }) => {
+  if (!isOpen || !event) return null;
+
+  const formatDateTime = (dateTime) => {
+    if (!dateTime) return 'No date specified';
+    const date = new Date(dateTime);
+    return date.toLocaleString('en-US', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+      timeZoneName: 'short'
+    });
+  };
+
+  const formatDate = (dateStr) => {
+    if (!dateStr) return 'No date specified';
+    const date = new Date(dateStr);
+    return date.toLocaleDateString('en-US', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+  };
+
+  const isAllDayEvent = !event.start?.dateTime;
+  const eventColor = calendarColor || event.calendarColor || '#3B82F6';
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+        {/* Header */}
+        <div className="flex items-start justify-between p-6 border-b border-gray-200 dark:border-gray-700">
+          <div className="flex-1">
+            <div className="flex items-center gap-3 mb-2">
+              <div 
+                className="w-4 h-4 rounded-full"
+                style={{ backgroundColor: eventColor }}
+              ></div>
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+                {event.summary || 'Untitled Event'}
+              </h2>
+            </div>
+            {event.calendarName && !event.isPrimary && (
+              <div className="flex items-center gap-1 text-sm text-gray-500 dark:text-gray-400">
+                <span>From calendar: {event.calendarName}</span>
+              </div>
+            )}
+          </div>
+          <button
+            onClick={onClose}
+            className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 p-1"
+          >
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        {/* Content */}
+        <div className="p-6 space-y-4">
+          {/* Date and Time */}
+          <div className="space-y-2">
+            <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 uppercase tracking-wide">
+              Date & Time
+            </h3>
+            <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-3">
+              {isAllDayEvent ? (
+                <div>
+                  <div className="font-medium text-gray-900 dark:text-white">All Day Event</div>
+                  <div className="text-sm text-gray-600 dark:text-gray-300">
+                    {event.start?.date && event.end?.date ? (
+                      event.start.date === event.end.date ? (
+                        formatDate(event.start.date)
+                      ) : (
+                        `${formatDate(event.start.date)} - ${formatDate(event.end.date)}`
+                      )
+                    ) : (
+                      formatDate(event.start?.date)
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <div>
+                  <div className="font-medium text-gray-900 dark:text-white">
+                    {formatDateTime(event.start?.dateTime)}
+                  </div>
+                  {event.end?.dateTime && (
+                    <div className="text-sm text-gray-600 dark:text-gray-300">
+                      Until: {formatDateTime(event.end.dateTime)}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Location */}
+          {event.location && (
+            <div className="space-y-2">
+              <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 uppercase tracking-wide">
+                Location
+              </h3>
+              <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-3">
+                <div className="text-gray-900 dark:text-white">{event.location}</div>
+              </div>
+            </div>
+          )}
+
+          {/* Description */}
+          {event.description && (
+            <div className="space-y-2">
+              <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 uppercase tracking-wide">
+                Description
+              </h3>
+              <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-3">
+                <HTMLContent 
+                  html={event.description} 
+                  className="prose prose-sm dark:prose-invert max-w-none text-gray-900 dark:text-white" 
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Attendees */}
+          {event.attendees && event.attendees.length > 0 && (
+            <div className="space-y-2">
+              <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 uppercase tracking-wide">
+                Attendees ({event.attendees.length})
+              </h3>
+              <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-3">
+                <div className="space-y-2">
+                  {event.attendees.map((attendee, index) => (
+                    <div key={index} className="flex items-center justify-between">
+                      <div>
+                        <div className="text-gray-900 dark:text-white">
+                          {attendee.displayName || attendee.email}
+                        </div>
+                        {attendee.displayName && attendee.email && (
+                          <div className="text-sm text-gray-600 dark:text-gray-300">
+                            {attendee.email}
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {attendee.organizer && (
+                          <span className="text-xs bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 px-2 py-1 rounded-full">
+                            Organizer
+                          </span>
+                        )}
+                        <span className={`text-xs px-2 py-1 rounded-full ${
+                          attendee.responseStatus === 'accepted' 
+                            ? 'bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300'
+                            : attendee.responseStatus === 'declined'
+                            ? 'bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300'
+                            : attendee.responseStatus === 'tentative'
+                            ? 'bg-yellow-100 dark:bg-yellow-900 text-yellow-700 dark:text-yellow-300'
+                            : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
+                        }`}>
+                          {attendee.responseStatus === 'accepted' ? 'Going' :
+                           attendee.responseStatus === 'declined' ? 'Not Going' :
+                           attendee.responseStatus === 'tentative' ? 'Maybe' : 'No Response'}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Meeting Link */}
+          {event.hangoutLink && (
+            <div className="space-y-2">
+              <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 uppercase tracking-wide">
+                Meeting Link
+              </h3>
+              <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-3">
+                <a 
+                  href={event.hangoutLink}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-2"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                  </svg>
+                  Join Meeting
+                </a>
+              </div>
+            </div>
+          )}
+
+          {/* Event Status */}
+          {event.status && event.status !== 'confirmed' && (
+            <div className="space-y-2">
+              <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 uppercase tracking-wide">
+                Status
+              </h3>
+              <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-3">
+                <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
+                  event.status === 'cancelled' 
+                    ? 'bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300'
+                    : event.status === 'tentative'
+                    ? 'bg-yellow-100 dark:bg-yellow-900 text-yellow-700 dark:text-yellow-300'
+                    : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
+                }`}>
+                  {event.status.charAt(0).toUpperCase() + event.status.slice(1)}
+                </span>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="flex justify-end gap-3 p-6 border-t border-gray-200 dark:border-gray-700">
+          {event.htmlLink && (
+            <a
+              href={event.htmlLink}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="px-4 py-2 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
+            >
+              View in Google Calendar
+            </a>
+          )}
+          <button
+            onClick={onClose}
+            className="px-4 py-2 bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-gray-200 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-500 transition-colors"
+          >
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const EventCard = ({ event, view, calendarColor, onEventClick }) => {
   const date = new Date(event.start.dateTime || event.start.date);
   const formattedDate = date.toLocaleString('en-US', {
     weekday: 'short',
@@ -375,7 +617,10 @@ const EventCard = ({ event, view, calendarColor }) => {
 
   if (view === 'grid') {
     return (
-      <div className="bg-white dark:bg-gray-700 rounded-lg shadow-sm border border-gray-200 dark:border-gray-600 p-4 hover:shadow-md transition-shadow relative">
+      <div 
+        className="bg-white dark:bg-gray-700 rounded-lg shadow-sm border border-gray-200 dark:border-gray-600 p-4 hover:shadow-md transition-shadow relative cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-600"
+        onClick={() => onEventClick && onEventClick(event)}
+      >
         {/* Calendar color indicator */}
         <div 
           className="absolute left-0 top-0 bottom-0 w-1 rounded-l-lg"
@@ -395,9 +640,12 @@ const EventCard = ({ event, view, calendarColor }) => {
   }
 
   return (
-    <div className={`bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4 hover:shadow-md transition-shadow relative ${
-      view === 'list' ? 'mb-2' : ''
-    }`}>
+    <div 
+      className={`bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4 hover:shadow-md transition-shadow relative cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-600 ${
+        view === 'list' ? 'mb-2' : ''
+      }`}
+      onClick={() => onEventClick && onEventClick(event)}
+    >
       {/* Calendar color indicator */}
       <div 
         className="absolute left-0 top-0 bottom-0 w-1 rounded-l-lg"
@@ -437,6 +685,8 @@ const GoogleCalendar = ({ className = '' }) => {
   const [isSpecificDateSelected, setIsSpecificDateSelected] = useState(false);
   const [availableCalendars, setAvailableCalendars] = useState([]);
   const [calendarVisibility, setCalendarVisibility] = useState({});
+  const [selectedEvent, setSelectedEvent] = useState(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   // Initialize Google API
   useEffect(() => {
@@ -568,6 +818,18 @@ const GoogleCalendar = ({ className = '' }) => {
     const savedColors = JSON.parse(localStorage.getItem('calendarColors') || '{}');
     savedColors[calendarId] = color;
     localStorage.setItem('calendarColors', JSON.stringify(savedColors));
+  };
+
+  // Handle event click to open modal
+  const handleEventClick = (event) => {
+    setSelectedEvent(event);
+    setIsModalOpen(true);
+  };
+
+  // Handle modal close
+  const handleModalClose = () => {
+    setIsModalOpen(false);
+    setSelectedEvent(null);
   };
 
   const handleSignIn = async () => {
@@ -1144,6 +1406,7 @@ const GoogleCalendar = ({ className = '' }) => {
                       event={event} 
                       view={view} 
                       calendarColor={calendar?.color}
+                      onEventClick={handleEventClick}
                     />
                   );
                 })
@@ -1152,6 +1415,14 @@ const GoogleCalendar = ({ className = '' }) => {
           )}
         </>
       )}
+      
+      {/* Event Details Modal */}
+      <EventDetailsModal 
+        event={selectedEvent}
+        isOpen={isModalOpen}
+        onClose={handleModalClose}
+        calendarColor={selectedEvent ? availableCalendars.find(cal => cal.id === (selectedEvent.calendarId || 'primary'))?.color : null}
+      />
     </div>
   );
 };
