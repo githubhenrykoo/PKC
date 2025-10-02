@@ -12,6 +12,10 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 
+# Environment variables
+.env
+.env.local
+
 # Runtime environment files
 public/runtime-env.js
 public/runtime-env.json

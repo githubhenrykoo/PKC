@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Script to delete all cards from MCard database
-MCARD_URL="http://localhost:49384/v1"
+MCARD_URL="https://devmcard.pkc.pub/v1"
 
 echo "🗑️  Starting to delete all cards from MCard database..."
 
@@ -62,3 +62,5 @@ if [ "$FINAL_COUNT" -eq 0 ]; then
 else
     echo "⚠️  WARNING: $FINAL_COUNT cards remain in the database."
 fi
+
+# Command: chmod +x delete-all-cards.sh && ./delete-all-cards.sh
