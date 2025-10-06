@@ -1,9 +1,12 @@
 components
 context
+entries
 hooks
 layouts
+legacy
 lib
 pages
+pocketflow
 scripts
 services
 store

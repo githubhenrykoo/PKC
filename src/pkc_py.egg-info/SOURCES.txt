@@ -5,3 +5,4 @@ src/pkc_py.egg-info/SOURCES.txt
 src/pkc_py.egg-info/dependency_links.txt
 src/pkc_py.egg-info/requires.txt
 src/pkc_py.egg-info/top_level.txt
+src/services/telegram-message-service.py

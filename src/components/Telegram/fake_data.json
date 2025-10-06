@@ -1,0 +1,26 @@
+{
+  "device_id": "EM-001",
+  "device_type": "energy_meter",
+  "readings": [
+    {
+      "timestamp": "2025-10-06T12:00:00+08:00",
+      "voltage": 230.1,
+      "current": 9.8,
+      "power": 2255.0,
+      "energy": 19.8,
+      "power_factor": 0.98
+    }
+  ],
+  "units": {
+    "voltage": "V",
+    "current": "A",
+    "power": "W",
+    "energy": "kWh",
+    "power_factor": ""
+  },
+  "metadata": {
+    "firmware_version": "1.2.3",
+    "last_updated": "2025-10-06T12:00:00+08:00",
+    "location": "Building A, Floor 5, Room 502"
+  }
+}

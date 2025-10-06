@@ -99,6 +99,12 @@ PKC implements a sophisticated **triadic architecture** where every component wo
   - MCP tool providers
   - External APIs and distributed computing resources
 
+#### Flux-to-Flow (Control Plane Coordination)
+- See the Flux-to-Flow design: [Docs/flux2flow_state-management.md](./Docs/flux2flow_state-management.md)
+- PocketFlow bus (`src/pocketflow/bus.ts`) and topics (`src/pocketflow/events.ts`) coordinate UI/data flows
+- Panels/places align with `src/layouts/AppShell.astro` and `src/layouts/MainLayout.astro`
+- Event-first, hash-first payloads; reducers subscribe to events; selectors remain for derived views
+
 ### 🔐 VCard: Security & Collaboration Layer
 **The Application Plane** - Secure boundaries for collaborative knowledge sharing:
 - Distributed authentication with JWT and hash-based signatures
@@ -122,6 +128,9 @@ cd PKC
 
 # Install dependencies
 npm install
+
+# (Optional but recommended) Fetch local rendering libraries for offline use
+npm run fetch:render-libs
 
 # Start development server
 npm run dev
@@ -153,6 +162,11 @@ npm run dev
 - **Curry-Howard-Lambek Correspondence**: Unified approach to proofs and programs
 - **Contract Upgradability**: Safe evolution through proxy pattern implementation
 
+### 🎛️ State & Agents
+- **Flux-to-Flow (flux2flow)**: Event-first coordination with PocketFlow bus; reducers become listeners
+- **Agents**: Composable event-driven workers for Auth, Theme, Selection, Data, Networking, DevTools
+- **Redux DevTools**: Kept for Redux-managed slices (e.g., authentication)
+
 ### 🌐 Distributed Architecture
 - **Local-First Operation**: Full functionality without network connectivity
 - **libP2P Networking**: Universal connectivity across any network topology
@@ -164,6 +178,42 @@ npm run dev
 - **Progressive Web App**: Full offline capabilities and native-like experience
 - **Component-Based Design**: Modular, reusable interface components
 - **Hash-Based Composition**: Cryptographically secure component references
+  - **PocketFlow Bus**: Minimal pub/sub backbone to coordinate islands and panels
+
+## 🆕 What's New (Aug 2025)
+
+The UI and utilities were refactored to reduce duplication, improve consistency, and centralize content-type logic.
+
+- **Centralized content-type utilities**
+  - Introduced `loadContentTypeUtils()` loader in `src/utils/load-content-type-utils.ts` for dynamic, unified access to:
+    - `inferContentTypeFromFilename()`, `getTypeLabel()`, `getTypeIconSvg()`, `getTypePillHTML()`
+    - `resolveEffectiveContentType()`, `getRendererTypeFromContentType()`, `generateDisplayTitle()`
+  - Consumers updated:
+    - `src/components/layout/functional/navigation_sidebar.astro`
+    - `src/components/layout/functional/dynamic-content-viewer.astro`
+
+- **Reusable SSR UI components**
+  - `src/components/ui/type-badge.astro` — SSR content-type pill/badge
+  - `src/components/ui/nav-item.astro` — SSR navigation list item with icon + badge
+  - `src/components/ui/pagination-controls.astro` — Encapsulated pagination UI (Prev/Next + count)
+
+- **Shared list utilities**
+  - `src/utils/list-format.ts` now provides:
+    - `debounce()` for input handling
+    - `paginate(items, page, pageSize)` to unify page slicing
+    - `formatNavItemHTML()` for client-side fallback HTML composition
+  - Sidebar updated to prefer shared helpers with safe local fallbacks
+
+- **Navigation Sidebar updates**
+  - SSR rendering with `<NavItem />` for each list entry
+  - `<PaginationControls />` replaces inline pagination markup
+  - Client script keeps existing selectors/IDs (`#prev-page`, `#next-page`, `#item-count`)
+  - Uses `paginate()` for non-search paging
+
+- **Dynamic Content Viewer**
+  - Uses `loadContentTypeUtils()` to compute header icon and pill consistently
+
+These changes standardize UI and logic across components, reduce duplication, and make later extensions (e.g., timestamps, more metadata) straightforward.
 
 ## 📁 Project Structure
 
@@ -171,11 +221,21 @@ npm run dev
 PKC/
 ├── src/
 │   ├── components/            # UI components (Astro islands)
+│   │   └── ui/
+│   │       ├── type-badge.astro           # SSR content-type badge
+│   │       ├── nav-item.astro             # SSR navigation list item
+│   │       └── pagination-controls.astro  # SSR pagination controls
 │   ├── context/               # App contexts (e.g., theme)
 │   ├── hooks/                 # React/Preact hooks (file upload, card content)
 │   ├── layouts/               # Astro layouts
+│   ├── utils/
+│   │   ├── content-type-utils.ts          # Content-type helpers
+│   │   ├── load-content-type-utils.ts     # Standardized dynamic loader with fallbacks
+│   │   └── list-format.ts                 # debounce, paginate, formatNavItemHTML
 │   └── (services, store, etc.)
 ├── Docs/                      # Architecture & specs (PKC, MCard, PCard, VCard, RAG)
+│   ├── Agents.md              # Agent taxonomy and contracts
+│   └── flux2flow_state-management.md  # Flux-to-Flow design for state coordination
 ├── public/                    # Static assets (icons, images, manifest)
 ├── docker-compose.yml         # One-step deployment of all services
 ├── Dockerfile                 # Multi-stage build for pkc-app image
@@ -208,6 +268,11 @@ PKC/
 - **Progressive Enhancement** - Graceful degradation across devices
 - **Responsive Design** - Optimized for all screen sizes
 
+### Coordination & State
+- **PocketFlow bus**: `src/pocketflow/bus.ts` with canonical topics in `src/pocketflow/events.ts`
+- **Flux-to-Flow bridge**: see [Docs/flux2flow_state-management.md](./Docs/flux2flow_state-management.md)
+- **Agents**: see [Docs/Agents.md](./Docs/Agents.md)
+
 ## 🔢 Versions
 
 - **MCard library (Python)**: 0.1.22 (detected in local virtualenv)
@@ -223,11 +288,23 @@ You can verify the MCard service at `http://localhost:49384/v1/status` once Dock
 - **[PKC.md](./Docs/PKC.md)** - Complete implementation guide and architecture
 - **[PCard.md](./Docs/PCard.md)** - Conversational programming engine specification
 - **[PCard Architecture.md](./Docs/PCard%20Architecture.md)** - Detailed architectural patterns
+ - **[flux2flow_state-management.md](./Docs/flux2flow_state-management.md)** - Event-first state design
+ - **[Agents.md](./Docs/Agents.md)** - Agent taxonomy and event contracts
 
 ### Component Documentation  
 - **[MCard.md](./Docs/MCard.md)** - Universal atomic storage system
 - **[VCard.md](./Docs/VCard.md)** - Security and collaboration framework
 - **[MVP Cards for PKC.md](./Docs/MVP%20Cards%20for%20PKC.md)** - Implementation strategy
+
+### UI/Utils References
+- `src/components/layout/functional/navigation_sidebar.astro`
+- `src/components/layout/functional/dynamic-content-viewer.astro`
+- `src/components/ui/type-badge.astro`
+- `src/components/ui/nav-item.astro`
+- `src/components/ui/pagination-controls.astro`
+- `src/utils/content-type-utils.ts`
+- `src/utils/load-content-type-utils.ts`
+- `src/utils/list-format.ts`
 
 ## 🌐 Deployment
 
@@ -237,7 +314,7 @@ This repository follows our Docker Build & Deployment Rules:
 
 - Pre-built images only in `docker-compose.yml` (no build directives)
 - One-step deployment using Docker Compose
-- Environment variables loaded from `.env`
+ - Environment variables loaded from `.env` (client uses only `PUBLIC_*` at runtime)
 
 ```
 # 1) Create your environment file from the example
@@ -263,7 +340,7 @@ docker compose down
 ### Environment Configuration
 
 - Use `.env` (see `exmaple.env`) as the single source of truth.
-- Client-side variables must use the `PUBLIC_` prefix.
+- Client-side variables must use the `PUBLIC_` prefix (see `.windsurf/rules/environment-variables.md`).
 
 Key variables you may want to set:
 
