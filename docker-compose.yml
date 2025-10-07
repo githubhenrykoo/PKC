@@ -13,7 +13,7 @@ services:
     restart: unless-stopped
 
   pkc-app:
-    image: henry768/pkc@sha256:83a9d1665fa0e1da2ab87f0f8d035f1b22a9d55c21a5e8f4a7325d3abb1f6e4f
+    image: henry768/pkc@sha256:2d9bcecad17af38aeeeba4870ef85044cd2b5602c34ba02e04ce604cb5245c11
     container_name: pkc-app
     restart: unless-stopped
     ports:
