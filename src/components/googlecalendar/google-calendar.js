@@ -1,6 +1,6 @@
 // Google Calendar API configuration
 const DISCOVERY_DOC = 'https://www.googleapis.com/discovery/v1/apis/calendar/v3/rest';
-const SCOPES = 'https://www.googleapis.com/auth/calendar.readonly https://www.googleapis.com/auth/calendar.events.readonly';
+const SCOPES = 'https://www.googleapis.com/auth/calendar.readonly https://www.googleapis.com/auth/calendar.events.readonly https://www.googleapis.com/auth/calendar.events';
 
 // Dynamic credentials from runtime environment
 let CLIENT_ID = '';
@@ -604,6 +604,195 @@ export const getCredentialsError = () => {
     return null;
   } catch (error) {
     return error.message;
+  }
+};
+
+// Create a new calendar event
+export const createEvent = async (eventData, calendarId = 'primary') => {
+  if (!isInitialized()) {
+    throw new Error('Google API not initialized');
+  }
+  
+  // Check if we have a token
+  if (!window.gapi.client.getToken()) {
+    throw new Error('Not signed in', { status: 401 });
+  }
+  
+  try {
+    console.log('Creating new calendar event:', eventData);
+    
+    // Prepare the event object for Google Calendar API
+    const event = {
+      summary: eventData.title,
+      location: eventData.location || '',
+      description: eventData.description || '',
+      start: {
+        dateTime: eventData.startDateTime,
+        timeZone: eventData.timeZone || Intl.DateTimeFormat().resolvedOptions().timeZone,
+      },
+      end: {
+        dateTime: eventData.endDateTime,
+        timeZone: eventData.timeZone || Intl.DateTimeFormat().resolvedOptions().timeZone,
+      },
+      attendees: eventData.attendees || [],
+      reminders: {
+        useDefault: eventData.useDefaultReminders !== false,
+        overrides: eventData.reminders || []
+      }
+    };
+    
+    // Handle all-day events
+    if (eventData.isAllDay) {
+      delete event.start.dateTime;
+      delete event.end.dateTime;
+      event.start.date = eventData.startDate;
+      event.end.date = eventData.endDate;
+    }
+    
+    const response = await window.gapi.client.calendar.events.insert({
+      calendarId: calendarId,
+      resource: event
+    });
+    
+    console.log('✅ Event created successfully:', response.result);
+    return response;
+    
+  } catch (err) {
+    console.error('❌ Error creating calendar event:', err);
+    
+    // Handle token expiration
+    if (err.status === 401) {
+      try {
+        await signIn();
+        return createEvent(eventData, calendarId); // Try again after signing in
+      } catch (refreshErr) {
+        throw refreshErr;
+      }
+    }
+    
+    // Handle permission errors
+    if (err.status === 403) {
+      throw new Error('Permission denied. You may not have write access to this calendar.');
+    }
+    
+    throw err;
+  }
+};
+
+// Update an existing calendar event
+export const updateEvent = async (eventId, eventData, calendarId = 'primary') => {
+  if (!isInitialized()) {
+    throw new Error('Google API not initialized');
+  }
+  
+  // Check if we have a token
+  if (!window.gapi.client.getToken()) {
+    throw new Error('Not signed in', { status: 401 });
+  }
+  
+  try {
+    console.log('Updating calendar event:', eventId, eventData);
+    
+    // Prepare the event object for Google Calendar API
+    const event = {
+      summary: eventData.title,
+      location: eventData.location || '',
+      description: eventData.description || '',
+      start: {
+        dateTime: eventData.startDateTime,
+        timeZone: eventData.timeZone || Intl.DateTimeFormat().resolvedOptions().timeZone,
+      },
+      end: {
+        dateTime: eventData.endDateTime,
+        timeZone: eventData.timeZone || Intl.DateTimeFormat().resolvedOptions().timeZone,
+      },
+      attendees: eventData.attendees || [],
+      reminders: {
+        useDefault: eventData.useDefaultReminders !== false,
+        overrides: eventData.reminders || []
+      }
+    };
+    
+    // Handle all-day events
+    if (eventData.isAllDay) {
+      delete event.start.dateTime;
+      delete event.end.dateTime;
+      event.start.date = eventData.startDate;
+      event.end.date = eventData.endDate;
+    }
+    
+    const response = await window.gapi.client.calendar.events.update({
+      calendarId: calendarId,
+      eventId: eventId,
+      resource: event
+    });
+    
+    console.log('✅ Event updated successfully:', response.result);
+    return response;
+    
+  } catch (err) {
+    console.error('❌ Error updating calendar event:', err);
+    
+    // Handle token expiration
+    if (err.status === 401) {
+      try {
+        await signIn();
+        return updateEvent(eventId, eventData, calendarId); // Try again after signing in
+      } catch (refreshErr) {
+        throw refreshErr;
+      }
+    }
+    
+    // Handle permission errors
+    if (err.status === 403) {
+      throw new Error('Permission denied. You may not have write access to this calendar.');
+    }
+    
+    throw err;
+  }
+};
+
+// Delete a calendar event
+export const deleteEvent = async (eventId, calendarId = 'primary') => {
+  if (!isInitialized()) {
+    throw new Error('Google API not initialized');
+  }
+  
+  // Check if we have a token
+  if (!window.gapi.client.getToken()) {
+    throw new Error('Not signed in', { status: 401 });
+  }
+  
+  try {
+    console.log('Deleting calendar event:', eventId);
+    
+    const response = await window.gapi.client.calendar.events.delete({
+      calendarId: calendarId,
+      eventId: eventId
+    });
+    
+    console.log('✅ Event deleted successfully');
+    return response;
+    
+  } catch (err) {
+    console.error('❌ Error deleting calendar event:', err);
+    
+    // Handle token expiration
+    if (err.status === 401) {
+      try {
+        await signIn();
+        return deleteEvent(eventId, calendarId); // Try again after signing in
+      } catch (refreshErr) {
+        throw refreshErr;
+      }
+    }
+    
+    // Handle permission errors
+    if (err.status === 403) {
+      throw new Error('Permission denied. You may not have write access to this calendar.');
+    }
+    
+    throw err;
   }
 };
 

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { loadGoogleApi, signIn, signOut, listEvents, getAuthInstance, isInitialized } from './google-calendar.js';
+import { loadGoogleApi, signIn, signOut, listEvents, getAuthInstance, isInitialized, createEvent, updateEvent, deleteEvent } from './google-calendar.js';
 import { googleCalendarMCardService } from '../../services/google-calendar-mcard-service.js';
 
 const ViewToggle = ({ view, onViewChange }) => (
@@ -341,6 +341,364 @@ const HTMLContent = ({ html, className = '' }) => {
     className={className}
     dangerouslySetInnerHTML={{ __html: html }} 
   />;
+};
+
+// Event Creation Modal Component
+const EventCreateModal = ({ isOpen, onClose, onEventCreated, availableCalendars, selectedDate }) => {
+  const [formData, setFormData] = useState({
+    title: '',
+    description: '',
+    location: '',
+    startDate: '',
+    startTime: '',
+    endDate: '',
+    endTime: '',
+    isAllDay: false,
+    calendarId: 'primary',
+    attendees: '',
+    reminders: []
+  });
+  const [isCreating, setIsCreating] = useState(false);
+  const [error, setError] = useState('');
+
+  // Initialize form with selected date
+  useEffect(() => {
+    if (isOpen && selectedDate) {
+      const dateStr = selectedDate.toISOString().split('T')[0];
+      const now = new Date();
+      const currentTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+      const endTime = `${(now.getHours() + 1).toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+      
+      setFormData(prev => ({
+        ...prev,
+        startDate: dateStr,
+        endDate: dateStr,
+        startTime: currentTime,
+        endTime: endTime
+      }));
+    }
+  }, [isOpen, selectedDate]);
+
+  const handleInputChange = (e) => {
+    const { name, value, type, checked } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: type === 'checkbox' ? checked : value
+    }));
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError('');
+    setIsCreating(true);
+
+    try {
+      // Validate required fields
+      if (!formData.title.trim()) {
+        throw new Error('Event title is required');
+      }
+
+      // Prepare event data
+      const eventData = {
+        title: formData.title.trim(),
+        description: formData.description.trim(),
+        location: formData.location.trim(),
+        isAllDay: formData.isAllDay,
+        useDefaultReminders: true
+      };
+
+      if (formData.isAllDay) {
+        eventData.startDate = formData.startDate;
+        eventData.endDate = formData.endDate || formData.startDate;
+      } else {
+        // Combine date and time for datetime
+        const startDateTime = new Date(`${formData.startDate}T${formData.startTime}`);
+        const endDateTime = new Date(`${formData.endDate}T${formData.endTime}`);
+        
+        if (endDateTime <= startDateTime) {
+          throw new Error('End time must be after start time');
+        }
+        
+        eventData.startDateTime = startDateTime.toISOString();
+        eventData.endDateTime = endDateTime.toISOString();
+      }
+
+      // Parse attendees
+      if (formData.attendees.trim()) {
+        eventData.attendees = formData.attendees
+          .split(',')
+          .map(email => ({ email: email.trim() }))
+          .filter(attendee => attendee.email);
+      }
+
+      // Create the event
+      const response = await createEvent(eventData, formData.calendarId);
+      
+      console.log('✅ Event created successfully:', response.result);
+      
+      // Reset form
+      setFormData({
+        title: '',
+        description: '',
+        location: '',
+        startDate: '',
+        startTime: '',
+        endDate: '',
+        endTime: '',
+        isAllDay: false,
+        calendarId: 'primary',
+        attendees: '',
+        reminders: []
+      });
+      
+      // Notify parent component
+      if (onEventCreated) {
+        onEventCreated(response.result);
+      }
+      
+      onClose();
+      
+    } catch (err) {
+      console.error('❌ Error creating event:', err);
+      setError(err.message || 'Failed to create event. Please try again.');
+    } finally {
+      setIsCreating(false);
+    }
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+        {/* Header */}
+        <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
+          <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+            Create New Event
+          </h2>
+          <button
+            onClick={onClose}
+            className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 p-1"
+          >
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        {/* Form */}
+        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+          {/* Error Message */}
+          {error && (
+            <div className="bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-lg p-3">
+              <p className="text-red-700 dark:text-red-300 text-sm">{error}</p>
+            </div>
+          )}
+
+          {/* Event Title */}
+          <div>
+            <label htmlFor="title" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Event Title *
+            </label>
+            <input
+              type="text"
+              id="title"
+              name="title"
+              value={formData.title}
+              onChange={handleInputChange}
+              required
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+              placeholder="Enter event title"
+            />
+          </div>
+
+          {/* Calendar Selection */}
+          {availableCalendars && availableCalendars.length > 1 && (
+            <div>
+              <label htmlFor="calendarId" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Calendar
+              </label>
+              <select
+                id="calendarId"
+                name="calendarId"
+                value={formData.calendarId}
+                onChange={handleInputChange}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+              >
+                {availableCalendars.map(calendar => (
+                  <option key={calendar.id} value={calendar.id}>
+                    {calendar.name} {calendar.isPrimary ? '(Primary)' : ''}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          {/* All Day Toggle */}
+          <div className="flex items-center">
+            <input
+              type="checkbox"
+              id="isAllDay"
+              name="isAllDay"
+              checked={formData.isAllDay}
+              onChange={handleInputChange}
+              className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
+            />
+            <label htmlFor="isAllDay" className="ml-2 text-sm font-medium text-gray-700 dark:text-gray-300">
+              All day event
+            </label>
+          </div>
+
+          {/* Date and Time */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Start Date */}
+            <div>
+              <label htmlFor="startDate" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Start Date *
+              </label>
+              <input
+                type="date"
+                id="startDate"
+                name="startDate"
+                value={formData.startDate}
+                onChange={handleInputChange}
+                required
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+              />
+            </div>
+
+            {/* Start Time */}
+            {!formData.isAllDay && (
+              <div>
+                <label htmlFor="startTime" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Start Time *
+                </label>
+                <input
+                  type="time"
+                  id="startTime"
+                  name="startTime"
+                  value={formData.startTime}
+                  onChange={handleInputChange}
+                  required
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                />
+              </div>
+            )}
+
+            {/* End Date */}
+            <div>
+              <label htmlFor="endDate" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                End Date *
+              </label>
+              <input
+                type="date"
+                id="endDate"
+                name="endDate"
+                value={formData.endDate}
+                onChange={handleInputChange}
+                required
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+              />
+            </div>
+
+            {/* End Time */}
+            {!formData.isAllDay && (
+              <div>
+                <label htmlFor="endTime" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  End Time *
+                </label>
+                <input
+                  type="time"
+                  id="endTime"
+                  name="endTime"
+                  value={formData.endTime}
+                  onChange={handleInputChange}
+                  required
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                />
+              </div>
+            )}
+          </div>
+
+          {/* Location */}
+          <div>
+            <label htmlFor="location" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Location
+            </label>
+            <input
+              type="text"
+              id="location"
+              name="location"
+              value={formData.location}
+              onChange={handleInputChange}
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+              placeholder="Enter event location"
+            />
+          </div>
+
+          {/* Description */}
+          <div>
+            <label htmlFor="description" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Description
+            </label>
+            <textarea
+              id="description"
+              name="description"
+              value={formData.description}
+              onChange={handleInputChange}
+              rows={3}
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+              placeholder="Enter event description"
+            />
+          </div>
+
+          {/* Attendees */}
+          <div>
+            <label htmlFor="attendees" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Attendees
+            </label>
+            <input
+              type="text"
+              id="attendees"
+              name="attendees"
+              value={formData.attendees}
+              onChange={handleInputChange}
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+              placeholder="Enter email addresses separated by commas"
+            />
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+              Separate multiple email addresses with commas
+            </p>
+          </div>
+
+          {/* Footer */}
+          <div className="flex justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2 bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-gray-200 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-500 transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={isCreating}
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
+            >
+              {isCreating ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                  Creating...
+                </>
+              ) : (
+                'Create Event'
+              )}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
 };
 
 // Event Details Modal Component
@@ -687,6 +1045,8 @@ const GoogleCalendar = ({ className = '' }) => {
   const [calendarVisibility, setCalendarVisibility] = useState({});
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [isCreatingEvent, setIsCreatingEvent] = useState(false);
 
   // Initialize Google API
   useEffect(() => {
@@ -830,6 +1190,60 @@ const GoogleCalendar = ({ className = '' }) => {
   const handleModalClose = () => {
     setIsModalOpen(false);
     setSelectedEvent(null);
+  };
+
+  // Handle create event modal
+  const handleCreateEvent = () => {
+    setIsCreateModalOpen(true);
+  };
+
+  const handleCreateModalClose = () => {
+    setIsCreateModalOpen(false);
+  };
+
+  // Handle event creation success
+  const handleEventCreated = async (newEvent) => {
+    try {
+      setIsCreatingEvent(true);
+      console.log('✅ New event created:', newEvent);
+      
+      // Save the new event to MCard immediately
+      try {
+        const userEmail = window.gapi?.client?.getToken()?.access_token ? 
+          'google_calendar_user' : 'unknown_user';
+        
+        console.log('📤 Saving newly created event to MCard:', newEvent.id);
+        
+        // Format the event for MCard storage
+        const eventForMCard = {
+          ...newEvent,
+          calendarId: newEvent.organizer?.email === userEmail ? 'primary' : (newEvent.calendarId || 'primary'),
+          calendarName: 'Primary Calendar',
+          isPrimary: true
+        };
+        
+        await googleCalendarMCardService.saveEventToMCard(eventForMCard, userEmail);
+        console.log('✅ New event saved to MCard successfully');
+        
+      } catch (mcardError) {
+        console.warn('⚠️ Failed to save new event to MCard:', mcardError);
+        // Don't fail the whole operation if MCard save fails
+      }
+      
+      // Refresh the events list to show the new event
+      await fetchEvents();
+      
+      // Show success message
+      setExportStatus('✅ Event created and saved successfully!');
+      setTimeout(() => setExportStatus(''), 3000);
+      
+    } catch (error) {
+      console.error('❌ Error refreshing events after creation:', error);
+      setExportStatus('✅ Event created, but failed to refresh list. Please refresh manually.');
+      setTimeout(() => setExportStatus(''), 5000);
+    } finally {
+      setIsCreatingEvent(false);
+    }
   };
 
   const handleSignIn = async () => {
@@ -1325,6 +1739,26 @@ const GoogleCalendar = ({ className = '' }) => {
                 </button>
                 <ViewToggle view={view} onViewChange={setView} />
                 <button
+                  onClick={handleCreateEvent}
+                  disabled={isLoading || isCreatingEvent}
+                  className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  title="Create new event"
+                >
+                  {isCreatingEvent ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                      <span>Creating...</span>
+                    </>
+                  ) : (
+                    <>
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                      </svg>
+                      <span>Create Event</span>
+                    </>
+                  )}
+                </button>
+                <button
                   onClick={handleExportToMCard}
                   disabled={isLoading || isExportingToMCard || events.length === 0}
                   className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
@@ -1422,6 +1856,15 @@ const GoogleCalendar = ({ className = '' }) => {
         isOpen={isModalOpen}
         onClose={handleModalClose}
         calendarColor={selectedEvent ? availableCalendars.find(cal => cal.id === (selectedEvent.calendarId || 'primary'))?.color : null}
+      />
+      
+      {/* Event Creation Modal */}
+      <EventCreateModal 
+        isOpen={isCreateModalOpen}
+        onClose={handleCreateModalClose}
+        onEventCreated={handleEventCreated}
+        availableCalendars={availableCalendars}
+        selectedDate={selectedDate}
       />
     </div>
   );
