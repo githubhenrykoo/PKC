@@ -1,6 +1,6 @@
 [submodule "PKC.Telegram_Bot"]
-	path = PKC/Telegram_Bot
+	path = Telegram_Bot
 	url = git@github.com:Bali-E-Zone/Telegram_Bot.git
 [submodule "Telegram_Bot"]
-	path = PKC/Telegram_Bot
+	path = Telegram_Bot
 	url = git@github.com:Bali-E-Zone/Telegram_Bot.git
