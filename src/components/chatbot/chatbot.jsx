@@ -1,15 +1,19 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ollamaService } from '../../services/ollama-service.js';
+import { telegramService } from '../../services/telegram-service.js';
+import { telegramMCardService } from '../../services/telegram-mcard-service.js';
 
 const Chatbot = () => {
   const [messages, setMessages] = useState([]);
   const [inputMessage, setInputMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [ollamaAvailable, setOllamaAvailable] = useState(false);
-  const [availableModels, setAvailableModels] = useState([]);
-  const [selectedModel, setSelectedModel] = useState('llama3');
+  const [telegramAvailable, setTelegramAvailable] = useState(false);
+  const [botStatus, setBotStatus] = useState(null);
+  const [monitoringStatus, setMonitoringStatus] = useState(null);
   const [isConnecting, setIsConnecting] = useState(true);
+  const [lastMessageCount, setLastMessageCount] = useState(0);
+  const [mcardStatus, setMcardStatus] = useState({ isHealthy: false, syncing: false });
   const messagesEndRef = useRef(null);
+  const pollingInterval = useRef(null);
 
   useEffect(() => {
     initializeChatbot();
@@ -26,57 +30,87 @@ const Chatbot = () => {
   const initializeChatbot = async () => {
     setIsConnecting(true);
     try {
-      // Check Ollama availability
-      const available = await ollamaService.isAvailable();
-      setOllamaAvailable(available);
+      // Check Telegram Controller Service availability
+      const available = await telegramService.isAvailable();
+      setTelegramAvailable(available);
+
+      // Check MCard service availability
+      const mcardHealthy = await telegramMCardService.checkHealth();
+      setMcardStatus(prev => ({ ...prev, isHealthy: mcardHealthy }));
+      console.log('📦 MCard service status:', mcardHealthy ? 'Available' : 'Unavailable');
 
       if (available) {
-        // Get available models
-        const models = await ollamaService.getModels();
-        setAvailableModels(models);
-        
-        // Set default model if available
-        if (models.length > 0) {
-          const defaultModel = models.find(m => m.name.includes('llama3')) || models[0];
-          setSelectedModel(defaultModel.name);
+        // Get bot status
+        try {
+          const status = await telegramService.getBotStatus();
+          setBotStatus(status);
+        } catch (error) {
+          console.warn('Could not get bot status:', error.message);
         }
 
+        // Get monitoring status
+        try {
+          const monitoring = await telegramService.getMonitoringStatus();
+          setMonitoringStatus(monitoring);
+        } catch (error) {
+          console.warn('Could not get monitoring status:', error.message);
+        }
+
+        // Load existing messages
+        await loadMessages();
+
+        // Start polling for new messages
+        startMessagePolling();
+
         // Add welcome message
-        setMessages([{
+        setMessages(prev => [{
           id: Date.now(),
           role: 'assistant',
-          content: `How can I assist you today?`,
+          content: `📱 **Telegram Bot Interface**
+
+Connected to Telegram Controller Service!
+
+**Features:**
+• Send messages to Telegram
+• View incoming messages in real-time
+• Monitor bot status and activity
+• Auto-save all messages to MCard database
+
+**MCard Status:** ${mcardHealthy ? '✅ Connected' : '❌ Disconnected'}
+
+Type a message below to send it to your Telegram bot.`,
           timestamp: new Date().toISOString()
-        }]);
+        }, ...prev]);
       } else {
         setMessages([{
           id: Date.now(),
           role: 'assistant',
-          content: `❌ **Ollama Connection Failed**
+          content: `❌ **Telegram Controller Service Connection Failed**
 
-I couldn't connect to Ollama at http://localhost:11434
+I couldn't connect to the Telegram Controller Service at http://localhost:48637
 
 **To fix this:**
-1. Make sure Ollama is installed and running
-2. Start Ollama service: \`ollama serve\`
-3. Verify models are available: \`ollama list\`
-4. Refresh this page
+1. Make sure the Telegram Controller Service is running
+2. Start the service: \`cd Telegram_Bot && npm start\`
+3. Verify the service is running on port 48637
+4. Check the service status: \`curl http://localhost:48637/api/health\`
+5. Refresh this page
 
-**Need help?** Check the Ollama documentation for setup instructions.`,
+**Need help?** Check the Telegram Controller Service documentation.`,
           timestamp: new Date().toISOString(),
           isError: true
         }]);
       }
     } catch (error) {
-      console.error('❌ Error initializing chatbot:', error);
+      console.error('❌ Error initializing Telegram chatbot:', error);
       setMessages([{
         id: Date.now(),
         role: 'assistant',
         content: `❌ **Initialization Error**
 
-Failed to initialize the chatbot: ${error.message}
+Failed to initialize the Telegram chatbot: ${error.message}
 
-Please check your Ollama installation and try again.`,
+Please check your Telegram Controller Service and try again.`,
         timestamp: new Date().toISOString(),
         isError: true
       }]);
@@ -85,12 +119,131 @@ Please check your Ollama installation and try again.`,
     }
   };
 
+  const loadMessages = async () => {
+    try {
+      const result = await telegramService.getMessages(20, 0);
+      if (result.success && result.messages.length > 0) {
+        const formattedMessages = result.messages
+          .map(msg => telegramService.formatMessage(msg))
+          .reverse(); // Show oldest first
+        
+        setMessages(prev => [...formattedMessages, ...prev]);
+        setLastMessageCount(result.messages.length);
+      }
+    } catch (error) {
+      console.warn('Could not load existing messages:', error.message);
+    }
+  };
+
+  const startMessagePolling = () => {
+    // Clear existing interval
+    if (pollingInterval.current) {
+      clearInterval(pollingInterval.current);
+    }
+    
+    // Poll for new messages every 3 seconds
+    pollingInterval.current = setInterval(async () => {
+      try {
+        const data = await telegramService.getMessages(5, 0);
+        console.log('🔍 Polling result:', data); // Debug log
+        
+        // Process new messages
+        if (data.messages && data.messages.length > 0) {
+          console.log('📨 Raw messages from API:', data.messages); // Debug log
+          
+          const newMessages = data.messages.map(msg => ({
+            id: `telegram-${msg.message_id}`,
+            role: 'user', // Incoming message from Telegram
+            content: msg.text || '[No text content]',
+            timestamp: typeof msg.date === 'string' ? msg.date : new Date(msg.date * 1000).toISOString(),
+            telegramData: msg
+          }));
+
+          console.log('🔄 Processed messages:', newMessages); // Debug log
+
+          // Filter out messages we already have
+          const existingIds = new Set(messages.map(m => m.id));
+          const trulyNewMessages = newMessages.filter(msg => !existingIds.has(msg.id));
+          
+          console.log('✨ Truly new messages:', trulyNewMessages); // Debug log
+
+          if (trulyNewMessages.length > 0) {
+            setMessages(prev => [...prev, ...trulyNewMessages]);
+            console.log(`📨 Added ${trulyNewMessages.length} new messages from Telegram`);
+
+            // Save received messages to MCard
+            console.log('🔍 Current MCard status:', mcardStatus);
+            
+            // Try to check MCard health if it appears unhealthy
+            if (!mcardStatus.isHealthy) {
+              console.log('🏥 MCard appears unhealthy, checking health...');
+              try {
+                const healthCheck = await telegramMCardService.checkHealth();
+                console.log('🏥 Health check result:', healthCheck);
+                setMcardStatus(prev => ({ ...prev, isHealthy: healthCheck }));
+              } catch (healthError) {
+                console.error('❌ Health check failed:', healthError);
+              }
+            }
+            
+            if (mcardStatus.isHealthy || await telegramMCardService.checkHealth()) {
+              try {
+                setMcardStatus(prev => ({ ...prev, syncing: true, isHealthy: true }));
+                console.log('💾 Starting to save received messages to MCard...', trulyNewMessages);
+                
+                for (const message of trulyNewMessages) {
+                  console.log('💾 Saving message to MCard:', {
+                    content: message.content,
+                    timestamp: message.timestamp,
+                    id: message.id
+                  });
+                  
+                  const result = await telegramMCardService.saveReceivedMessage(message.content, message.timestamp);
+                  console.log('✅ MCard save result:', result);
+                }
+                
+                setMcardStatus(prev => ({ ...prev, syncing: false }));
+                console.log(`📦 Successfully saved ${trulyNewMessages.length} received messages to MCard`);
+              } catch (mcardError) {
+                console.error('❌ Failed to save received messages to MCard:', mcardError);
+                console.error('❌ MCard error details:', {
+                  message: mcardError.message,
+                  stack: mcardError.stack
+                });
+                setMcardStatus(prev => ({ ...prev, syncing: false, isHealthy: false }));
+              }
+            } else {
+              console.warn('⚠️ MCard service not healthy, skipping message save');
+              console.warn('⚠️ Please check if MCard service is running on http://localhost:49384');
+            }
+          }
+        }
+      } catch (error) {
+        console.debug('Polling error (will retry):', error.message);
+      }
+    }, 3000);
+  };
+
+  const stopMessagePolling = () => {
+    if (pollingInterval.current) {
+      clearInterval(pollingInterval.current);
+      pollingInterval.current = null;
+    }
+  };
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      stopMessagePolling();
+    };
+  }, []);
+
   const sendMessage = async () => {
-    if (!inputMessage.trim() || isLoading || !ollamaAvailable) return;
+    if (!inputMessage.trim() || isLoading || !telegramAvailable) return;
 
     const userMessage = {
       id: Date.now(),
-      role: 'user',
+      role: 'outgoing', // Outgoing message to Telegram
       content: inputMessage.trim(),
       timestamp: new Date().toISOString()
     };
@@ -100,39 +253,53 @@ Please check your Ollama installation and try again.`,
     setIsLoading(true);
 
     try {
-      // Get conversation context (last 10 messages)
-      const context = messages.slice(-10).map(msg => ({
-        role: msg.role,
-        content: msg.content
-      }));
+      const result = await telegramService.sendMessage(userMessage.content);
+      
+      if (result.success) {
+        // Save sent message to MCard
+        if (mcardStatus.isHealthy) {
+          try {
+            setMcardStatus(prev => ({ ...prev, syncing: true }));
+            await telegramMCardService.saveSentMessage(userMessage.content, userMessage.timestamp);
+            setMcardStatus(prev => ({ ...prev, syncing: false }));
+            console.log('📦 Sent message saved to MCard');
+          } catch (mcardError) {
+            console.error('❌ Failed to save sent message to MCard:', mcardError.message);
+            setMcardStatus(prev => ({ ...prev, syncing: false }));
+          }
+        }
 
-      const response = await ollamaService.generate(userMessage.content, {
-        model: selectedModel,
-        temperature: 0.7,
-        top_p: 0.9
-      });
+        const confirmationMessage = {
+          id: Date.now() + 1,
+          role: 'assistant',
+          content: `✅ **Message sent to Telegram**
 
-      const assistantMessage = {
-        id: Date.now() + 1,
-        role: 'assistant',
-        content: response,
-        timestamp: new Date().toISOString()
-      };
+Message ID: ${result.message_id}
+Sent at: ${new Date(result.timestamp).toLocaleTimeString()}
+Response time: ${result.response_time}ms
+${mcardStatus.isHealthy ? '📦 Saved to MCard database' : '⚠️ MCard save unavailable'}
 
-      setMessages(prev => [...prev, assistantMessage]);
+Your message has been delivered to Telegram successfully!`,
+          timestamp: new Date().toISOString(),
+          isSuccess: true
+        };
+
+        setMessages(prev => [...prev, confirmationMessage]);
+      }
     } catch (error) {
-      console.error('❌ Error sending message:', error);
+      console.error('❌ Error sending message to Telegram:', error);
       const errorMessage = {
         id: Date.now() + 1,
         role: 'assistant',
-        content: `❌ **Error sending message**
+        content: `❌ **Error sending message to Telegram**
 
 ${error.message}
 
 **Troubleshooting:**
-• Check if Ollama is running: \`ollama serve\`
-• Verify the model is available: \`ollama list\`
-• Try refreshing the page`,
+• Check if Telegram Controller Service is running on port 48637
+• Verify your bot token and chat ID are correct
+• Try the clear updates endpoint if there are conflicts
+• Check the service logs for more details`,
         timestamp: new Date().toISOString(),
         isError: true
       };
@@ -143,8 +310,15 @@ ${error.message}
   };
 
   const clearChat = () => {
+    stopMessagePolling();
     setMessages([]);
     initializeChatbot();
+  };
+
+  const refreshConnection = async () => {
+    setIsConnecting(true);
+    stopMessagePolling();
+    await initializeChatbot();
   };
 
   const handleKeyPress = (e) => {
@@ -166,7 +340,7 @@ ${error.message}
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-2"></div>
-          <p className="text-sm opacity-70">Connecting to Ollama...</p>
+          <p className="text-sm opacity-70">Connecting to Telegram Controller Service...</p>
         </div>
       </div>
     );
@@ -177,33 +351,49 @@ ${error.message}
       {/* Header */}
       <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
-            <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+          <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-full flex items-center justify-center">
+            <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M12 0C5.374 0 0 5.373 0 12s5.374 12 12 12 12-5.373 12-12S18.626 0 12 0zm5.568 8.16c-.169 1.858-.896 6.728-.896 6.728-.377 2.655-.377 2.655-1.568 2.655-.896 0-1.568-.896-1.568-1.792 0-.448.224-.896.448-1.344l.896-2.208c.224-.672.224-.672 0-1.344-.224-.448-.672-.672-1.12-.672s-.896.224-1.12.672c-.224.672-.224.672 0 1.344l.896 2.208c.224.448.448.896.448 1.344 0 .896-.672 1.792-1.568 1.792-1.191 0-1.191 0-1.568-2.655 0 0-.727-4.87-.896-6.728C8.16 6.727 8.16 6.727 12 6.727s3.84 0 3.568 1.433z"/>
             </svg>
           </div>
           <div>
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">AI Assistant</h2>
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Telegram Bot</h2>
             <p className="text-xs text-gray-500 dark:text-gray-400">
-              {ollamaAvailable ? `Connected • ${selectedModel}` : 'Disconnected'}
+              {telegramAvailable ? 
+                `Connected • ${botStatus?.bot_info?.username || 'Bot'}` : 
+                'Disconnected'
+              }
             </p>
           </div>
         </div>
         
         <div className="flex items-center gap-2">
-          {ollamaAvailable && availableModels.length > 1 && (
-            <select
-              value={selectedModel}
-              onChange={(e) => setSelectedModel(e.target.value)}
-              className="text-xs px-2 py-1 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-            >
-              {availableModels.map((model) => (
-                <option key={model.name} value={model.name}>
-                  {model.name}
-                </option>
-              ))}
-            </select>
+          {telegramAvailable && monitoringStatus && (
+            <div className="text-xs px-2 py-1 bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 rounded">
+              {monitoringStatus.is_monitoring ? '🟢 Monitoring' : '🔴 Not Monitoring'}
+            </div>
           )}
+          
+          {/* MCard Status Indicator */}
+          <div className={`text-xs px-2 py-1 rounded ${
+            mcardStatus.syncing
+              ? 'bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200'
+              : mcardStatus.isHealthy
+              ? 'bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200'
+              : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400'
+          }`}>
+            {mcardStatus.syncing ? '📦 Syncing...' : mcardStatus.isHealthy ? '📦 MCard' : '📦 MCard Off'}
+          </div>
+          
+          <button
+            onClick={refreshConnection}
+            className="p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+            title="Refresh connection"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+          </button>
           
           <button
             onClick={clearChat}
@@ -222,14 +412,18 @@ ${error.message}
         {messages.map((message) => (
           <div
             key={message.id}
-            className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
+            className={`flex ${message.role === 'outgoing' || message.role === 'assistant' ? 'justify-end' : 'justify-start'}`}
           >
             <div
               className={`max-w-[80%] rounded-lg px-4 py-2 ${
                 message.role === 'user'
-                  ? 'bg-blue-600 text-white'
+                  ? 'bg-cyan-500 text-white' // Incoming Telegram messages
+                  : message.role === 'outgoing'
+                  ? 'bg-blue-600 text-white' // Outgoing messages to Telegram
                   : message.isError
                   ? 'bg-red-50 dark:bg-red-900/30 text-red-900 dark:text-red-100 border border-red-200 dark:border-red-800'
+                  : message.isSuccess
+                  ? 'bg-green-50 dark:bg-green-900/30 text-green-900 dark:text-green-100 border border-green-200 dark:border-green-800'
                   : 'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100'
               }`}
             >
@@ -264,14 +458,14 @@ ${error.message}
             value={inputMessage}
             onChange={(e) => setInputMessage(e.target.value)}
             onKeyPress={handleKeyPress}
-            placeholder={ollamaAvailable ? "Type your message... (Enter to send, Shift+Enter for new line)" : "Ollama not available"}
+            placeholder={telegramAvailable ? "Type your message to send to Telegram... (Enter to send, Shift+Enter for new line)" : "Telegram Controller Service not available"}
             className="flex-1 resize-none px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             rows="2"
-            disabled={!ollamaAvailable || isLoading}
+            disabled={!telegramAvailable || isLoading}
           />
           <button
             onClick={sendMessage}
-            disabled={!inputMessage.trim() || isLoading || !ollamaAvailable}
+            disabled={!inputMessage.trim() || isLoading || !telegramAvailable}
             className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -280,9 +474,9 @@ ${error.message}
           </button>
         </div>
         
-        {!ollamaAvailable && (
+        {!telegramAvailable && (
           <div className="mt-2 text-xs text-red-600 dark:text-red-400">
-            ⚠️ Ollama is not available. Please start Ollama service and refresh the page.
+            ⚠️ Telegram Controller Service is not available. Please start the service on port 48637 and refresh the page.
           </div>
         )}
       </div>

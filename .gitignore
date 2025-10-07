@@ -17,7 +17,11 @@ public/runtime-env.js
 public/runtime-env.json
 
 # Sensitive configuration files
-**/config/*.json
+# Environment files
+.env
+.env.*
+**/.env
+**/.env.*
 **/config/*.env
 
 # Local development files
