@@ -26,8 +26,11 @@ function parseEnvFile(content: string): Record<string, string> {
     // Remove quotes if present
     const cleanValue = value.replace(/^["']|["']$/g, '');
     
-    // Only include PUBLIC_ variables and feature flags
-    if (key.startsWith('PUBLIC_') || key === 'ENABLE_EXPERIMENTAL_FEATURES' || key === 'VERSION') {
+    // Include PUBLIC_ variables, feature flags, and ThingsBoard credentials
+    if (key.startsWith('PUBLIC_') || 
+        key === 'ENABLE_EXPERIMENTAL_FEATURES' || 
+        key === 'VERSION' ||
+        key.startsWith('THINGSBOARD_')) {
       envVars[key] = cleanValue;
     }
   });
@@ -83,7 +86,10 @@ export const GET: APIRoute = () => {
       console.log(`⚠️ [${timestamp}] No .env file found at any location, falling back to process.env`);
       if (typeof process !== 'undefined' && process.env) {
         Object.keys(process.env).forEach(key => {
-          if ((key.startsWith('PUBLIC_') || key === 'ENABLE_EXPERIMENTAL_FEATURES' || key === 'VERSION') && process.env[key]) {
+          if ((key.startsWith('PUBLIC_') || 
+               key === 'ENABLE_EXPERIMENTAL_FEATURES' || 
+               key === 'VERSION' ||
+               key.startsWith('THINGSBOARD_')) && process.env[key]) {
             envVars[key] = process.env[key]!;
           }
         });
@@ -117,6 +123,13 @@ export const GET: APIRoute = () => {
     PUBLIC_API_URL: envVars.PUBLIC_API_URL ?? "https://bmcard.pkc.pub/v1",
     PUBLIC_MCARD_API_URL: envVars.PUBLIC_MCARD_API_URL ?? "http://localhost:49384/v1",
     
+    // ThingsBoard Configuration
+    PUBLIC_THINGSBOARD_URL: envVars.PUBLIC_THINGSBOARD_URL ?? "https://tb.pkc.pub",
+    THINGSBOARD_URL: envVars.THINGSBOARD_URL ?? "https://tb.pkc.pub",
+    THINGSBOARD_USERNAME: envVars.THINGSBOARD_USERNAME ?? "",
+    THINGSBOARD_PASSWORD: envVars.THINGSBOARD_PASSWORD ?? "",
+    PUBLIC_THINGSBOARD_DASHBOARD_URL: envVars.PUBLIC_THINGSBOARD_DASHBOARD_URL ?? "",
+    
     // Feature flags
     ENABLE_EXPERIMENTAL_FEATURES: envVars.ENABLE_EXPERIMENTAL_FEATURES ?? "false",
     
@@ -138,6 +151,7 @@ export const GET: APIRoute = () => {
   // Log what we're returning for debugging
   console.log(`📤 [${timestamp}] Returning environment response:`);
   console.log(`   - Has Google credentials: ${!!(response.PUBLIC_GOOGLE_API_KEY && response.PUBLIC_GOOGLE_CLIENT_ID && response.PUBLIC_GOOGLE_CLIENT_SECRET)}`);
+  console.log(`   - Has ThingsBoard credentials: ${!!(response.PUBLIC_THINGSBOARD_URL && response.THINGSBOARD_USERNAME && response.THINGSBOARD_PASSWORD)}`);
   console.log(`   - Total variables: ${Object.keys(response).length - 1}`); // -1 for _DEBUG
   console.log(`   - File read from: ${actualFilePath || 'process.env fallback'}`);
   console.log(`   - Variables: ${Object.keys(envVars).join(', ')}`);

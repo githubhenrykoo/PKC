@@ -24,6 +24,13 @@ export interface RuntimeEnv {
   PUBLIC_API_URL: string;
   PUBLIC_MCARD_API_URL: string;
   
+  // ThingsBoard Configuration
+  PUBLIC_THINGSBOARD_URL: string;
+  THINGSBOARD_URL: string;
+  THINGSBOARD_USERNAME: string;
+  THINGSBOARD_PASSWORD: string;
+  PUBLIC_THINGSBOARD_DASHBOARD_URL: string;
+  
   // Feature flags (stored as strings)
   ENABLE_EXPERIMENTAL_FEATURES: string;
   
@@ -57,6 +64,13 @@ const defaultEnv: RuntimeEnv = {
   // API Configuration
   PUBLIC_API_URL: 'https://bmcard.pkc.pub/v1',
   PUBLIC_MCARD_API_URL: 'http://localhost:49384/v1',
+  
+  // ThingsBoard Configuration
+  PUBLIC_THINGSBOARD_URL: 'https://tb.pkc.pub',
+  THINGSBOARD_URL: 'https://tb.pkc.pub',
+  THINGSBOARD_USERNAME: '',
+  THINGSBOARD_PASSWORD: '',
+  PUBLIC_THINGSBOARD_DASHBOARD_URL: '',
   
   // Feature flags
   ENABLE_EXPERIMENTAL_FEATURES: 'false',
@@ -267,5 +281,25 @@ export const getGoogleCredentials = () => {
     hasClientId: !!(env.PUBLIC_GOOGLE_CLIENT_ID),
     hasClientSecret: !!(env.PUBLIC_GOOGLE_CLIENT_SECRET),
     isValid: !!(env.PUBLIC_GOOGLE_API_KEY && env.PUBLIC_GOOGLE_CLIENT_ID && env.PUBLIC_GOOGLE_CLIENT_SECRET)
+  };
+};
+
+/**
+ * Get ThingsBoard credentials from runtime environment
+ */
+export const getThingsBoardCredentials = () => {
+  if (typeof window === 'undefined') return null;
+  
+  const env = window.RUNTIME_ENV || {};
+  return {
+    publicUrl: env.PUBLIC_THINGSBOARD_URL || 'https://tb.pkc.pub',
+    serverUrl: env.THINGSBOARD_URL || 'https://tb.pkc.pub',
+    username: env.THINGSBOARD_USERNAME || '',
+    password: env.THINGSBOARD_PASSWORD || '',
+    dashboardUrl: env.PUBLIC_THINGSBOARD_DASHBOARD_URL || '',
+    hasUrl: !!(env.PUBLIC_THINGSBOARD_URL),
+    hasCredentials: !!(env.THINGSBOARD_USERNAME && env.THINGSBOARD_PASSWORD),
+    hasDashboardUrl: !!(env.PUBLIC_THINGSBOARD_DASHBOARD_URL),
+    isValid: !!(env.PUBLIC_THINGSBOARD_URL && env.THINGSBOARD_USERNAME && env.THINGSBOARD_PASSWORD)
   };
 };

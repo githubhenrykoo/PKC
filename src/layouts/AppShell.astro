@@ -173,6 +173,11 @@ const preloadEntryUrl = '/src/services/preload-entry.ts';
         // Check MCard API URL
         if (!env.PUBLIC_MCARD_API_URL) missing.push('PUBLIC_MCARD_API_URL');
         
+        // Check ThingsBoard credentials
+        if (!env.PUBLIC_THINGSBOARD_URL) missing.push('PUBLIC_THINGSBOARD_URL');
+        if (!env.THINGSBOARD_USERNAME) missing.push('THINGSBOARD_USERNAME');
+        if (!env.THINGSBOARD_PASSWORD) missing.push('THINGSBOARD_PASSWORD');
+        
         // Check for placeholder values
         if (env.PUBLIC_GOOGLE_API_KEY === 'your_google_api_key_here') {
           warnings.push('PUBLIC_GOOGLE_API_KEY appears to be a placeholder value');

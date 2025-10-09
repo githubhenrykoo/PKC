@@ -1,5 +1,6 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { thingsBoardService, type TBDevice, type TBTelemetry } from '../../services/thingsboard-service';
+import React, { useEffect, useMemo, useState, useCallback } from 'react';
+import { thingsBoardService, type TBDevice, type TBTelemetry, hasValidThingsBoardCredentials, getThingsBoardCredentialsError } from '../../services/thingsboard-service';
+import { getThingsBoardCredentials } from '../../utils/runtime-env';
 
 type Props = {
   pageSize?: number;
@@ -16,6 +17,88 @@ export default function TelemetryPanel({ pageSize = 10, telemetryKeys = 'tempera
   const [selectedKeys, setSelectedKeys] = useState<string[]>(telemetryKeys.split(',').map((s) => s.trim()).filter(Boolean));
   const [wsActive, setWsActive] = useState<boolean>(false);
   const [wsNonce, setWsNonce] = useState<number>(0); // bump to force reconnect
+  
+  // Runtime environment state
+  const [credentials, setCredentials] = useState<any>(null);
+  const [credentialsLoaded, setCredentialsLoaded] = useState(false);
+  const [credentialsError, setCredentialsError] = useState<string | null>(null);
+
+  // Function to fetch runtime credentials
+  const fetchRuntimeCredentials = useCallback(async () => {
+    try {
+      const timestamp = Date.now();
+      const response = await fetch(`/runtime-env.json?t=${timestamp}`, { 
+        cache: 'no-store',
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0'
+        }
+      });
+      
+      if (response.ok) {
+        const env = await response.json();
+        const tbCredentials = {
+          publicUrl: env.PUBLIC_THINGSBOARD_URL || 'https://tb.pkc.pub',
+          serverUrl: env.THINGSBOARD_URL || 'https://tb.pkc.pub',
+          username: env.THINGSBOARD_USERNAME || '',
+          password: env.THINGSBOARD_PASSWORD || '',
+          dashboardUrl: env.PUBLIC_THINGSBOARD_DASHBOARD_URL || '',
+          hasUrl: !!(env.PUBLIC_THINGSBOARD_URL),
+          hasCredentials: !!(env.THINGSBOARD_USERNAME && env.THINGSBOARD_PASSWORD),
+          hasDashboardUrl: !!(env.PUBLIC_THINGSBOARD_DASHBOARD_URL),
+          isValid: !!(env.PUBLIC_THINGSBOARD_URL && env.THINGSBOARD_USERNAME && env.THINGSBOARD_PASSWORD)
+        };
+        
+        setCredentials(tbCredentials);
+        setCredentialsLoaded(true);
+        setCredentialsError(tbCredentials.isValid ? null : 'ThingsBoard credentials are incomplete');
+        
+        console.log('🔑 ThingsBoard TelemetryPanel credentials updated:', {
+          hasUrl: tbCredentials.hasUrl,
+          hasCredentials: tbCredentials.hasCredentials,
+          hasDashboardUrl: tbCredentials.hasDashboardUrl,
+          isValid: tbCredentials.isValid,
+          timestamp: new Date().toISOString()
+        });
+        
+        return tbCredentials;
+      } else {
+        throw new Error(`Failed to fetch runtime environment: ${response.status}`);
+      }
+    } catch (error) {
+      console.error('❌ Error fetching ThingsBoard credentials from runtime environment:', error);
+      setCredentialsError(`Failed to load credentials: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      setCredentialsLoaded(true);
+      return null;
+    }
+  }, []);
+
+  // Initialize credentials on component mount
+  useEffect(() => {
+    fetchRuntimeCredentials();
+  }, [fetchRuntimeCredentials]);
+
+  // Listen for runtime environment changes
+  useEffect(() => {
+    const handleRuntimeEnvChange = async (event: any) => {
+      console.log('🔄 Runtime environment changed, refreshing ThingsBoard credentials...');
+      await fetchRuntimeCredentials();
+    };
+
+    const handleThingsBoardCredentialsUpdate = (event: any) => {
+      console.log('🔄 ThingsBoard credentials updated:', event.detail);
+      fetchRuntimeCredentials();
+    };
+
+    window.addEventListener('runtime-env-changed', handleRuntimeEnvChange);
+    window.addEventListener('thingsboard-credentials-updated', handleThingsBoardCredentialsUpdate);
+
+    return () => {
+      window.removeEventListener('runtime-env-changed', handleRuntimeEnvChange);
+      window.removeEventListener('thingsboard-credentials-updated', handleThingsBoardCredentialsUpdate);
+    };
+  }, [fetchRuntimeCredentials]);
 
   // Normalize a list of telemetry points into [{ts, value}]
   function normalizeSeries(arr: any): Array<{ ts: number; value: any }> {
@@ -38,10 +121,16 @@ export default function TelemetryPanel({ pageSize = 10, telemetryKeys = 'tempera
   }
 
   useEffect(() => {
+    // Don't load devices until credentials are loaded and valid
+    if (!credentialsLoaded || !credentials?.isValid) {
+      return;
+    }
+
     let cancelled = false;
     (async () => {
       try {
         setLoading(true);
+        setError(null);
         const list = await thingsBoardService.listDevices({ page: 0, pageSize, useProxy: true });
         if (!cancelled) setDevices(list);
       } catch (e: any) {
@@ -53,7 +142,7 @@ export default function TelemetryPanel({ pageSize = 10, telemetryKeys = 'tempera
     return () => {
       cancelled = true;
     };
-  }, [pageSize]);
+  }, [pageSize, credentialsLoaded, credentials?.isValid]);
 
   useEffect(() => {
     if (!selectedId) return;
@@ -186,14 +275,52 @@ export default function TelemetryPanel({ pageSize = 10, telemetryKeys = 'tempera
 
   return (
     <div className="space-y-6">
+      {/* Credentials Status */}
+      {!credentialsLoaded && (
+        <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
+          <div className="flex items-center gap-2">
+            <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+            <span className="text-sm text-blue-700">Loading ThingsBoard credentials...</span>
+          </div>
+        </div>
+      )}
+      
+      {credentialsLoaded && credentialsError && (
+        <div className="bg-red-50 border border-red-200 rounded-xl p-4">
+          <div className="flex items-center gap-2">
+            <svg className="w-4 h-4 text-red-500" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+            </svg>
+            <span className="text-sm text-red-700 font-medium">ThingsBoard Configuration Error</span>
+          </div>
+          <p className="text-sm text-red-600 mt-1">{credentialsError}</p>
+          <p className="text-xs text-red-500 mt-2">Please check your .env file configuration for ThingsBoard credentials.</p>
+        </div>
+      )}
+
+      {credentialsLoaded && credentials?.isValid && (
+        <div className="bg-green-50 border border-green-200 rounded-xl p-4">
+          <div className="flex items-center gap-2">
+            <svg className="w-4 h-4 text-green-500" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+            </svg>
+            <span className="text-sm text-green-700 font-medium">ThingsBoard Connected</span>
+          </div>
+          <p className="text-xs text-green-600 mt-1">URL: {credentials.publicUrl}</p>
+        </div>
+      )}
+
       <div className="flex items-center gap-3 bg-white border rounded-xl shadow-sm px-4 py-3">
         <label className="text-sm font-medium text-gray-700">Device</label>
         <select
           className="border rounded-md px-3 py-2 text-sm bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
           onChange={(e) => setSelectedId(e.target.value || null)}
           value={selectedId || ''}
+          disabled={!credentials?.isValid}
         >
-          <option value="">Select device...</option>
+          <option value="">
+            {!credentials?.isValid ? 'Configure credentials first...' : 'Select device...'}
+          </option>
           {deviceOptions.map((opt) => (
             <option key={opt.id} value={opt.id}>{opt.name}</option>
           ))}
@@ -202,9 +329,9 @@ export default function TelemetryPanel({ pageSize = 10, telemetryKeys = 'tempera
           {wsActive ? 'WS: Live' : 'WS: Offline'}
         </div>
         <button
-          className="text-xs border rounded-md px-3 py-1.5 hover:bg-gray-50"
+          className="text-xs border rounded-md px-3 py-1.5 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
           onClick={() => setWsNonce((n) => n + 1)}
-          disabled={!selectedId}
+          disabled={!selectedId || !credentials?.isValid}
           title="Reconnect WebSocket"
         >
           Reconnect

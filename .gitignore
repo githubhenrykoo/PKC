@@ -16,14 +16,6 @@ pnpm-debug.log*
 public/runtime-env.js
 public/runtime-env.json
 
-# Sensitive configuration files
-# Environment files
-.env
-.env.*
-**/.env
-**/.env.*
-**/config/*.env
-
 # Local development files
 .local
 .vercel

@@ -8,9 +8,79 @@ import dotenv from 'dotenv';
 const ROOT_DIR = process.cwd();
 dotenv.config({ path: path.join(ROOT_DIR, '.env') });
 
-let TB_BASE = (process.env.THINGSBOARD_URL || 'http://localhost:8080').replace(/\/$/, '');
+// Dynamic credentials that will be refreshed from .env file
+let TB_BASE = (process.env.THINGSBOARD_URL || 'https://tb.pkc.pub').replace(/\/$/, '');
 let TB_USER = process.env.THINGSBOARD_USERNAME || '';
 let TB_PASS = process.env.THINGSBOARD_PASSWORD || '';
+
+// Track last .env file modification time for auto-refresh
+let lastEnvModTime = 0;
+
+// Function to refresh credentials from .env file (runtime environment support)
+function refreshCredentialsFromEnv() {
+  try {
+    const envPath = path.join(process.cwd(), '.env');
+    if (!fs.existsSync(envPath)) return false;
+    
+    // Check if .env file has been modified
+    const stats = fs.statSync(envPath);
+    const currentModTime = stats.mtime.getTime();
+    
+    if (currentModTime <= lastEnvModTime) {
+      return false; // No changes
+    }
+    
+    console.log('🔄 ThingsBoard API Proxy: .env file changed, refreshing credentials...');
+    lastEnvModTime = currentModTime;
+    
+    // Re-read .env file
+    dotenv.config({ path: envPath, override: true });
+    
+    const text = fs.readFileSync(envPath, 'utf8');
+    const map: Record<string, string> = {};
+    for (const line of text.split(/\r?\n/)) {
+      const trimmed = line.trim();
+      if (!trimmed || trimmed.startsWith('#')) continue;
+      const eq = trimmed.indexOf('=');
+      if (eq === -1) continue;
+      const key = trimmed.slice(0, eq).trim();
+      const val = trimmed.slice(eq + 1).trim();
+      map[key] = val;
+    }
+    
+    // Update process.env and local variables
+    if (map.THINGSBOARD_URL) {
+      process.env.THINGSBOARD_URL = map.THINGSBOARD_URL;
+      TB_BASE = map.THINGSBOARD_URL.replace(/\/$/, '');
+    }
+    if (map.THINGSBOARD_USERNAME) {
+      process.env.THINGSBOARD_USERNAME = map.THINGSBOARD_USERNAME;
+      TB_USER = map.THINGSBOARD_USERNAME;
+    }
+    if (map.THINGSBOARD_PASSWORD) {
+      process.env.THINGSBOARD_PASSWORD = map.THINGSBOARD_PASSWORD;
+      TB_PASS = map.THINGSBOARD_PASSWORD;
+    }
+    if (map.THINGSBOARD_TOKEN) {
+      process.env.THINGSBOARD_TOKEN = map.THINGSBOARD_TOKEN;
+    }
+    
+    // Clear cached token to force re-authentication with new credentials
+    cachedToken = null;
+    
+    console.log('✅ ThingsBoard credentials refreshed:', {
+      hasUrl: !!TB_BASE,
+      hasCredentials: !!(TB_USER && TB_PASS),
+      url: TB_BASE,
+      timestamp: new Date().toISOString()
+    });
+    
+    return true;
+  } catch (error) {
+    console.error('❌ Error refreshing ThingsBoard credentials:', error);
+    return false;
+  }
+}
 
 function loadEnvFallback() {
   try {
@@ -130,8 +200,12 @@ async function forward(request: Request, targetUrl: string) {
 
 export const GET: APIRoute = async ({ request }) => {
   try {
+    // Refresh credentials from .env file if it has changed (runtime environment support)
+    refreshCredentialsFromEnv();
+    
     const reqUrl = new URL(request.url);
     const target = buildTargetUrl(reqUrl);
+    
     // Return token for WS usage when explicitly requested
     if (reqUrl.searchParams.get('getToken') === '1') {
       // ensure login and return token
@@ -145,19 +219,36 @@ export const GET: APIRoute = async ({ request }) => {
         headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
       });
     }
+    
     // Debug mode: show token presence and target URL
     if (reqUrl.searchParams.get('debug') === '1') {
       const envToken = process.env.THINGSBOARD_TOKEN;
       const hasToken = Boolean((envToken && envToken.trim().length > 0) || (cachedToken && cachedToken.trim().length > 0));
       const hasCreds = Boolean(TB_USER && TB_PASS);
-      return new Response(JSON.stringify({ ok: true, hasToken, hasCreds, target }), {
+      return new Response(JSON.stringify({ 
+        ok: true, 
+        hasToken, 
+        hasCreds, 
+        target,
+        credentials: {
+          url: TB_BASE,
+          hasUsername: !!TB_USER,
+          hasPassword: !!TB_PASS
+        },
+        timestamp: new Date().toISOString()
+      }), {
         status: 200,
         headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
       });
     }
+    
     return await forward(request, target);
   } catch (e: any) {
-    return new Response(JSON.stringify({ error: 'Proxy error', details: e?.message || String(e) }), {
+    return new Response(JSON.stringify({ 
+      error: 'Proxy error', 
+      details: e?.message || String(e),
+      timestamp: new Date().toISOString()
+    }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' },
     });

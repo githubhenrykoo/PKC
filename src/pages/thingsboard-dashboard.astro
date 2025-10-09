@@ -1,5 +1,6 @@
 ---
 import TelemetryPanel from '../components/thingsboard/TelemetryPanel';
+import { startEnvironmentWatcher } from '../utils/runtime-env';
 ---
 
 <html lang="en">
@@ -15,19 +16,94 @@ import TelemetryPanel from '../components/thingsboard/TelemetryPanel';
         <p class="text-sm text-gray-600 mt-1">Data diambil langsung dari ThingsBoard online menggunakan proxy server-side dan WebSocket.</p>
       </header>
 
-      {
-        // If a public dashboard URL is provided, embed it. Otherwise, show the TelemetryPanel fallback.
-      }
-      {import.meta.env.PUBLIC_THINGSBOARD_DASHBOARD_URL ? (
-        <iframe
-          src={import.meta.env.PUBLIC_THINGSBOARD_DASHBOARD_URL}
-          class="w-full h-[85vh] border-0 rounded-lg bg-white shadow"
-          title="ThingsBoard Public Dashboard"
-          allowfullscreen
-        />
-      ) : (
+      <div id="dashboard-container">
+        <!-- Dashboard will be loaded dynamically based on runtime environment -->
+        <div id="loading-dashboard" class="bg-white border rounded-xl shadow-sm p-8 text-center">
+          <div class="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p class="text-gray-600">Loading ThingsBoard dashboard...</p>
+        </div>
+      </div>
+
+      <!-- Fallback TelemetryPanel (hidden by default) -->
+      <div id="telemetry-panel" style="display: none;">
         <TelemetryPanel client:load />
-      )}
+      </div>
     </main>
+
+    <script>
+      // Dynamic dashboard loading based on runtime environment
+      async function loadDashboard() {
+        try {
+          const timestamp = Date.now();
+          const response = await fetch(`/runtime-env.json?t=${timestamp}`, { 
+            cache: 'no-store',
+            headers: {
+              'Cache-Control': 'no-cache, no-store, must-revalidate',
+              'Pragma': 'no-cache',
+              'Expires': '0'
+            }
+          });
+          
+          if (response.ok) {
+            const env = await response.json();
+            const dashboardUrl = env.PUBLIC_THINGSBOARD_DASHBOARD_URL;
+            
+            const container = document.getElementById('dashboard-container');
+            const telemetryPanel = document.getElementById('telemetry-panel');
+            
+            if (dashboardUrl && dashboardUrl.trim()) {
+              console.log('🎯 Loading ThingsBoard dashboard from:', dashboardUrl);
+              
+              // Show iframe dashboard
+              container.innerHTML = `
+                <iframe
+                  src="${dashboardUrl}"
+                  class="w-full h-[85vh] border-0 rounded-lg bg-white shadow"
+                  title="ThingsBoard Public Dashboard"
+                  allowfullscreen
+                ></iframe>
+              `;
+            } else {
+              console.log('📊 No dashboard URL configured, showing TelemetryPanel');
+              
+              // Show telemetry panel fallback
+              container.style.display = 'none';
+              telemetryPanel.style.display = 'block';
+            }
+          } else {
+            throw new Error(`Failed to fetch runtime environment: ${response.status}`);
+          }
+        } catch (error) {
+          console.error('❌ Error loading ThingsBoard dashboard:', error);
+          
+          // Fallback to TelemetryPanel on error
+          const container = document.getElementById('dashboard-container');
+          const telemetryPanel = document.getElementById('telemetry-panel');
+          
+          container.innerHTML = `
+            <div class="bg-red-50 border border-red-200 rounded-xl p-6 text-center">
+              <div class="text-red-500 text-4xl mb-4">⚠️</div>
+              <h3 class="text-lg font-semibold text-red-700 mb-2">Failed to Load Dashboard</h3>
+              <p class="text-red-600 mb-4">Unable to load ThingsBoard dashboard configuration.</p>
+              <p class="text-sm text-red-500">Error: ${error.message}</p>
+            </div>
+          `;
+          
+          // Show telemetry panel as fallback
+          setTimeout(() => {
+            telemetryPanel.style.display = 'block';
+          }, 2000);
+        }
+      }
+
+      // Listen for runtime environment changes
+      window.addEventListener('runtime-env-changed', (event) => {
+        console.log('🔄 Runtime environment changed, reloading ThingsBoard dashboard...');
+        loadDashboard();
+      });
+
+      // Initial load
+      document.addEventListener('DOMContentLoaded', loadDashboard);
+    </script>
   </body>
 </html>

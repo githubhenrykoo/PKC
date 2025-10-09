@@ -1,5 +1,6 @@
 ---
 import TelemetryPanel from '../components/thingsboard/TelemetryPanel';
+import { startEnvironmentWatcher } from '../utils/runtime-env';
 ---
 
 <html lang="en">
@@ -17,5 +18,17 @@ import TelemetryPanel from '../components/thingsboard/TelemetryPanel';
 
       <TelemetryPanel client:load />
     </main>
+
+    <script>
+      // Initialize runtime environment monitoring for ThingsBoard
+      document.addEventListener('DOMContentLoaded', () => {
+        console.log('🔍 ThingsBoard Telemetry page loaded, monitoring runtime environment...');
+        
+        // Listen for runtime environment changes
+        window.addEventListener('runtime-env-changed', (event) => {
+          console.log('🔄 Runtime environment changed on ThingsBoard page:', event.detail);
+        });
+      });
+    </script>
   </body>
 </html>
