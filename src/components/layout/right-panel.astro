@@ -50,6 +50,33 @@
     </button>
   </div>
 
+  <!-- IoT & Monitoring Section -->
+  <div class="mt-4 pt-4 border-t border-black/5 dark:border-white/10">
+    <h3 class="text-sm font-semibold opacity-70 mb-3">IoT & Monitoring</h3>
+    
+    <!-- ThingsBoard -->
+    <button 
+      id="thingsboard-btn"
+      class="w-full text-left px-3 py-2 rounded-lg bg-teal-50 dark:bg-teal-900/30 text-teal-700 dark:text-teal-300 hover:bg-teal-100 dark:hover:bg-teal-900/50 transition-colors flex items-center gap-2 mb-2"
+    >
+      <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+        <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+      </svg>
+      <span class="text-sm">ThingsBoard</span>
+    </button>
+    
+    <!-- ThingsBoard Dashboard -->
+    <button 
+      id="thingsboard-dashboard-btn"
+      class="w-full text-left px-3 py-2 rounded-lg bg-cyan-50 dark:bg-cyan-900/30 text-cyan-700 dark:text-cyan-300 hover:bg-cyan-100 dark:hover:bg-cyan-900/50 transition-colors flex items-center gap-2"
+    >
+      <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+        <path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"/>
+      </svg>
+      <span class="text-sm">ThingsBoard Dashboard</span>
+    </button>
+  </div>
+
   <div class="mt-4 pt-4 border-t border-black/5 dark:border-white/10">
     <h3 class="text-sm font-semibold opacity-70 mb-3">AI Assistant</h3>
     
@@ -86,6 +113,8 @@
     const chatbotBtn = document.getElementById('chatbot-btn');
     const aiChatBtn = document.getElementById('ai-chat-btn');
     const notionBtn = document.getElementById('notion-btn');
+    const thingsBoardBtn = document.getElementById('thingsboard-btn');
+    const thingsBoardDashboardBtn = document.getElementById('thingsboard-dashboard-btn');
     
     if (calendarBtn) {
       calendarBtn.addEventListener('click', () => {
@@ -120,6 +149,18 @@
     if (notionBtn) {
       notionBtn.addEventListener('click', () => {
         showNotion();
+      });
+    }
+
+    if (thingsBoardBtn) {
+      thingsBoardBtn.addEventListener('click', () => {
+        showThingsBoard();
+      });
+    }
+
+    if (thingsBoardDashboardBtn) {
+      thingsBoardDashboardBtn.addEventListener('click', () => {
+        showThingsBoardDashboard();
       });
     }
   });
@@ -507,6 +548,189 @@
             <div class="text-red-500 text-4xl mb-4">⚠️</div>
             <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">Failed to Load AI Chat</h3>
             <p class="text-gray-600 dark:text-gray-400 mb-4">Unable to initialize the AI Chat interface.</p>
+            <p class="text-sm text-gray-500 dark:text-gray-500">Error: ${error instanceof Error ? error.message : 'Unknown error'}</p>
+          </div>
+        </div>
+      `;
+    }
+  }
+
+  function showThingsBoard() {
+    const contentTitle = document.getElementById('content-title');
+    const contentType = document.getElementById('content-type');
+    const contentTimestamp = document.getElementById('content-timestamp');
+    const placeholder = document.getElementById('content-placeholder');
+    const rendererSlot = document.getElementById('renderer-slot');
+
+    if (!contentTitle || !rendererSlot) return;
+
+    // Update header
+    contentTitle.innerHTML = `
+      <svg class="w-5 h-5 inline mr-2" fill="currentColor" viewBox="0 0 24 24">
+        <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+      </svg>
+      ThingsBoard
+    `;
+    
+    if (contentType) contentType.textContent = 'IoT Device Management';
+    if (contentTimestamp) contentTimestamp.textContent = new Date().toLocaleString();
+
+    // Hide placeholder and show renderer slot
+    if (placeholder) placeholder.classList.add('hidden');
+    rendererSlot.classList.remove('hidden');
+
+    // Load the ThingsBoard TelemetryPanel component
+    loadThingsBoardComponent(rendererSlot);
+  }
+
+  function showThingsBoardDashboard() {
+    const contentTitle = document.getElementById('content-title');
+    const contentType = document.getElementById('content-type');
+    const contentTimestamp = document.getElementById('content-timestamp');
+    const placeholder = document.getElementById('content-placeholder');
+    const rendererSlot = document.getElementById('renderer-slot');
+
+    if (!contentTitle || !rendererSlot) return;
+
+    // Update header
+    contentTitle.innerHTML = `
+      <svg class="w-5 h-5 inline mr-2" fill="currentColor" viewBox="0 0 24 24">
+        <path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"/>
+      </svg>
+      ThingsBoard Dashboard
+    `;
+    
+    if (contentType) contentType.textContent = 'IoT Dashboard & Analytics';
+    if (contentTimestamp) contentTimestamp.textContent = new Date().toLocaleString();
+
+    // Hide placeholder and show renderer slot
+    if (placeholder) placeholder.classList.add('hidden');
+    rendererSlot.classList.remove('hidden');
+
+    // Load the ThingsBoard Dashboard component
+    loadThingsBoardDashboardComponent(rendererSlot);
+  }
+
+  /**
+   * Loads and renders the ThingsBoard TelemetryPanel component
+   * @param {HTMLElement} rendererSlot - The DOM element where the component will be rendered
+   */
+  async function loadThingsBoardComponent(rendererSlot: HTMLElement) {
+    try {
+      // Import React and create root
+      const React = await import('react');
+      const { createRoot } = await import('react-dom/client');
+      const { default: TelemetryPanel } = await import('../thingsboard/TelemetryPanel');
+
+      // Create container for the React component
+      rendererSlot.innerHTML = `<div id="thingsboard-container" class="h-full w-full"></div>`;
+      const container = document.getElementById('thingsboard-container');
+      
+      if (container) {
+        // Create React root and render TelemetryPanel component
+        const root = createRoot(container);
+        root.render(React.createElement(TelemetryPanel as any, { 
+          className: 'h-full' 
+        }));
+      }
+    } catch (error) {
+      console.error('Failed to load ThingsBoard component:', error);
+      rendererSlot.innerHTML = `
+        <div class="h-full flex items-center justify-center">
+          <div class="text-center p-8">
+            <div class="text-red-500 text-4xl mb-4">⚠️</div>
+            <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">Failed to Load ThingsBoard</h3>
+            <p class="text-gray-600 dark:text-gray-400 mb-4">Unable to initialize the ThingsBoard interface.</p>
+            <p class="text-sm text-gray-500 dark:text-gray-500">Error: ${error instanceof Error ? error.message : 'Unknown error'}</p>
+          </div>
+        </div>
+      `;
+    }
+  }
+
+  /**
+   * Loads and renders the ThingsBoard Dashboard component
+   * @param {HTMLElement} rendererSlot - The DOM element where the component will be rendered
+   */
+  async function loadThingsBoardDashboardComponent(rendererSlot: HTMLElement) {
+    try {
+      // Load the dashboard content dynamically based on runtime environment
+      const timestamp = Date.now();
+      const response = await fetch(`/runtime-env.json?t=${timestamp}`, { 
+        cache: 'no-store',
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0'
+        }
+      });
+      
+      if (response.ok) {
+        const env = await response.json();
+        const dashboardUrl = env.PUBLIC_THINGSBOARD_DASHBOARD_URL;
+        
+        if (dashboardUrl) {
+          // Show ThingsBoard dashboard iframe
+          rendererSlot.innerHTML = `
+            <div class="h-full w-full bg-white border rounded-xl shadow-sm overflow-hidden">
+              <div class="bg-gray-50 border-b px-4 py-2 flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                  <div class="w-3 h-3 bg-green-500 rounded-full"></div>
+                  <span class="text-sm font-medium text-gray-700">ThingsBoard Dashboard</span>
+                </div>
+                <a href="${dashboardUrl}" target="_blank" class="text-xs text-blue-600 hover:text-blue-800">
+                  Open in New Tab ↗
+                </a>
+              </div>
+              <iframe 
+                src="${dashboardUrl}" 
+                class="w-full h-full border-0"
+                title="ThingsBoard Dashboard"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                sandbox="allow-same-origin allow-scripts allow-popups allow-forms"
+              ></iframe>
+            </div>
+          `;
+        } else {
+          // Fallback to TelemetryPanel if no dashboard URL
+          const React = await import('react');
+          const { createRoot } = await import('react-dom/client');
+          const { default: TelemetryPanel } = await import('../thingsboard/TelemetryPanel');
+
+          rendererSlot.innerHTML = `
+            <div class="h-full w-full">
+              <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
+                <div class="flex items-center gap-2">
+                  <svg class="w-5 h-5 text-yellow-600" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+                  </svg>
+                  <span class="text-sm font-medium text-yellow-800">Dashboard URL not configured</span>
+                </div>
+                <p class="text-sm text-yellow-700 mt-1">Showing TelemetryPanel instead. Configure PUBLIC_THINGSBOARD_DASHBOARD_URL in your .env file.</p>
+              </div>
+              <div id="thingsboard-dashboard-fallback" class="h-full w-full"></div>
+            </div>
+          `;
+          
+          const container = document.getElementById('thingsboard-dashboard-fallback');
+          if (container) {
+            const root = createRoot(container);
+            root.render(React.createElement(TelemetryPanel as any, { 
+              className: 'h-full' 
+            }));
+          }
+        }
+      } else {
+        throw new Error('Failed to load runtime environment');
+      }
+    } catch (error) {
+      console.error('Failed to load ThingsBoard Dashboard:', error);
+      rendererSlot.innerHTML = `
+        <div class="h-full flex items-center justify-center">
+          <div class="text-center p-8">
+            <div class="text-red-500 text-4xl mb-4">⚠️</div>
+            <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">Failed to Load ThingsBoard Dashboard</h3>
+            <p class="text-gray-600 dark:text-gray-400 mb-4">Unable to initialize the ThingsBoard Dashboard interface.</p>
             <p class="text-sm text-gray-500 dark:text-gray-500">Error: ${error instanceof Error ? error.message : 'Unknown error'}</p>
           </div>
         </div>
