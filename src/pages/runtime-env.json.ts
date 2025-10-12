@@ -26,11 +26,12 @@ function parseEnvFile(content: string): Record<string, string> {
     // Remove quotes if present
     const cleanValue = value.replace(/^["']|["']$/g, '');
     
-    // Include PUBLIC_ variables, feature flags, and ThingsBoard credentials
+    // Include PUBLIC_ variables, feature flags, ThingsBoard credentials, and Telegram credentials
     if (key.startsWith('PUBLIC_') || 
         key === 'ENABLE_EXPERIMENTAL_FEATURES' || 
         key === 'VERSION' ||
-        key.startsWith('THINGSBOARD_')) {
+        key.startsWith('THINGSBOARD_') ||
+        key.startsWith('TELEGRAM_')) {
       envVars[key] = cleanValue;
     }
   });
@@ -89,7 +90,8 @@ export const GET: APIRoute = () => {
           if ((key.startsWith('PUBLIC_') || 
                key === 'ENABLE_EXPERIMENTAL_FEATURES' || 
                key === 'VERSION' ||
-               key.startsWith('THINGSBOARD_')) && process.env[key]) {
+               key.startsWith('THINGSBOARD_') ||
+               key.startsWith('TELEGRAM_')) && process.env[key]) {
             envVars[key] = process.env[key]!;
           }
         });
@@ -130,6 +132,11 @@ export const GET: APIRoute = () => {
     THINGSBOARD_PASSWORD: envVars.THINGSBOARD_PASSWORD ?? "",
     PUBLIC_THINGSBOARD_DASHBOARD_URL: envVars.PUBLIC_THINGSBOARD_DASHBOARD_URL ?? "",
     
+    // Telegram Configuration
+    TELEGRAM_BOT_TOKEN: envVars.TELEGRAM_BOT_TOKEN ?? "",
+    TELEGRAM_CHAT_ID: envVars.TELEGRAM_CHAT_ID ?? "",
+    TELEGRAM_PORT: envVars.TELEGRAM_PORT ?? "48637",
+    
     // Feature flags
     ENABLE_EXPERIMENTAL_FEATURES: envVars.ENABLE_EXPERIMENTAL_FEATURES ?? "false",
     
@@ -152,6 +159,7 @@ export const GET: APIRoute = () => {
   console.log(`📤 [${timestamp}] Returning environment response:`);
   console.log(`   - Has Google credentials: ${!!(response.PUBLIC_GOOGLE_API_KEY && response.PUBLIC_GOOGLE_CLIENT_ID && response.PUBLIC_GOOGLE_CLIENT_SECRET)}`);
   console.log(`   - Has ThingsBoard credentials: ${!!(response.PUBLIC_THINGSBOARD_URL && response.THINGSBOARD_USERNAME && response.THINGSBOARD_PASSWORD)}`);
+  console.log(`   - Has Telegram credentials: ${!!(response.TELEGRAM_BOT_TOKEN && response.TELEGRAM_CHAT_ID)}`);
   console.log(`   - Total variables: ${Object.keys(response).length - 1}`); // -1 for _DEBUG
   console.log(`   - File read from: ${actualFilePath || 'process.env fallback'}`);
   console.log(`   - Variables: ${Object.keys(envVars).join(', ')}`);
