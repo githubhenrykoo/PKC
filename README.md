@@ -5,7 +5,7 @@
 [![libP2P](https://img.shields.io/badge/networking-libP2P-purple.svg)](https://libp2p.io)
 [![IPFS](https://img.shields.io/badge/storage-IPFS-blue.svg)](https://ipfs.io)
 
-> **A revolutionary interactive knowledge management platform** that enables interactive testing, systematic knowledge accumulation, and collaborative function development through mathematically rigorous polynomial functor structures.
+> **A revolutionary interactive knowledge management platform** that enables interactive testing, systematic knowledge accumulation, and collaborative function development through mathematically rigorous polynomial functor structure.
 
 ## 🌟 What is PKC?
 
