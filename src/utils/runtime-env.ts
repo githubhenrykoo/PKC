@@ -31,6 +31,11 @@ export interface RuntimeEnv {
   THINGSBOARD_PASSWORD: string;
   PUBLIC_THINGSBOARD_DASHBOARD_URL: string;
   
+  // Telegram Configuration
+  TELEGRAM_BOT_TOKEN: string;
+  TELEGRAM_CHAT_ID: string;
+  TELEGRAM_PORT: string;
+  
   // Feature flags (stored as strings)
   ENABLE_EXPERIMENTAL_FEATURES: string;
   
@@ -71,6 +76,11 @@ const defaultEnv: RuntimeEnv = {
   THINGSBOARD_USERNAME: '',
   THINGSBOARD_PASSWORD: '',
   PUBLIC_THINGSBOARD_DASHBOARD_URL: '',
+  
+  // Telegram Configuration
+  TELEGRAM_BOT_TOKEN: '',
+  TELEGRAM_CHAT_ID: '',
+  TELEGRAM_PORT: '48637',
   
   // Feature flags
   ENABLE_EXPERIMENTAL_FEATURES: 'false',

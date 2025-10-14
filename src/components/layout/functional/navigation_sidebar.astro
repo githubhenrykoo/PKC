@@ -35,7 +35,21 @@ const {
 <aside class="rounded-lg bg-[var(--surface)] border border-black/5 dark:border-white/10 p-4">
   <div class="flex justify-between items-center mb-2">
     <h2 id="nav-title" class="text-sm font-semibold opacity-70">{title}</h2>
-    <span class="text-xs opacity-50" id="page-indicator">1 / 1</span>
+    <div class="flex items-center gap-2">
+      <button 
+        id="upload-button"
+        class="px-2 py-1 text-xs rounded bg-blue-500 hover:bg-blue-600 text-white transition-colors flex items-center gap-1"
+        title="Upload file to MCard"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+          <polyline points="17 8 12 3 7 8"></polyline>
+          <line x1="12" y1="3" x2="12" y2="15"></line>
+        </svg>
+        Upload
+      </button>
+      <span class="text-xs opacity-50" id="page-indicator">1 / 1</span>
+    </div>
   </div>
   
   <!-- Search input with clear button -->
@@ -69,6 +83,9 @@ const {
   
   <!-- Pagination controls -->
   <PaginationControls prevDisabled={true} />
+  
+  <!-- Hidden file input for upload -->
+  <input type="file" id="file-input-hidden" class="hidden" accept="*/*" />
 </aside>
 
 <script type="module">
@@ -163,6 +180,8 @@ const {
     const searchInput = document.getElementById('search-input');
     const searchClear = document.getElementById('search-clear');
     const searchSpinner = document.getElementById('search-spinner');
+    const uploadButton = document.getElementById('upload-button');
+    const fileInputHidden = document.getElementById('file-input-hidden');
     
     // Remove dev-time overrides; rely on content-type utils for display
     // (This block intentionally left minimal.)
@@ -508,6 +527,69 @@ const {
           currentPage++;
           renderPage(currentPage);
         }
+      }
+    });
+    
+    // Upload button handler
+    uploadButton.addEventListener('click', () => {
+      fileInputHidden.click();
+    });
+    
+    // File upload handler
+    fileInputHidden.addEventListener('change', async (e) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      
+      try {
+        console.log('📤 Uploading file:', file.name);
+        uploadButton.disabled = true;
+        uploadButton.innerHTML = `
+          <svg class="animate-spin" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 12a9 9 0 1 1-6.219-8.56"></path>
+          </svg>
+          Uploading...
+        `;
+        
+        // Upload file to MCard API
+        const formData = new FormData();
+        formData.append('file', file);
+        
+        const response = await fetch(`${API_URL}/files`, {
+          method: 'POST',
+          body: formData
+        });
+        
+        if (!response.ok) {
+          throw new Error(`Upload failed: ${response.status} ${response.statusText}`);
+        }
+        
+        const result = await response.json();
+        console.log('✅ File uploaded successfully:', result);
+        
+        // Show success message
+        alert(`File uploaded successfully!\n\nHash: ${result.hash}\nFilename: ${result.filename}\nSize: ${(result.size_bytes / 1024).toFixed(2)} KB`);
+        
+        // Refresh the list
+        await loadMCardData();
+        renderPage(currentPage);
+        
+        // Reset file input
+        fileInputHidden.value = '';
+        
+      } catch (error) {
+        console.error('❌ Upload failed:', error);
+        alert(`Upload failed: ${error.message}`);
+      } finally {
+        // Restore button
+        uploadButton.disabled = false;
+        uploadButton.innerHTML = `
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="17 8 12 3 7 8"></polyline>
+            <line x1="12" y1="3" x2="12" y2="15"></line>
+          </svg>
+          Upload
+        `;
       }
     });
     
