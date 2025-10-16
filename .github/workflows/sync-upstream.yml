@@ -1,0 +1,114 @@
+name: Sync from Upstream
+
+on:
+  # Run automatically every day at 2 AM UTC
+  schedule:
+    - cron: '0 2 * * *'
+  
+  # Allow manual triggering
+  workflow_dispatch:
+  
+  # Run when upstream repository is updated (webhook trigger)
+  repository_dispatch:
+    types: [upstream-update]
+
+jobs:
+  sync-upstream:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout fork repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+
+      - name: Configure Git
+        run: |
+          git config user.name "unio-ai"
+          git config user.email "pkcnetbird@gmail.com"
+
+      - name: Add upstream remote
+        run: |
+          git remote add upstream https://github.com/henrykoo/PKC.git
+          git remote -v
+
+      - name: Fetch upstream changes
+        run: |
+          git fetch upstream
+          git fetch origin
+
+      - name: Check for upstream changes
+        id: check-changes
+        run: |
+          # Get the latest commit from upstream main
+          UPSTREAM_COMMIT=$(git rev-parse upstream/main)
+          CURRENT_COMMIT=$(git rev-parse HEAD)
+          
+          echo "upstream_commit=$UPSTREAM_COMMIT" >> $GITHUB_OUTPUT
+          echo "current_commit=$CURRENT_COMMIT" >> $GITHUB_OUTPUT
+          
+          if [ "$UPSTREAM_COMMIT" != "$CURRENT_COMMIT" ]; then
+            echo "changes_available=true" >> $GITHUB_OUTPUT
+            echo "Changes detected from upstream"
+          else
+            echo "changes_available=false" >> $GITHUB_OUTPUT
+            echo "No changes from upstream"
+          fi
+
+      - name: Merge upstream changes
+        if: steps.check-changes.outputs.changes_available == 'true'
+        run: |
+          # Create a backup branch
+          git checkout -b backup-before-sync-$(date +%Y%m%d-%H%M%S)
+          git push origin backup-before-sync-$(date +%Y%m%d-%H%M%S)
+          
+          # Switch back to main and merge
+          git checkout main
+          
+          # Try to merge upstream changes
+          if git merge upstream/main --no-edit; then
+            echo "✅ Successfully merged upstream changes"
+          else
+            echo "❌ Merge conflicts detected"
+            echo "Creating pull request for manual resolution..."
+            
+            # Abort the merge and create a PR instead
+            git merge --abort
+            
+            # Create a new branch for the sync
+            SYNC_BRANCH="sync-upstream-$(date +%Y%m%d-%H%M%S)"
+            git checkout -b $SYNC_BRANCH
+            
+            # Force merge with upstream (keeping their changes for conflicts)
+            git merge upstream/main -X theirs --no-edit
+            
+            # Push the sync branch
+            git push origin $SYNC_BRANCH
+            
+            # Create PR using GitHub CLI (if available) or exit with info
+            echo "Please manually create a PR from branch: $SYNC_BRANCH"
+            echo "Or resolve conflicts manually"
+            exit 1
+          fi
+
+      - name: Push synchronized changes
+        if: steps.check-changes.outputs.changes_available == 'true'
+        run: |
+          git push origin main
+
+      - name: Create sync summary
+        if: steps.check-changes.outputs.changes_available == 'true'
+        run: |
+          echo "## Sync Summary" >> $GITHUB_STEP_SUMMARY
+          echo "- **Upstream Commit**: ${{ steps.check-changes.outputs.upstream_commit }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Previous Commit**: ${{ steps.check-changes.outputs.current_commit }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Sync Time**: $(date)" >> $GITHUB_STEP_SUMMARY
+          echo "- **Status**: ✅ Successfully synchronized" >> $GITHUB_STEP_SUMMARY
+
+      - name: No changes summary
+        if: steps.check-changes.outputs.changes_available == 'false'
+        run: |
+          echo "## Sync Summary" >> $GITHUB_STEP_SUMMARY
+          echo "- **Status**: ℹ️ No changes to sync" >> $GITHUB_STEP_SUMMARY
+          echo "- **Last Check**: $(date)" >> $GITHUB_STEP_SUMMARY
