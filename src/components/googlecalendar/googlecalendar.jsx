@@ -185,10 +185,6 @@ const CalendarList = ({ calendars, visibility, onToggleVisibility, onColorChange
                   />
                 </div>
               </div>
-              
-              <div className="text-xs text-gray-500 dark:text-gray-400">
-                {calendar.eventCount === 0 ? 'No events' : `${calendar.eventCount} event${calendar.eventCount === 1 ? '' : 's'}`}
-              </div>
             </div>
           );
         })}
@@ -944,82 +940,153 @@ const EventDetailsModal = ({ event, isOpen, onClose, calendarColor }) => {
 };
 
 const EventCard = ({ event, view, calendarColor, onEventClick }) => {
-  const date = new Date(event.start.dateTime || event.start.date);
-  const formattedDate = date.toLocaleString('en-US', {
-    weekday: 'short',
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit'
-  });
+  const startDate = new Date(event.start.dateTime || event.start.date);
+  const endDate = event.end ? new Date(event.end.dateTime || event.end.date) : null;
+  const isAllDay = !event.start.dateTime;
   
   const eventColor = calendarColor || event.calendarColor || '#3B82F6';
 
-  // Calendar badge component
-  const CalendarBadge = () => {
-    if (!event.calendarName || event.isPrimary) return null;
-    
-    return (
-      <div className="flex items-center gap-1 mb-2">
-        <div 
-          className="w-3 h-3 rounded-full" 
-          style={{ backgroundColor: event.calendarColor || '#4285f4' }}
-        ></div>
-        <span className="text-xs text-gray-500 dark:text-gray-400 font-medium">
-          {event.calendarName}
-        </span>
-      </div>
-    );
+  // Format time display
+  const getTimeDisplay = () => {
+    if (isAllDay) {
+      return 'All day';
+    }
+    const timeStr = startDate.toLocaleTimeString('en-US', { 
+      hour: 'numeric', 
+      minute: '2-digit',
+      hour12: true 
+    });
+    if (endDate) {
+      const endTimeStr = endDate.toLocaleTimeString('en-US', { 
+        hour: 'numeric', 
+        minute: '2-digit',
+        hour12: true 
+      });
+      return `${timeStr} - ${endTimeStr}`;
+    }
+    return timeStr;
+  };
+
+  const getDateDisplay = () => {
+    return startDate.toLocaleDateString('en-US', {
+      weekday: 'short',
+      month: 'short',
+      day: 'numeric'
+    });
   };
 
   if (view === 'grid') {
     return (
       <div 
-        className="bg-white dark:bg-gray-700 rounded-lg shadow-sm border border-gray-200 dark:border-gray-600 p-4 hover:shadow-md transition-shadow relative cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-600"
+        className="group bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-600 hover:shadow-lg transition-all cursor-pointer overflow-hidden"
         onClick={() => onEventClick && onEventClick(event)}
       >
-        {/* Calendar color indicator */}
-        <div 
-          className="absolute left-0 top-0 bottom-0 w-1 rounded-l-lg"
-          style={{ backgroundColor: eventColor }}
-        ></div>
+        {/* Color accent bar */}
+        <div className="h-1.5" style={{ backgroundColor: eventColor }}></div>
         
-        <div className="text-sm text-blue-600 dark:text-blue-400 mb-2">{formattedDate}</div>
-        <CalendarBadge />
-        <h3 className="font-semibold text-lg dark:text-white mb-2">{event.summary}</h3>
-        {event.description && (
-          <div className="text-sm text-gray-600 dark:text-gray-300 line-clamp-3">
-            <HTMLContent html={event.description} className="prose prose-sm dark:prose-invert max-w-none" />
+        <div className="p-4">
+          {/* Date and Time */}
+          <div className="flex items-start justify-between mb-3">
+            <div>
+              <div className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">
+                {getDateDisplay()}
+              </div>
+              <div className="text-sm font-semibold text-blue-600 dark:text-blue-400">
+                {getTimeDisplay()}
+              </div>
+            </div>
+            {!event.isPrimary && event.calendarName && (
+              <div className="flex items-center gap-1.5 px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded-full">
+                <div className="w-2 h-2 rounded-full" style={{ backgroundColor: eventColor }}></div>
+                <span className="text-xs text-gray-600 dark:text-gray-300">{event.calendarName}</span>
+              </div>
+            )}
           </div>
-        )}
+          
+          {/* Event Title */}
+          <h3 className="font-semibold text-base text-gray-900 dark:text-white mb-2 line-clamp-2 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+            {event.summary || 'Untitled Event'}
+          </h3>
+          
+          {/* Location */}
+          {event.location && (
+            <div className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400 mb-2">
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+              <span className="line-clamp-1">{event.location}</span>
+            </div>
+          )}
+          
+          {/* Description preview */}
+          {event.description && (
+            <p className="text-xs text-gray-600 dark:text-gray-400 line-clamp-2">
+              {event.description.replace(/<[^>]*>/g, '')}
+            </p>
+          )}
+        </div>
       </div>
     );
   }
 
+  // List view
   return (
     <div 
-      className={`bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4 hover:shadow-md transition-shadow relative cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-600 ${
-        view === 'list' ? 'mb-2' : ''
-      }`}
+      className="group bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-600 hover:shadow-md transition-all cursor-pointer overflow-hidden"
       onClick={() => onEventClick && onEventClick(event)}
     >
-      {/* Calendar color indicator */}
-      <div 
-        className="absolute left-0 top-0 bottom-0 w-1 rounded-l-lg"
-        style={{ backgroundColor: eventColor }}
-      ></div>
-      
-      <div className="flex items-center gap-2">
-        <div className="text-sm text-blue-600 dark:text-blue-400 whitespace-nowrap">{formattedDate}</div>
-        <div className="flex-1">
-          <CalendarBadge />
-          <h3 className="font-semibold text-lg dark:text-white mb-2">{event.summary}</h3>
-          {event.description && (
-            <div className="text-sm text-gray-600 dark:text-gray-300">
-              <HTMLContent html={event.description} className="prose prose-sm dark:prose-invert max-w-none" />
+      <div className="flex">
+        {/* Color accent */}
+        <div className="w-1" style={{ backgroundColor: eventColor }}></div>
+        
+        <div className="flex-1 p-4">
+          <div className="flex items-start gap-4">
+            {/* Time column */}
+            <div className="flex-shrink-0 w-24">
+              <div className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">
+                {getDateDisplay()}
+              </div>
+              <div className="text-sm font-semibold text-blue-600 dark:text-blue-400">
+                {getTimeDisplay()}
+              </div>
             </div>
-          )}
+            
+            {/* Event details */}
+            <div className="flex-1 min-w-0">
+              <div className="flex items-start justify-between gap-3 mb-2">
+                <h3 className="font-semibold text-base text-gray-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                  {event.summary || 'Untitled Event'}
+                </h3>
+                {!event.isPrimary && event.calendarName && (
+                  <div className="flex items-center gap-1.5 px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded-full flex-shrink-0">
+                    <div className="w-2 h-2 rounded-full" style={{ backgroundColor: eventColor }}></div>
+                    <span className="text-xs text-gray-600 dark:text-gray-300">{event.calendarName}</span>
+                  </div>
+                )}
+              </div>
+              
+              <div className="flex flex-wrap items-center gap-3 text-xs text-gray-500 dark:text-gray-400">
+                {event.location && (
+                  <div className="flex items-center gap-1.5">
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                    <span className="line-clamp-1">{event.location}</span>
+                  </div>
+                )}
+                {event.attendees && event.attendees.length > 0 && (
+                  <div className="flex items-center gap-1.5">
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                    </svg>
+                    <span>{event.attendees.length} attendee{event.attendees.length > 1 ? 's' : ''}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -1630,64 +1697,125 @@ const GoogleCalendar = ({ className = '' }) => {
   }
 
   return (
-    <div className={`p-4 space-y-4 h-full overflow-auto ${className}`}>
-      {/* Show today's meetings summary */}
+    <div className={`h-full overflow-auto bg-gray-50 dark:bg-gray-900 ${className}`}>
+      {/* Header Section */}
       {isAuthenticated && (
-        <div className="space-y-3 mb-4">
-          <div className="text-center rounded-lg p-3">
-            {todayMeetings.length > 0 ? (
-              <div className="bg-blue-50 dark:bg-blue-900 text-blue-700 dark:text-blue-300 rounded-lg p-3">
-                <p className="text-lg font-semibold">
-                  You have {todayMeetings.length} {todayMeetings.length === 1 ? 'meeting' : 'meetings'} today
-                </p>
+        <div className="sticky top-0 z-10 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 shadow-sm">
+          <div className="px-6 py-4">
+            {/* Top Bar with Actions */}
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-blue-100 dark:bg-blue-900 rounded-lg">
+                  <svg className="w-6 h-6 text-blue-600 dark:text-blue-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                </div>
+                <div>
+                  <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Google Calendar</h1>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                    {todayMeetings.length > 0 
+                      ? `${todayMeetings.length} ${todayMeetings.length === 1 ? 'meeting' : 'meetings'} today`
+                      : 'No meetings today'
+                    }
+                  </p>
+                </div>
               </div>
-            ) : (
-              <div className="bg-gray-50 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg p-3">
-                <p className="text-lg font-semibold">
-                  No meeting today
-                </p>
+              
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => fetchEvents()}
+                  disabled={isLoading}
+                  className="p-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors disabled:opacity-50"
+                  title="Refresh"
+                >
+                  <svg className={`w-5 h-5 ${isLoading ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                </button>
+                <button
+                  onClick={handleCreateEvent}
+                  disabled={isLoading || isCreatingEvent}
+                  className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                  </svg>
+                  <span>New Event</span>
+                </button>
+                <button
+                  onClick={handleExportToMCard}
+                  disabled={isLoading || isExportingToMCard || events.length === 0}
+                  className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 transition-colors"
+                  title="Export to MCard"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10" />
+                  </svg>
+                </button>
+                <button
+                  onClick={handleSignOut}
+                  disabled={isLoading}
+                  className="p-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors disabled:opacity-50"
+                  title="Sign Out"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+
+            {/* Export Status Display */}
+            {exportStatus && (
+              <div className={`rounded-lg p-3 text-sm mb-4 ${
+                exportStatus.includes('✅') 
+                  ? 'bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-300 border border-green-200'
+                  : exportStatus.includes('❌')
+                  ? 'bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-300 border border-red-200'
+                  : 'bg-yellow-50 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300 border border-yellow-200'
+              }`}>
+                <div className="flex items-center gap-2">
+                  {isExportingToMCard && (
+                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-current border-t-transparent"></div>
+                  )}
+                  <span>{exportStatus}</span>
+                </div>
               </div>
             )}
           </div>
-
-          {/* Export Status Display */}
-          {exportStatus && (
-            <div className={`rounded-lg p-3 text-sm ${
-              exportStatus.includes('✅') 
-                ? 'bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-300'
-                : exportStatus.includes('❌')
-                ? 'bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-300'
-                : 'bg-yellow-50 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300'
-            }`}>
-              <div className="flex items-center gap-2">
-                {isExportingToMCard && (
-                  <div className="animate-spin rounded-full h-4 w-4 border-2 border-current border-t-transparent"></div>
-                )}
-                <span>{exportStatus}</span>
-              </div>
-            </div>
-          )}
         </div>
       )}
 
       {!isAuthenticated ? (
-        <div className="flex items-center justify-center h-full">
-          <button
-            onClick={handleSignIn}
-            disabled={isLoading}
-            className="bg-white text-gray-700 px-6 py-3 rounded-lg border border-gray-300 hover:bg-gray-50 flex items-center space-x-3 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <img 
-              src="https://www.google.com/favicon.ico" 
-              alt="Google" 
-              className="w-5 h-5"
-            />
-            <span>{isLoading ? 'Signing in...' : 'Sign in with Google'}</span>
-          </button>
+        <div className="flex items-center justify-center h-full bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-gray-800 dark:to-gray-900">
+          <div className="text-center">
+            <div className="mb-6">
+              <div className="inline-flex p-4 bg-white dark:bg-gray-800 rounded-full shadow-lg mb-4">
+                <svg className="w-12 h-12 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+              </div>
+              <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Connect Your Calendar</h2>
+              <p className="text-gray-600 dark:text-gray-400 max-w-md">Sign in with Google to view and manage your calendar events</p>
+            </div>
+            <button
+              onClick={handleSignIn}
+              disabled={isLoading}
+              className="bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 px-8 py-4 rounded-xl border-2 border-gray-200 dark:border-gray-700 hover:border-blue-500 dark:hover:border-blue-500 hover:shadow-lg flex items-center gap-3 shadow-md disabled:opacity-50 disabled:cursor-not-allowed transition-all mx-auto"
+            >
+              <img 
+                src="https://www.google.com/favicon.ico" 
+                alt="Google" 
+                className="w-6 h-6"
+              />
+              <span className="font-medium">{isLoading ? 'Signing in...' : 'Sign in with Google'}</span>
+            </button>
+          </div>
         </div>
       ) : (
-        <>
-          <div className="flex flex-col gap-4">
+        <div className="flex gap-6 p-6">
+          {/* Left Sidebar - Calendar & Filters */}
+          <div className="w-80 flex-shrink-0 space-y-4">
             {/* Month Navigation */}
             <MonthNavigation 
               selectedDate={selectedDate} 
@@ -1707,147 +1835,75 @@ const GoogleCalendar = ({ className = '' }) => {
               onToggleVisibility={handleToggleCalendarVisibility}
               onColorChange={handleCalendarColorChange}
             />
-            
-            <div className="flex justify-between items-center">
-              <h2 className="text-xl font-bold dark:text-white">
-                {isSpecificDateSelected 
-                  ? `Events for ${selectedDate.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}`
-                  : `Events for ${selectedDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}`
-                }
-              </h2>
-              <div className="flex items-center gap-4">
-                <button
-                  onClick={() => fetchEvents()}
-                  disabled={isLoading}
-                  className="flex items-center gap-2 px-4 py-2 text-blue-600 dark:text-blue-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                  title="Refresh events"
-                >
-                  <svg
-                    className={`w-5 h-5 ${isLoading ? 'animate-spin' : ''}`}
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-                    />
-                  </svg>
-                  <span className="sr-only">Refresh</span>
-                </button>
-                <ViewToggle view={view} onViewChange={setView} />
-                <button
-                  onClick={handleCreateEvent}
-                  disabled={isLoading || isCreatingEvent}
-                  className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                  title="Create new event"
-                >
-                  {isCreatingEvent ? (
-                    <>
-                      <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
-                      <span>Creating...</span>
-                    </>
-                  ) : (
-                    <>
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                      </svg>
-                      <span>Create Event</span>
-                    </>
-                  )}
-                </button>
-                <button
-                  onClick={handleExportToMCard}
-                  disabled={isLoading || isExportingToMCard || events.length === 0}
-                  className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                  title="Export all events to MCard"
-                >
-                  {isExportingToMCard ? (
-                    <>
-                      <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
-                      <span>Exporting...</span>
-                    </>
-                  ) : (
-                    <>
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10" />
-                      </svg>
-                      <span>Export to MCard</span>
-                    </>
-                  )}
-                </button>
-                <button
-                  onClick={handleSignOut}
-                  disabled={isLoading}
-                  className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 dark:bg-red-600 dark:hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {isLoading ? 'Signing out...' : 'Sign Out'}
-                </button>
-              </div>
-            </div>
-            <FilterBar searchTerm={searchTerm} onSearchChange={setSearchTerm} />
-            
-            {/* Calendar Summary */}
-            {calendarSummary && calendarSummary.totalCalendars > 0 && (
-              <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-                <div className="flex items-center justify-between mb-2">
-                  <h3 className="text-sm font-medium text-blue-900 dark:text-blue-100">
-                    All Calendars ({calendarSummary.totalCalendars})
-                  </h3>
-                  <span className="text-xs text-blue-700 dark:text-blue-300">
-                    {calendarSummary.totalEvents} visible events
-                  </span>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  {calendarSummary.calendars.map((calendar, index) => (
-                    <div key={index} className="flex items-center gap-1 text-xs bg-white dark:bg-gray-800 px-2 py-1 rounded border">
-                      <div 
-                        className="w-2 h-2 rounded-full" 
-                        style={{ backgroundColor: calendar.color }}
-                      ></div>
-                      <span className="text-gray-700 dark:text-gray-300">
-                        {calendar.name}
-                        {calendar.isPrimary && ' (Primary)'}
-                      </span>
-                      <span className="text-gray-500 dark:text-gray-400">
-                        ({calendar.eventCount === 0 ? 'no events' : calendar.eventCount})
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
           </div>
           
-          {isLoading ? (
-            <div className="flex items-center justify-center h-64 mt-6">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary dark:border-blue-400"></div>
+          {/* Main Content - Events List */}
+          <div className="flex-1 min-w-0">
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+              {/* Events Header */}
+              <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
+                <div className="flex items-center justify-between mb-3">
+                  <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+                    {isSpecificDateSelected 
+                      ? selectedDate.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })
+                      : selectedDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
+                    }
+                  </h2>
+                  <ViewToggle view={view} onViewChange={setView} />
+                </div>
+                <FilterBar searchTerm={searchTerm} onSearchChange={setSearchTerm} />
+                
+                {/* Calendar Summary */}
+                {calendarSummary && calendarSummary.totalCalendars > 1 && (
+                  <div className="mt-3 flex items-center gap-2 text-xs text-gray-600 dark:text-gray-400">
+                    <span className="font-medium">{calendarSummary.totalEvents} events</span>
+                    <span>•</span>
+                    <span>{calendarSummary.totalCalendars} calendars</span>
+                  </div>
+                )}
+              </div>
+              
+              {/* Events Content */}
+              <div className="p-6">
+                {isLoading ? (
+                  <div className="flex flex-col items-center justify-center py-20">
+                    <div className="animate-spin rounded-full h-10 w-10 border-3 border-blue-600 border-t-transparent mb-4"></div>
+                    <p className="text-gray-500 dark:text-gray-400">Loading events...</p>
+                  </div>
+                ) : filteredEvents.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-20">
+                    <div className="p-4 bg-gray-100 dark:bg-gray-700 rounded-full mb-4">
+                      <svg className="w-12 h-12 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                      </svg>
+                    </div>
+                    <p className="text-lg font-medium text-gray-900 dark:text-white mb-1">
+                      {searchTerm ? 'No events found' : 'No events'}
+                    </p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                      {searchTerm ? 'Try adjusting your search' : 'Create a new event to get started'}
+                    </p>
+                  </div>
+                ) : (
+                  <div className={view === 'grid' ? 'grid grid-cols-1 lg:grid-cols-2 gap-4' : 'space-y-3'}>
+                    {filteredEvents.map((event) => {
+                      const calendar = availableCalendars.find(cal => cal.id === (event.calendarId || 'primary'));
+                      return (
+                        <EventCard 
+                          key={event.id} 
+                          event={event} 
+                          view={view} 
+                          calendarColor={calendar?.color}
+                          onEventClick={handleEventClick}
+                        />
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
             </div>
-          ) : (
-            <div className={`mt-6 ${view === 'grid' ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4' : 'space-y-4'}`}>
-              {filteredEvents.length === 0 ? (
-                <p className="text-center text-gray-500 dark:text-gray-400 col-span-full">
-                  {searchTerm ? 'No events match your search' : 'No upcoming events'}
-                </p>
-              ) : (
-                filteredEvents.map((event) => {
-                  const calendar = availableCalendars.find(cal => cal.id === (event.calendarId || 'primary'));
-                  return (
-                    <EventCard 
-                      key={event.id} 
-                      event={event} 
-                      view={view} 
-                      calendarColor={calendar?.color}
-                      onEventClick={handleEventClick}
-                    />
-                  );
-                })
-              )}
-            </div>
-          )}
-        </>
+          </div>
+        </div>
       )}
       
       {/* Event Details Modal */}
@@ -1871,7 +1927,3 @@ const GoogleCalendar = ({ className = '' }) => {
 };
 
 export default GoogleCalendar;
-
-
-
-
