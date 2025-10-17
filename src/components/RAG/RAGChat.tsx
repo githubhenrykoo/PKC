@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { RAGQueryResult, RAGHealthResponse, RAGStats } from '@/services/RAGService';
+import { MCardService } from '@/services/MCardService';
 
 // Utility function to remove markdown formatting
 const stripMarkdown = (text: string): string => {
@@ -60,6 +61,7 @@ export function RAGChat({ onQuery, health, stats, loading, onRetrieveFromMCard, 
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const mcardService = useRef(new MCardService()).current;
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -68,6 +70,41 @@ export function RAGChat({ onQuery, health, stats, loading, onRetrieveFromMCard, 
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  // Function to save RAG conversation to MCard
+  const saveConversationToMCard = async (query: string, result: RAGQueryResult, timestamp: Date) => {
+    try {
+      const conversationData = {
+        type: 'rag_conversation',
+        timestamp: timestamp.toISOString(),
+        query: query,
+        answer: result.answer,
+        citations: result.citations.map(citation => ({
+          hash: citation.hash,
+          g_time: citation.g_time,
+          section: citation.section,
+          content: citation.content,
+          relevance_score: citation.relevance_score
+        })),
+        total_sources: result.total_sources,
+        response_time_ms: result.response_time_ms,
+        max_sources_requested: maxSources
+      };
+
+      // Convert to JSON string and create a Blob
+      const jsonString = JSON.stringify(conversationData, null, 2);
+      const blob = new Blob([jsonString], { type: 'application/json' });
+      
+      // Save to MCard
+      const response = await mcardService.storeContent(blob);
+      console.log('✅ RAG conversation saved to MCard:', response.hash);
+      
+      return response.hash;
+    } catch (error) {
+      console.error('❌ Failed to save RAG conversation to MCard:', error);
+      // Don't throw - we don't want to interrupt the user experience
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -98,6 +135,9 @@ export function RAGChat({ onQuery, health, stats, loading, onRetrieveFromMCard, 
         result,
       };
       setMessages(prev => [...prev, assistantMessage]);
+      
+      // Automatically save the conversation to MCard
+      await saveConversationToMCard(query, result, assistantMessage.timestamp);
     } catch (error) {
       // Add error message
       const errorMessage: ChatMessage = {
