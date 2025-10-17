@@ -1137,10 +1137,13 @@ How can I help you today?`;
 
   if (loading && !isAuthenticated) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-2"></div>
-          <p className="text-sm opacity-70">Loading Google Slides...</p>
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center space-y-4">
+          <div className="animate-spin rounded-full h-12 w-12 border-4 border-purple-200 border-t-purple-600 mx-auto"></div>
+          <div>
+            <p className="text-lg font-medium text-gray-900 dark:text-white">Loading Google Slides</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Please wait...</p>
+          </div>
         </div>
       </div>
     );
@@ -1148,38 +1151,55 @@ How can I help you today?`;
 
   if (error && !isAuthenticated) {
     return (
-      <div className="bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-300 rounded-lg p-4 text-center">
-        <div className="text-4xl mb-2">⚠️</div>
-        <p className="text-sm">{error}</p>
-        <button 
-          onClick={initializeGoogleSlides}
-          className="mt-3 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
-        >
-          Retry
-        </button>
+      <div className="max-w-md mx-auto mt-8">
+        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-6 text-center">
+          <div className="w-12 h-12 bg-red-100 dark:bg-red-900/40 rounded-full flex items-center justify-center mx-auto mb-4">
+            <svg className="w-6 h-6 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+          </div>
+          <h3 className="text-lg font-semibold text-red-900 dark:text-red-100 mb-2">Connection Error</h3>
+          <p className="text-sm text-red-700 dark:text-red-300 mb-4">{error}</p>
+          <button 
+            onClick={initializeGoogleSlides}
+            className="px-6 py-2.5 bg-red-600 text-white rounded-lg hover:bg-red-700 active:bg-red-800 transition-all duration-200 font-medium shadow-sm hover:shadow"
+          >
+            Try Again
+          </button>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="h-full w-full">
-      <div className="h-full p-4 space-y-4">
+    <div className="h-full w-full bg-gray-50 dark:bg-gray-900">
+      <div className="h-full p-6 space-y-6">
         {/* Header */}
-        <div className="flex justify-between items-center">
-          <h2 className="text-xl font-bold dark:text-white">Google Slides</h2>
+        <div className="flex justify-between items-center pb-4 border-b border-gray-200 dark:border-gray-700">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-pink-500 rounded-lg flex items-center justify-center shadow-lg">
+              <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8l-6-6zm4 18H6V4h7v5h5v11z"/>
+              </svg>
+            </div>
+            <div>
+              <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Google Slides</h2>
+              <p className="text-sm text-gray-500 dark:text-gray-400">Manage your presentations</p>
+            </div>
+          </div>
           <button 
             onClick={isAuthenticated ? handleSignOut : handleSignIn}
             disabled={loading}
-            className={`px-4 py-2 rounded-lg flex items-center space-x-2 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed ${
+            className={`px-5 py-2.5 rounded-lg flex items-center gap-2 font-medium shadow-sm transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed ${
               isAuthenticated 
-                ? 'bg-red-500 text-white hover:bg-red-600' 
-                : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
+                ? 'bg-red-500 text-white hover:bg-red-600 hover:shadow-md active:bg-red-700' 
+                : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 hover:shadow-md'
             }`}
           >
             <img 
               src="https://www.google.com/favicon.ico" 
               alt="Google" 
-              className="w-4 h-4"
+              className="w-5 h-5"
             />
             <span>{isAuthenticated ? 'Sign Out' : 'Sign in with Google'}</span>
           </button>
@@ -1190,37 +1210,39 @@ How can I help you today?`;
 
         {/* Content */}
         {isAuthenticated ? (
-          <div className="space-y-4">
+          <div className="space-y-5">
             {/* Summary Stats */}
-            <div className="bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-lg p-3">
-              <h3 className="font-semibold mb-2">Your Presentations</h3>
-              <p className="text-sm">
+            <div className="bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 border border-purple-200 dark:border-purple-800 rounded-xl p-5">
+              <div className="flex items-center gap-3 mb-2">
+                <h3 className="text-lg font-semibold text-purple-900 dark:text-purple-100">Your Presentations</h3>
+              </div>
+              <p className="text-sm text-purple-700 dark:text-purple-300">
                 {presentations && presentations.length > 0 
                   ? `You have ${presentations.length} presentation${presentations.length === 1 ? '' : 's'} in Google Slides`
-                  : 'No presentations found. Create your first presentation in Google Slides!'
+                  : 'No presentations found. Create your first presentation to get started!'
                 }
               </p>
             </div>
 
             {/* Presentations List */}
             <div>
-              <div className="flex justify-between items-center mb-3">
-                <h3 className="font-semibold dark:text-white">Recent Presentations</h3>
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Recent Presentations</h3>
                 <div className="flex gap-2">
                   <button 
                     onClick={handleCreatePresentation}
                     disabled={loading}
-                    className="px-3 py-1 text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/30 rounded-lg transition-colors flex items-center gap-2 text-sm disabled:opacity-50"
+                    className="px-4 py-2 bg-green-600 text-white hover:bg-green-700 active:bg-green-800 rounded-lg transition-all duration-200 flex items-center gap-2 text-sm font-medium shadow-sm hover:shadow disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
                     </svg>
-                    New
+                    New Presentation
                   </button>
                   <button 
                     onClick={loadPresentations}
                     disabled={loading}
-                    className="px-3 py-1 text-blue-600 dark:text-blue-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors flex items-center gap-2 text-sm disabled:opacity-50"
+                    className="px-4 py-2 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg transition-all duration-200 flex items-center gap-2 text-sm font-medium shadow-sm hover:shadow disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
@@ -1230,40 +1252,53 @@ How can I help you today?`;
                 </div>
               </div>
 
-              <div className="space-y-2 max-h-96 overflow-y-auto">
+              <div className="space-y-3 max-h-[600px] overflow-y-auto pr-2">
                 {loading ? (
-                  <div className="flex items-center justify-center py-8">
-                    <div className="text-center">
-                      <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-500 mx-auto mb-2"></div>
-                      <p className="text-sm opacity-70">Loading presentations...</p>
+                  <div className="flex items-center justify-center py-12">
+                    <div className="text-center space-y-3">
+                      <div className="animate-spin rounded-full h-10 w-10 border-4 border-purple-200 border-t-purple-600 mx-auto"></div>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">Loading presentations...</p>
                     </div>
                   </div>
                 ) : !presentations || presentations.length === 0 ? (
-                  <div className="text-center py-8">
-                    <div className="text-4xl mb-2">📊</div>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">No presentations found</p>
-                    <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
-                      Create a new presentation in Google Slides to get started
+                  <div className="text-center py-16 bg-white dark:bg-gray-800 rounded-xl border-2 border-dashed border-gray-300 dark:border-gray-600">
+                    <div className="w-16 h-16 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      </svg>
+                    </div>
+                    <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">No Presentations Yet</h4>
+                    <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+                      Create your first presentation to get started
                     </p>
+                    <button 
+                      onClick={handleCreatePresentation}
+                      className="px-5 py-2.5 bg-purple-600 text-white rounded-lg hover:bg-purple-700 active:bg-purple-800 transition-all duration-200 font-medium shadow-sm hover:shadow inline-flex items-center gap-2"
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
+                      </svg>
+                      Create Presentation
+                    </button>
                   </div>
                 ) : (
                   (presentations || []).map((presentation) => (
                     <div 
                       key={presentation.id} 
-                      className="bg-white dark:bg-gray-700 rounded-lg shadow-sm border border-gray-200 dark:border-gray-600 p-3 hover:shadow-md transition-shadow"
+                      className="group bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4 hover:shadow-lg hover:border-purple-300 dark:hover:border-purple-700 transition-all duration-200"
                     >
-                      <div className="flex items-start gap-3">
+                      <div className="flex items-center gap-4">
                         {/* Thumbnail */}
                         <div className="flex-shrink-0">
                           {presentation.thumbnailLink ? (
                             <img 
                               src={presentation.thumbnailLink} 
                               alt={presentation.name}
-                              className="w-12 h-9 object-cover rounded border border-gray-200 dark:border-gray-600"
+                              className="w-20 h-14 object-cover rounded-lg border-2 border-gray-200 dark:border-gray-600 shadow-sm"
                             />
                           ) : (
-                            <div className="w-12 h-9 bg-gray-100 dark:bg-gray-600 rounded border border-gray-200 dark:border-gray-600 flex items-center justify-center">
-                              <svg className="w-6 h-6 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                            <div className="w-20 h-14 bg-gradient-to-br from-purple-100 to-pink-100 dark:from-purple-900/30 dark:to-pink-900/30 rounded-lg border-2 border-purple-200 dark:border-purple-700 flex items-center justify-center shadow-sm">
+                              <svg className="w-8 h-8 text-purple-500 dark:text-purple-400" fill="currentColor" viewBox="0 0 20 20">
                                 <path fillRule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clipRule="evenodd" />
                               </svg>
                             </div>
@@ -1272,32 +1307,35 @@ How can I help you today?`;
 
                         {/* Content */}
                         <div className="flex-1 min-w-0">
-                          <h4 className="font-medium text-sm dark:text-white truncate">
+                          <h4 className="font-semibold text-base text-gray-900 dark:text-white truncate mb-1 group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors">
                             {presentation.name || 'Untitled Presentation'}
                           </h4>
-                          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                            Modified: {formatDate(presentation.modifiedTime)}
+                          <p className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1">
+                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            {formatDate(presentation.modifiedTime)}
                           </p>
                         </div>
 
                         {/* Actions */}
-                        <div className="flex-shrink-0 flex gap-2">
+                        <div className="flex-shrink-0 flex gap-1">
                           <button
                             onClick={() => openPresentationViewer(presentation)}
-                            className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 text-sm p-1 rounded hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-colors"
+                            className="p-2 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-lg transition-all duration-200 hover:scale-110"
                             title="View presentation"
                           >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                             </svg>
                           </button>
                           <button
                             onClick={() => openPresentationEditor(presentation)}
-                            className="text-green-600 dark:text-green-400 hover:text-green-800 dark:hover:text-green-300 text-sm p-1 rounded hover:bg-green-50 dark:hover:bg-green-900/30 transition-colors"
+                            className="p-2 text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/30 rounded-lg transition-all duration-200 hover:scale-110"
                             title="Edit presentation"
                           >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                             </svg>
                           </button>
@@ -1305,10 +1343,10 @@ How can I help you today?`;
                             href={presentation.webViewLink}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 text-sm p-1 rounded hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors"
+                            className="p-2 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-all duration-200 hover:scale-110"
                             title="Open in Google Slides"
                           >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
                             </svg>
                           </a>
@@ -1321,17 +1359,26 @@ How can I help you today?`;
             </div>
           </div>
         ) : (
-          <div className="text-center py-8">
-            <div className="text-6xl mb-4">📊</div>
-            <h3 className="text-lg font-semibold dark:text-white mb-2">Access Your Google Slides</h3>
-            <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-              Sign in with Google to view and manage your presentations
+          <div className="text-center py-16 max-w-md mx-auto">
+            <div className="w-20 h-20 bg-gradient-to-br from-purple-100 to-pink-100 dark:from-purple-900/30 dark:to-pink-900/30 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg">
+              <svg className="w-10 h-10 text-purple-600 dark:text-purple-400" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8l-6-6zm4 18H6V4h7v5h5v11z"/>
+              </svg>
+            </div>
+            <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-3">Access Your Google Slides</h3>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-6 leading-relaxed">
+              Sign in with your Google account to view, edit, and manage your presentations with AI-powered features
             </p>
             <button 
               onClick={handleSignIn}
               disabled={loading}
-              className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="bg-gradient-to-r from-purple-600 to-pink-600 text-white px-8 py-3 rounded-lg hover:from-purple-700 hover:to-pink-700 active:from-purple-800 active:to-pink-800 transition-all duration-200 font-medium shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center gap-2"
             >
+              <img 
+                src="https://www.google.com/favicon.ico" 
+                alt="Google" 
+                className="w-5 h-5"
+              />
               Get Started
             </button>
           </div>
@@ -1339,8 +1386,18 @@ How can I help you today?`;
 
         {/* Error Display */}
         {error && isAuthenticated && (
-          <div className="bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-300 rounded-lg p-3 text-sm">
-            {error}
+          <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-4">
+            <div className="flex items-start gap-3">
+              <div className="flex-shrink-0">
+                <svg className="w-5 h-5 text-red-600 dark:text-red-400" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                </svg>
+              </div>
+              <div className="flex-1">
+                <h4 className="text-sm font-semibold text-red-900 dark:text-red-100 mb-1">Error</h4>
+                <p className="text-sm text-red-700 dark:text-red-300">{error}</p>
+              </div>
+            </div>
           </div>
         )}
 
