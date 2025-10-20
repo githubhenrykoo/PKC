@@ -58,10 +58,142 @@ export function RAGChat({ onQuery, health, stats, loading, onRetrieveFromMCard, 
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [maxSources, setMaxSources] = useState(3);
+  const [autoSaveToMCard, setAutoSaveToMCard] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
+  const [sessionId, setSessionId] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const mcardService = useRef(new MCardService()).current;
+
+  // Generate unique session ID
+  const generateSessionId = (): string => {
+    return `rag-session-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+  };
+
+  // Save messages to localStorage
+  const saveMessagesToCache = (messagesToSave: ChatMessage[]) => {
+    try {
+      const cacheData = {
+        sessionId,
+        messages: messagesToSave,
+        lastUpdated: new Date().toISOString(),
+        maxSources,
+      };
+      localStorage.setItem(`rag-chat-${sessionId}`, JSON.stringify(cacheData));
+      console.log('💾 Chat messages saved to cache');
+    } catch (error) {
+      console.error('❌ Failed to save messages to cache:', error);
+    }
+  };
+
+  // Load messages from localStorage
+  const loadMessagesFromCache = (): ChatMessage[] => {
+    try {
+      // Try to get the current session first
+      if (sessionId) {
+        const cached = localStorage.getItem(`rag-chat-${sessionId}`);
+        if (cached) {
+          const cacheData = JSON.parse(cached);
+          return (cacheData.messages || []).map((message: any) => ({
+            ...message,
+            timestamp: new Date(message.timestamp) // Convert string to Date object
+          }));
+        }
+      }
+
+      // If no current session, try to find the most recent session
+      const keys = Object.keys(localStorage);
+      const ragChatKeys = keys.filter(key => key.startsWith('rag-chat-')).sort();
+
+      if (ragChatKeys.length > 0) {
+        const mostRecentKey = ragChatKeys[ragChatKeys.length - 1];
+        const cached = localStorage.getItem(mostRecentKey);
+        if (cached) {
+          const cacheData = JSON.parse(cached);
+          setSessionId(cacheData.sessionId);
+          return (cacheData.messages || []).map((message: any) => ({
+            ...message,
+            timestamp: new Date(message.timestamp) // Convert string to Date object
+          }));
+        }
+      }
+
+      return [];
+    } catch (error) {
+      console.error('❌ Failed to load messages from cache:', error);
+      return [];
+    }
+  };
+
+  // Clear old chat sessions (older than 7 days)
+  const clearOldChatSessions = () => {
+    try {
+      const keys = Object.keys(localStorage);
+      const ragChatKeys = keys.filter(key => key.startsWith('rag-chat-'));
+      const sevenDaysAgo = new Date();
+      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+      let clearedCount = 0;
+      ragChatKeys.forEach(key => {
+        try {
+          const cached = localStorage.getItem(key);
+          if (cached) {
+            const cacheData = JSON.parse(cached);
+            const lastUpdated = new Date(cacheData.lastUpdated);
+
+            if (lastUpdated < sevenDaysAgo) {
+              localStorage.removeItem(key);
+              clearedCount++;
+            }
+          }
+        } catch (error) {
+          console.warn('⚠️ Failed to parse cached chat session:', key, error);
+          localStorage.removeItem(key); // Remove corrupted data
+          clearedCount++;
+        }
+      });
+
+      if (clearedCount > 0) {
+        console.log(`🧹 Cleared ${clearedCount} old chat sessions`);
+      }
+    } catch (error) {
+      console.error('❌ Failed to clear old chat sessions:', error);
+    }
+  };
+
+  // Clear current chat session
+  const clearCurrentChat = () => {
+    setMessages([]);
+    setInput('');
+    setSessionId(generateSessionId());
+  };
+
+  // Initialize session and load messages on mount
+  useEffect(() => {
+    // Generate or restore session ID
+    let currentSessionId = localStorage.getItem('current-rag-session-id');
+    if (!currentSessionId) {
+      currentSessionId = generateSessionId();
+      localStorage.setItem('current-rag-session-id', currentSessionId);
+    }
+    setSessionId(currentSessionId);
+
+    // Clear old sessions
+    clearOldChatSessions();
+
+    // Load messages from cache
+    const cachedMessages = loadMessagesFromCache();
+    if (cachedMessages.length > 0) {
+      setMessages(cachedMessages);
+    }
+  }, []);
+
+  // Save messages to cache whenever messages change
+  useEffect(() => {
+    if (sessionId && messages.length > 0) {
+      saveMessagesToCache(messages);
+    }
+  }, [messages, sessionId]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -136,8 +268,10 @@ export function RAGChat({ onQuery, health, stats, loading, onRetrieveFromMCard, 
       };
       setMessages(prev => [...prev, assistantMessage]);
       
-      // Automatically save the conversation to MCard
-      await saveConversationToMCard(query, result, assistantMessage.timestamp);
+      // Automatically save the conversation to MCard if enabled
+      if (autoSaveToMCard) {
+        await saveConversationToMCard(query, result, assistantMessage.timestamp);
+      }
     } catch (error) {
       // Add error message
       const errorMessage: ChatMessage = {
@@ -257,18 +391,65 @@ export function RAGChat({ onQuery, health, stats, loading, onRetrieveFromMCard, 
               <h3 className="font-semibold">RAG Chat</h3>
               <p className="text-sm text-muted-foreground">Ask questions about your documents</p>
             </div>
-            <div className="flex items-center space-x-2">
-              <label className="text-sm text-muted-foreground">Max sources:</label>
-              <select 
-                value={maxSources} 
-                onChange={(e) => setMaxSources(Number(e.target.value))}
-                className="border rounded px-2 py-1 text-sm"
-              >
-                <option value="1">1</option>
-                <option value="3">3</option>
-                <option value="5">5</option>
-                <option value="10">10</option>
-              </select>
+            <div className="flex items-center space-x-4">
+              {/* Clear Chat Button */}
+              {messages.length > 0 && (
+                <Button
+                  onClick={clearCurrentChat}
+                  variant="outline"
+                  size="sm"
+                  className="flex items-center space-x-2"
+                  title="Clear chat history"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
+                  <span className="hidden md:inline">Clear Chat</span>
+                </Button>
+              )}
+
+              {/* Max Sources Selector */}
+              <div className="flex items-center space-x-2">
+                <label className="text-sm text-muted-foreground">Max sources:</label>
+                <select
+                  value={maxSources}
+                  onChange={(e) => setMaxSources(Number(e.target.value))}
+                  className="border rounded px-2 py-1 text-sm"
+                >
+                  <option value="1">1</option>
+                  <option value="3">3</option>
+                  <option value="5">5</option>
+                  <option value="10">10</option>
+                </select>
+              </div>
+              
+              {/* Auto-save to MCard Toggle */}
+              <div className="flex items-center space-x-2">
+                <label className="text-sm text-muted-foreground">Auto-save to MCard:</label>
+                <button
+                  onClick={() => setAutoSaveToMCard(!autoSaveToMCard)}
+                  className={cn(
+                    "relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary",
+                    autoSaveToMCard ? "bg-green-600" : "bg-gray-300"
+                  )}
+                  role="switch"
+                  aria-checked={autoSaveToMCard}
+                  title={autoSaveToMCard ? "Auto-save enabled" : "Auto-save disabled"}
+                >
+                  <span
+                    className={cn(
+                      "inline-block h-4 w-4 transform rounded-full bg-white transition-transform",
+                      autoSaveToMCard ? "translate-x-6" : "translate-x-1"
+                    )}
+                  />
+                </button>
+                <span className={cn(
+                  "text-xs font-medium",
+                  autoSaveToMCard ? "text-green-600" : "text-gray-500"
+                )}>
+                  {autoSaveToMCard ? "YES" : "NO"}
+                </span>
+              </div>
             </div>
           </div>
         </div>
