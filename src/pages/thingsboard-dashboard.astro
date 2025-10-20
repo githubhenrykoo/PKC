@@ -1,6 +1,5 @@
 ---
 import TelemetryPanel from '../components/thingsboard/TelemetryPanel';
-import { startEnvironmentWatcher } from '../utils/runtime-env';
 ---
 
 <html lang="en">
@@ -8,24 +7,56 @@ import { startEnvironmentWatcher } from '../utils/runtime-env';
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>ThingsBoard Dashboard</title>
+    <style is:inline>
+      :root { 
+        --background: #f8fafc; 
+        --text: #1e293b; 
+        --surface: #ffffff;
+      }
+      .dark-theme { 
+        --background: #0f172a; 
+        --text: #f8fafc; 
+        --surface: #1e293b; 
+      }
+      body { background: var(--background); color: var(--text); }
+      /* Ensure any fallback ThingsBoard content renders white in dark theme */
+      .dark-theme .tb-root, .dark-theme .tb-root * { color: #ffffff !important; }
+    </style>
   </head>
-  <body class="min-h-screen bg-gray-50">
-    <main class="max-w-5xl mx-auto px-4 py-8">
-      <header class="mb-6">
-        <h1 class="text-3xl font-semibold tracking-tight">ThingsBoard Dashboard</h1>
-        <p class="text-sm text-gray-600 mt-1">Data diambil langsung dari ThingsBoard online menggunakan proxy server-side dan WebSocket.</p>
-      </header>
-
-      <div id="dashboard-container">
+  <body class="min-h-screen bg-[var(--background)] text-[var(--text)] dark:text-white">
+    <script is:inline>
+      (function(){
+        const key = 'theme';
+        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        const saved = localStorage.getItem(key);
+        const initial = saved || (prefersDark ? 'dark' : 'light');
+        document.documentElement.classList.toggle('dark-theme', initial === 'dark');
+        // Sync with parent (if embedded via iframe in same origin)
+        try {
+          if (window.top && window.top !== window) {
+            const topDoc = window.top.document;
+            const isDark = topDoc?.documentElement?.classList?.contains('dark-theme');
+            if (typeof isDark === 'boolean') {
+              document.documentElement.classList.toggle('dark-theme', isDark);
+            }
+          }
+        } catch(_) {}
+        window.addEventListener('storage', (e) => {
+          if (e.key === key && e.newValue) {
+            document.documentElement.classList.toggle('dark-theme', e.newValue === 'dark');
+          }
+        });
+      })();
+    </script>
+    <main class="w-full max-w-none px-4 py-4">
+      <div id="dashboard-container" class="bg-[var(--surface)] border border-black/5 dark:border-white/10 rounded-xl shadow-sm">
         <!-- Dashboard will be loaded dynamically based on runtime environment -->
-        <div id="loading-dashboard" class="bg-white border rounded-xl shadow-sm p-8 text-center">
-          <div class="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p class="text-gray-600">Loading ThingsBoard dashboard...</p>
+        <div id="loading-dashboard" class="bg-[var(--surface)] border border-black/5 dark:border-white/10 rounded-xl p-8 text-center">
+          <div class="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
         </div>
-      </div>
 
       <!-- Fallback TelemetryPanel (hidden by default) -->
-      <div id="telemetry-panel" style="display: none;">
+      <div id="telemetry-panel" style="display: none;" class="p-2">
         <TelemetryPanel client:load />
       </div>
     </main>
@@ -51,19 +82,19 @@ import { startEnvironmentWatcher } from '../utils/runtime-env';
             const container = document.getElementById('dashboard-container');
             const telemetryPanel = document.getElementById('telemetry-panel');
             
-            if (dashboardUrl && dashboardUrl.trim()) {
+            if (dashboardUrl && dashboardUrl.trim() && container) {
               console.log('🎯 Loading ThingsBoard dashboard from:', dashboardUrl);
               
               // Show iframe dashboard
               container.innerHTML = `
                 <iframe
                   src="${dashboardUrl}"
-                  class="w-full h-[85vh] border-0 rounded-lg bg-white shadow"
+                  class="w-full h-[85vh] border-0 rounded-lg bg-[var(--surface)]"
                   title="ThingsBoard Public Dashboard"
                   allowfullscreen
                 ></iframe>
               `;
-            } else {
+            } else if (container && telemetryPanel) {
               console.log('📊 No dashboard URL configured, showing TelemetryPanel');
               
               // Show telemetry panel fallback
@@ -80,18 +111,18 @@ import { startEnvironmentWatcher } from '../utils/runtime-env';
           const container = document.getElementById('dashboard-container');
           const telemetryPanel = document.getElementById('telemetry-panel');
           
-          container.innerHTML = `
+          if (container) container.innerHTML = `
             <div class="bg-red-50 border border-red-200 rounded-xl p-6 text-center">
               <div class="text-red-500 text-4xl mb-4">⚠️</div>
               <h3 class="text-lg font-semibold text-red-700 mb-2">Failed to Load Dashboard</h3>
               <p class="text-red-600 mb-4">Unable to load ThingsBoard dashboard configuration.</p>
-              <p class="text-sm text-red-500">Error: ${error.message}</p>
+              <p class="text-sm text-red-500">Error: ${(error && (error as any).message) || 'Unknown error'}</p>
             </div>
           `;
           
           // Show telemetry panel as fallback
           setTimeout(() => {
-            telemetryPanel.style.display = 'block';
+            if (telemetryPanel) telemetryPanel.style.display = 'block';
           }, 2000);
         }
       }

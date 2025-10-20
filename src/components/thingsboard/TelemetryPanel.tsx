@@ -274,46 +274,46 @@ export default function TelemetryPanel({ pageSize = 10, telemetryKeys = 'tempera
   }, [devices]);
 
   return (
-    <div className="space-y-6">
+    <div className="tb-root space-y-6 text-[var(--text)]">
       {/* Credentials Status */}
       {!credentialsLoaded && (
-        <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
-          <div className="flex items-center gap-2">
+        <div className="bg-[var(--surface)] border border-black/5 dark:border-white/10 rounded-xl p-4">
+          <div className="flex items-center gap-2 text-[var(--text)]">
             <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-            <span className="text-sm text-blue-700">Loading ThingsBoard credentials...</span>
+            <span className="text-sm">Loading ThingsBoard credentials...</span>
           </div>
         </div>
       )}
       
       {credentialsLoaded && credentialsError && (
-        <div className="bg-red-50 border border-red-200 rounded-xl p-4">
-          <div className="flex items-center gap-2">
+        <div className="bg-[var(--surface)] border border-black/5 dark:border-white/10 rounded-xl p-4">
+          <div className="flex items-center gap-2 text-[var(--text)]">
             <svg className="w-4 h-4 text-red-500" fill="currentColor" viewBox="0 0 20 20">
               <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
             </svg>
-            <span className="text-sm text-red-700 font-medium">ThingsBoard Configuration Error</span>
+            <span className="text-sm font-medium text-red-500">ThingsBoard Configuration Error</span>
           </div>
-          <p className="text-sm text-red-600 mt-1">{credentialsError}</p>
-          <p className="text-xs text-red-500 mt-2">Please check your .env file configuration for ThingsBoard credentials.</p>
+          <p className="text-sm mt-1 text-red-400">{credentialsError}</p>
+          <p className="text-xs mt-2">Please check your .env file configuration for ThingsBoard credentials.</p>
         </div>
       )}
 
       {credentialsLoaded && credentials?.isValid && (
-        <div className="bg-green-50 border border-green-200 rounded-xl p-4">
-          <div className="flex items-center gap-2">
+        <div className="bg-[var(--surface)] border border-black/5 dark:border-white/10 rounded-xl p-4">
+          <div className="flex items-center gap-2 text-[var(--text)]">
             <svg className="w-4 h-4 text-green-500" fill="currentColor" viewBox="0 0 20 20">
               <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
             </svg>
-            <span className="text-sm text-green-700 font-medium">ThingsBoard Connected</span>
+            <span className="text-sm font-medium">ThingsBoard Connected</span>
           </div>
-          <p className="text-xs text-green-600 mt-1">URL: {credentials.publicUrl}</p>
+          <p className="text-xs mt-1">URL: {credentials.publicUrl}</p>
         </div>
       )}
 
-      <div className="flex items-center gap-3 bg-white border rounded-xl shadow-sm px-4 py-3">
-        <label className="text-sm font-medium text-gray-700">Device</label>
+      <div className="flex items-center gap-3 bg-[var(--surface)] border border-black/5 dark:border-white/10 rounded-xl shadow-sm px-4 py-3">
+        <label className="text-sm font-medium">Device</label>
         <select
-          className="border rounded-md px-3 py-2 text-sm bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="inline-block w-auto min-w-0 max-w-full border border-slate-300 dark:border-white/30 rounded-md px-3 py-2 pr-7 text-sm bg-[var(--surface)] text-[var(--text)] hover:bg-black/5 dark:hover:bg-white/5 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
           onChange={(e) => setSelectedId(e.target.value || null)}
           value={selectedId || ''}
           disabled={!credentials?.isValid}
@@ -325,29 +325,29 @@ export default function TelemetryPanel({ pageSize = 10, telemetryKeys = 'tempera
             <option key={opt.id} value={opt.id}>{opt.name}</option>
           ))}
         </select>
-        <div className={`text-xs px-2 py-0.5 rounded-md font-medium ${wsActive ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-700'}`}>
+        <div className={`text-xs px-2 py-0.5 rounded-md font-medium ${wsActive ? 'bg-green-500/15 text-green-400' : 'bg-black/5 dark:bg-white/5 opacity-80'}`}>
           {wsActive ? 'WS: Live' : 'WS: Offline'}
         </div>
         <button
-          className="text-xs border rounded-md px-3 py-1.5 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="text-xs border border-black/5 dark:border-white/10 rounded-md px-3 py-1.5 hover:bg-black/5 dark:hover:bg-white/5 disabled:opacity-50 disabled:cursor-not-allowed"
           onClick={() => setWsNonce((n) => n + 1)}
           disabled={!selectedId || !credentials?.isValid}
           title="Reconnect WebSocket"
         >
           Reconnect
         </button>
-        {loading && <span className="text-xs text-gray-500">Loading devices...</span>}
-        {error && <span className="text-xs text-red-600">{error}</span>}
+        {loading && <span className="text-xs">Loading devices...</span>}
+        {error && <span className="text-xs text-red-500">{error}</span>}
       </div>
 
       {selectedId && (
-        <div className="bg-white border rounded-xl shadow-sm p-4">
+        <div className="bg-[var(--surface)] border border-black/5 dark:border-white/10 rounded-xl shadow-sm p-4">
           <div className="flex items-center justify-between mb-2">
             <h3 className="font-semibold">Select Telemetry Keys</h3>
-            <span className="text-xs text-gray-500">{selectedKeys.length} selected</span>
+            <span className="text-xs">{selectedKeys.length} selected</span>
           </div>
           {availableKeys.length === 0 && (
-            <div className="text-sm text-gray-500">No telemetry keys found for this device.</div>
+            <div className="text-sm">No telemetry keys found for this device.</div>
           )}
           {availableKeys.length > 0 && (
             <div className="flex flex-wrap gap-2">
@@ -357,11 +357,12 @@ export default function TelemetryPanel({ pageSize = 10, telemetryKeys = 'tempera
                   <label
                     key={k}
                     className={`flex items-center gap-2 text-sm border rounded-full px-3 py-1 transition-colors cursor-pointer select-none ${
-                      checked ? 'bg-blue-50 border-blue-300 text-blue-700' : 'bg-white hover:bg-gray-50'
+                      checked ? 'bg-blue-500/10 border-blue-400/40 text-blue-300' : 'bg-[var(--surface)] hover:bg-black/5 dark:hover:bg-white/5'
                     }`}
                   >
                     <input
                       type="checkbox"
+                      className="h-3.5 w-3.5 accent-blue-500 bg-[var(--surface)] border border-black/30 dark:border-white/40 rounded-sm align-middle"
                       checked={checked}
                       onChange={(e) => {
                         setSelectedKeys((prev) =>
@@ -378,10 +379,10 @@ export default function TelemetryPanel({ pageSize = 10, telemetryKeys = 'tempera
         </div>
       )}
 
-      <div className="bg-white border rounded-xl shadow-sm p-4">
+      <div className="bg-[var(--surface)] border border-black/5 dark:border-white/10 rounded-xl shadow-sm p-4">
         <h3 className="font-semibold mb-2">Latest Telemetry</h3>
-        {!selectedId && <div className="text-sm text-gray-500">Select a device to view telemetry.</div>}
-        {selectedId && !latest && <div className="text-sm text-gray-500">No data.</div>}
+        {!selectedId && <div className="text-sm">Select a device to view telemetry.</div>}
+        {selectedId && !latest && <div className="text-sm">No data.</div>}
         {selectedId && latest && (
           <div className="text-sm overflow-x-auto">
             <table className="min-w-full text-sm border-separate border-spacing-0 table-fixed">
@@ -390,14 +391,14 @@ export default function TelemetryPanel({ pageSize = 10, telemetryKeys = 'tempera
                 <col className="w-1/4" />
                 <col className="w-1/3" />
               </colgroup>
-              <thead className="sticky top-0 bg-white">
-                <tr className="text-left border-b">
-                  <th className="py-2 px-3 text-gray-600">Key</th>
-                  <th className="py-2 px-3 text-gray-600 text-right">Value</th>
-                  <th className="py-2 px-3 text-gray-600">Timestamp</th>
+              <thead className="sticky top-0 bg-[var(--surface)]">
+                <tr className="text-left border-b border-black/5 dark:border-white/10">
+                  <th className="py-2 px-3 text-[var(--text)]">Key</th>
+                  <th className="py-2 px-3 text-[var(--text)] text-right">Value</th>
+                  <th className="py-2 px-3 text-[var(--text)]">Timestamp</th>
                 </tr>
               </thead>
-              <tbody className="[&>tr:nth-child(odd)]:bg-gray-50">
+              <tbody className="[&>tr:nth-child(odd)]:bg-black/5 dark:[&>tr:nth-child(odd)]:bg-white/5">
                 {Object.entries(latest)
                   .filter(([key]) => selectedKeys.length === 0 || selectedKeys.includes(key))
                   .map(([key, arr]) => {
@@ -407,10 +408,10 @@ export default function TelemetryPanel({ pageSize = 10, telemetryKeys = 'tempera
                     const ts = !Number.isNaN(tsNum) ? new Date(tsNum).toLocaleString() : '-';
                     const val = typeof last?.value !== 'undefined' ? String(last.value) : '-';
                     return (
-                      <tr key={key} className="border-b last:border-0">
-                        <td className="py-2 px-3 font-mono text-gray-800 truncate">{key}</td>
+                      <tr key={key} className="border-b last:border-0 border-black/5 dark:border-white/10">
+                        <td className="py-2 px-3 font-mono truncate text-[var(--text)]">{key}</td>
                         <td className="py-2 px-3 font-mono tabular-nums text-right">{val}</td>
-                        <td className="py-2 px-3 text-gray-500 whitespace-nowrap">{ts}</td>
+                        <td className="py-2 px-3 whitespace-nowrap">{ts}</td>
                       </tr>
                     );
                   })}
