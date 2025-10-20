@@ -441,7 +441,14 @@ export const createPresentation = async (title = 'Untitled Presentation') => {
     });
     
     console.log('Created presentation:', response.result);
-    return response.result;
+    
+    // Construct the presentation URL for easy access
+    const presentationUrl = `https://docs.google.com/presentation/d/${response.result.presentationId}/edit`;
+    
+    return {
+      ...response.result,
+      presentationUrl: presentationUrl
+    };
   } catch (err) {
     console.error('Error creating presentation:', err);
     throw err;
@@ -523,7 +530,10 @@ export const addSlide = async (presentationId, layoutId = 'BLANK') => {
     });
     
     console.log('Added new slide:', response.result);
-    return response.result;
+    return {
+      ...response.result,
+      slideId: slideId
+    };
   } catch (err) {
     console.error('Error adding slide:', err);
     throw err;
