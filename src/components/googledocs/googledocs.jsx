@@ -3,6 +3,7 @@ import { marked } from 'marked';
 import { googleDocsService } from './google-docs.js';
 import { googleDocsMCardService } from './google-docs-mcard-service.js';
 import { getGoogleCredentials } from '../../utils/runtime-env.ts';
+import { createPresentation, addSlide, addTextBox } from '../../components/googleslides/google-slides.js';
 
 const GoogleDocsPanel = () => {
   const [gapiInited, setGapiInited] = useState(false);
@@ -101,21 +102,19 @@ const GoogleDocsPanel = () => {
       try {
         const creds = await fetchRuntimeCredentials();
         if (validateCredentials(creds)) {
-          // Reset component state when credentials change
+          // Only reset authentication state, not document content
           setGapiInited(false);
           setGisInited(false);
           setTokenClient(null);
-          setSelectedDocId(null);
-          setEditorContent('');
           setSaveStatus('Credentials updated - please re-authenticate');
-          
+
           // Reinitialize with new credentials
           await googleDocsService.loadGoogleAPIs();
           setGapiInited(true);
           setGisInited(true);
-          
+
           console.log('✅ Google Docs credentials refreshed');
-          
+
           // Dispatch custom event
           window.dispatchEvent(new CustomEvent('google-docs-credentials-updated', {
             detail: {
@@ -321,6 +320,118 @@ const GoogleDocsPanel = () => {
     }}
     dangerouslySetInnerHTML={renderMarkdown(editorContent)}
   />
+
+  const handleConvertToSlides = useCallback(async () => {
+    if (!selectedDocId) {
+      console.error('No document ID available');
+      setSaveStatus('Convert failed: No document ID');
+      setTimeout(() => setSaveStatus(''), 3000);
+      return;
+    }
+
+    if (!googleDocsService.isAuthenticated()) {
+      setSaveStatus('Please authenticate first');
+      setTimeout(() => setSaveStatus(''), 3000);
+      return;
+    }
+
+    try {
+      setSaveStatus('Converting document to slides...');
+
+      // Get the document content
+      const doc = await googleDocsService.getDocument(selectedDocId);
+      const markdown = googleDocsService.convertDocToMarkdown(doc);
+
+      // Create a new presentation
+      const presentationTitle = doc.title || 'Converted Document';
+      const presentation = await createPresentation(presentationTitle);
+
+      // Parse the markdown content and create slides
+      const lines = markdown.split('\n').filter(line => line.trim());
+      let slideCount = 0;
+
+      // Create the first slide with the document title
+      const firstSlideResult = await addSlide(presentation.presentationId, 'TITLE_AND_BODY');
+      const firstSlideId = firstSlideResult.slideId;
+      await addTextBox(presentation.presentationId, firstSlideId, presentationTitle, 100, 100, 600, 100);
+      slideCount++;
+
+      // Create slides based on document structure
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i].trim();
+
+        if (line.startsWith('#')) {
+          // This is a heading - create a new slide for it (skip the first slide we already created)
+          if (slideCount > 1) {
+            const slideResult = await addSlide(presentation.presentationId, 'TITLE_AND_BODY');
+            const slideId = slideResult.slideId;
+
+            // Extract heading text (remove # symbols)
+            const headingText = line.replace(/^#+\s*/, '').trim();
+
+            // Add the heading as the title of the slide
+            await addTextBox(presentation.presentationId, slideId, headingText, 100, 100, 600, 100);
+
+            slideCount++;
+
+            // If there are content lines after this heading, add them to the same slide
+            let contentLines = [];
+            let j = i + 1;
+            while (j < lines.length && !lines[j].trim().startsWith('#')) {
+              contentLines.push(lines[j].trim());
+              j++;
+            }
+
+            if (contentLines.length > 0) {
+              const contentText = contentLines.join('\n');
+              await addTextBox(presentation.presentationId, slideId, contentText, 100, 220, 600, 300);
+            }
+
+            i = j - 1; // Skip the content lines we already processed
+          } else {
+            // For the first heading, add content to the first slide we created
+            const headingText = line.replace(/^#+\s*/, '').trim();
+            await addTextBox(presentation.presentationId, firstSlideId, headingText, 100, 220, 600, 100);
+
+            // If there are content lines after this heading, add them to the same slide
+            let contentLines = [];
+            let j = i + 1;
+            while (j < lines.length && !lines[j].trim().startsWith('#')) {
+              contentLines.push(lines[j].trim());
+              j++;
+            }
+
+            if (contentLines.length > 0) {
+              const contentText = contentLines.join('\n');
+              await addTextBox(presentation.presentationId, firstSlideId, contentText, 100, 340, 600, 200);
+            }
+
+            i = j - 1; // Skip the content lines we already processed
+            slideCount++;
+          }
+        } else if (slideCount === 1) {
+          // If we haven't created additional slides yet and this isn't a heading,
+          // add content to the first slide
+          if (line) {
+            await addTextBox(presentation.presentationId, firstSlideId, line, 100, 220, 600, 200);
+          }
+        }
+      }
+
+      setSaveStatus(`✅ Successfully converted to slides! Created ${slideCount} slides in "${presentationTitle}"`);
+      setTimeout(() => setSaveStatus(''), 5000);
+
+      // Open the presentation in a new tab
+      if (presentation.presentationUrl) {
+        window.open(presentation.presentationUrl, '_blank');
+      }
+
+    } catch (error) {
+      console.error('❌ Convert to slides failed:', error);
+      setSaveStatus(`Convert failed: ${error.message}`);
+      setTimeout(() => setSaveStatus(''), 5000);
+    }
+  }, [selectedDocId]);
 
   const handleExportMarkdown = useCallback(async () => {
     if (!selectedDocId) {
@@ -668,6 +779,17 @@ const GoogleDocsPanel = () => {
         {/* Action buttons */}
         {googleDocsService.isAuthenticated() && selectedDocId && (
           <div className="flex gap-2 pb-4 border-b border-gray-200 dark:border-gray-700">
+            <button
+              onClick={handleConvertToSlides}
+              className="px-4 py-2 bg-purple-600 text-white hover:bg-purple-700 active:bg-purple-800 rounded-lg transition-all duration-200 flex items-center gap-2 text-sm font-medium shadow-sm hover:shadow"
+              title="Convert this document to a Google Slides presentation"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 4V2a1 1 0 011-1h8a1 1 0 011 1v2M7 4h10M7 4v16a1 1 0 001 1h8a1 1 0 001-1V4M9 8h6m-6 4h6m-6 4h4" />
+              </svg>
+              Convert to Slides
+            </button>
+
             <button
               onClick={createPicker}
               className="px-4 py-2 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg transition-all duration-200 flex items-center gap-2 text-sm font-medium shadow-sm hover:shadow"
