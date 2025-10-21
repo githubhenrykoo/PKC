@@ -293,6 +293,24 @@ export function RAGChat({ onQuery, health, stats, loading, onRetrieveFromMCard, 
     }
   };
 
+  // Function to fetch MCard content and display it in the content viewer
+  const fetchAndDisplayMCardContent = async (hash: string) => {
+    try {
+      console.log('🔍 Fetching MCard content for hash:', hash);
+
+      // Call the global loadMCardContent function that should be available
+      if (window.loadMCardContent) {
+        window.loadMCardContent(hash, `MCard: ${hash.substring(0, 8)}...`);
+      } else {
+        console.warn('loadMCardContent function not available');
+        alert('Content viewer not available. Please ensure the main app is loaded.');
+      }
+    } catch (error) {
+      console.error('❌ Failed to fetch MCard content:', error);
+      alert(`Failed to load MCard content: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  };
+
   return (
     <div className={cn("flex flex-col h-full min-h-0 w-full overflow-hidden", className)}>
       {/* Chat Header with Status Information */}
@@ -491,7 +509,13 @@ export function RAGChat({ onQuery, health, stats, loading, onRetrieveFromMCard, 
                       {message.result.citations.map((citation, idx) => (
                         <div key={idx} className="text-xs opacity-80 border-l-2 border-current/30 pl-2">
                           <div className="font-medium">
-                            <span className="font-bold">Hash:</span> {citation.hash}
+                            <span className="font-bold">Hash:</span>                            <button
+                              onClick={() => fetchAndDisplayMCardContent(citation.hash)}
+                              className="px-2 py-1 text-xs bg-blue-100 text-blue-700 hover:bg-blue-200 rounded cursor-pointer transition-colors"
+                              title="Click to view MCard content"
+                            >
+                              {citation.hash}
+                            </button>
                           </div>
                           <div className="font-medium">Score: {citation.relevance_score.toFixed(3)}</div>
                           <div className="truncate">{citation.content.substring(0, 100)}...</div>
