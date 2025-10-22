@@ -30,7 +30,7 @@ export default defineConfig({
     video: 'on',
 
     /* Run tests in headed mode for visual debugging */
-    headless: false,
+    headless: process.env.CI ? true : false, // Run headless in CI, headed locally
 
     /* Viewport settings */
     viewport: { width: 1280, height: 1024 },
@@ -50,7 +50,7 @@ export default defineConfig({
       name: 'chromium',
       use: {
         ...devices['Desktop Chrome'],
-        headless: false, // Run in headed mode for visual testing
+        // headless mode is controlled globally above
       },
     },
 
