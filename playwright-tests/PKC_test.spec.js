@@ -15,15 +15,30 @@ test('MCard website flow test', async ({ page }) => {
   await page.click('#pushButton');
   await new Promise(r => setTimeout(r, 10000));
 
-  // 3. Upload file via API
+  // 3. Upload file via API (Node.js compatible approach)
   const filePath = path.resolve(__dirname, '../Docs/API/Mcard-user-manual.md');
   const fileContent = fs.readFileSync(filePath);
-  const formData = new FormData();
-  formData.append('file', new File([fileContent], 'Mcard-user-manual.md', { type: 'text/markdown' }));
+  
+  // For Node.js environment, create multipart form data manually
+  const boundary = '----WebKitFormBoundary' + Math.random().toString(36).substr(2, 9);
+  
+  // Create multipart form data
+  const body = [
+    `--${boundary}`,
+    `Content-Disposition: form-data; name="file"; filename="Mcard-user-manual.md"`,
+    `Content-Type: text/markdown`,
+    '',
+    fileContent.toString(),
+    `--${boundary}--`,
+    ''
+  ].join('\r\n');
   
   await fetch('http://localhost:49384/v1/files', {
     method: 'POST',
-    body: formData
+    body: body,
+    headers: {
+      'Content-Type': `multipart/form-data; boundary=${boundary}`
+    },
   });
   await new Promise(r => setTimeout(r, 3000));
 
