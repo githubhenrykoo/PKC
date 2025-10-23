@@ -50,8 +50,14 @@ jobs:
         timeout 120 bash -c 'until curl -f http://localhost:4321; do sleep 2; done' || (echo "PKC app failed to start" && exit 1)
         echo "✅ PKC app is ready"
 
-    - name: Run Playwright tests
-      run: npx playwright test PKC_test.spec.js
+    - name: Run PKC tests
+      run: npx playwright test playwright-tests/PKC_test.spec.js
+      env:
+        MCARD_BASE_URL: http://localhost:49384/v1
+      continue-on-error: false
+
+    - name: Run RAG tests
+      run: npx playwright test playwright-tests/RAG_test.spec.js
       env:
         MCARD_BASE_URL: http://localhost:49384/v1
       continue-on-error: false
