@@ -1,0 +1,14 @@
+services:
+  mcard-service:
+    container_name: mcard-service
+    image: henry768/mcard-service:latest
+    ports:
+      - "49384:49384"
+    volumes:
+      - mcard-data:/app/data
+    environment:
+      - LOG_LEVEL=INFO
+    restart: unless-stopped
+
+volumes:
+  mcard-data:
