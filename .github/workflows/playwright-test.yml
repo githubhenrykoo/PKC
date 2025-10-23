@@ -36,17 +36,30 @@ jobs:
         docker-compose --version
 
     - name: Start services with Docker Compose
+      working-directory: ./playwright-tests
       run: docker-compose up -d
 
-    - name: Wait for services to be ready
+    - name: Wait for MCard service
       run: |
-        echo "Waiting for services to be ready..."
-        
-        # Wait for MCard service
+        echo "Waiting for MCard service to be ready..."
         timeout 120 bash -c 'until curl -f http://localhost:49384/v1/health; do sleep 2; done' || (echo "MCard service failed to start" && exit 1)
         echo "✅ MCard service is ready"
-        
-        # Wait for PKC app (with healthcheck)
+
+    - name: Install PKC dependencies
+      working-directory: ./
+      run: npm install
+
+    - name: Build PKC
+      working-directory: ./
+      run: npm run build
+
+    - name: Start PKC app
+      working-directory: ./
+      run: npm run start &
+
+    - name: Wait for PKC app to be ready
+      run: |
+        echo "Waiting for PKC app to be ready..."
         timeout 120 bash -c 'until curl -f http://localhost:4321; do sleep 2; done' || (echo "PKC app failed to start" && exit 1)
         echo "✅ PKC app is ready"
 
@@ -98,4 +111,5 @@ jobs:
 
     - name: Stop services
       if: always()
+      working-directory: ./playwright-tests
       run: docker-compose down -v
