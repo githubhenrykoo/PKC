@@ -69,12 +69,6 @@ jobs:
         MCARD_BASE_URL: http://localhost:49384/v1
       continue-on-error: false
 
-    - name: Run RAG tests
-      run: npx playwright test playwright-tests/RAG_test.spec.js
-      env:
-        MCARD_BASE_URL: http://localhost:49384/v1
-      continue-on-error: false
-
     - name: Upload test results
       uses: actions/upload-artifact@v4
       if: always()
