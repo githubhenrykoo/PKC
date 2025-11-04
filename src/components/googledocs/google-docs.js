@@ -319,6 +319,80 @@ class GoogleDocsService {
     }
     return true;
   }
+
+  // Check if Google API client is ready
+  async ensureApiReady() {
+    if (!window.gapi || !window.gapi.client) {
+      await this.loadGoogleAPIs();
+    }
+    
+    if (!this.gapiInited) {
+      await this.initializeGapiClient();
+    }
+    
+    if (!window.gapi.client.docs) {
+      await window.gapi.client.load('docs', 'v1');
+    }
+  }
+
+  // Create a new Google Doc with the given title and content
+  async createDocument(title, content) {
+    try {
+      // Ensure API is ready
+      await this.ensureApiReady();
+      
+      // Ensure authenticated
+      if (!this.isAuthenticated()) {
+        await this.authenticate();
+      }
+
+      // First, create the document
+      if (!window.gapi.client.docs) {
+        throw new Error('Google Docs API client not properly initialized');
+      }
+      
+      console.log('Creating Google Doc with title:', title);
+      const createResponse = await window.gapi.client.docs.documents.create({
+        title: title
+      });
+
+      const documentId = createResponse.result.documentId;
+      
+      if (!documentId) {
+        throw new Error('Failed to create document: No document ID returned');
+      }
+
+      console.log('Updating document with content');
+      // Then update the document with content
+      const requests = [{
+        insertText: {
+          location: {
+            index: 1
+          },
+          text: content
+        }
+      }];
+
+      await window.gapi.client.docs.documents.batchUpdate({
+        documentId: documentId,
+        resource: {
+          requests: requests
+        }
+      });
+
+      const docUrl = `https://docs.google.com/document/d/${documentId}/edit`;
+      console.log('Successfully created Google Doc:', docUrl);
+      
+      return {
+        documentId: documentId,
+        title: title,
+        url: docUrl
+      };
+    } catch (error) {
+      console.error('Error creating Google Doc:', error);
+      throw new Error(`Failed to create document: ${error.message}`);
+    }
+  }
 }
 
 // Export singleton instance
@@ -334,7 +408,8 @@ export const {
   extractDocIdFromUrl,
   exportAsMarkdown,
   getCredentialsStatus,
-  validateCredentials
+  validateCredentials,
+  createDocument
 } = googleDocsService;
 
 export default googleDocsService;

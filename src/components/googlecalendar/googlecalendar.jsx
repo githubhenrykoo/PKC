@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Fragment } from 'react';
 import { loadGoogleApi, signIn, signOut, listEvents, getAuthInstance, isInitialized, createEvent, updateEvent, deleteEvent } from './google-calendar.js';
 import { googleCalendarMCardService } from '../../services/google-calendar-mcard-service.js';
+import { googleDocsService } from '../googledocs/google-docs.js';
 
 const ViewToggle = ({ view, onViewChange }) => (
   <div className="flex bg-gray-100 dark:bg-gray-700 rounded-lg p-1">
@@ -225,6 +226,13 @@ const CalendarGrid = ({ selectedDate, onDateSelect }) => {
   const currentYear = selectedDate.getFullYear();
   const today = new Date();
   
+  // State for date range selection
+  const [dateRange, setDateRange] = useState({
+    start: null,
+    end: null,
+    selecting: false
+  });
+  
   // Get first day of the month and how many days in the month
   const firstDayOfMonth = new Date(currentYear, currentMonth, 1);
   const lastDayOfMonth = new Date(currentYear, currentMonth + 1, 0);
@@ -269,22 +277,162 @@ const CalendarGrid = ({ selectedDate, onDateSelect }) => {
     });
   }
   
+  // Safely create a date object with validation
+  const safeDate = (date) => {
+    if (!date) return null;
+    try {
+      const d = date instanceof Date ? new Date(date) : new Date(date);
+      return isNaN(d.getTime()) ? null : d;
+    } catch (error) {
+      console.error('Error creating date:', error);
+      return null;
+    }
+  };
+
+  const formatDate = (date) => {
+    const d = safeDate(date);
+    if (!d) return '';
+    
+    try {
+      const year = d.getFullYear();
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      
+      return `${year}-${month}-${day}`;
+    } catch (error) {
+      console.error('Error formatting date:', error);
+      return '';
+    }
+  };
+  
   const isToday = (date) => {
-    return date.toDateString() === today.toDateString();
+    try {
+      const d = safeDate(date);
+      if (!d) return false;
+      
+      const today = new Date();
+      return d.getDate() === today.getDate() &&
+             d.getMonth() === today.getMonth() &&
+             d.getFullYear() === today.getFullYear();
+    } catch (error) {
+      console.error('Error in isToday:', error);
+      return false;
+    }
+  };
+  
+  const isInRange = (date) => {
+    try {
+      // If any required date is missing, return false
+      if (!date || !dateRange?.start || !dateRange?.end) return false;
+
+      const current = safeDate(date);
+      const start = safeDate(dateRange.start);
+      const end = safeDate(dateRange.end);
+
+      // If any date is invalid, return false
+      if (!current || !start || !end) return false;
+      
+      // Normalize dates for comparison (set to start of day)
+      const normalizeDate = (d) => {
+        if (!d) return null;
+        const nd = new Date(d);
+        if (isNaN(nd.getTime())) return null;
+        nd.setHours(0, 0, 0, 0);
+        return nd;
+      };
+
+      const normCurrent = normalizeDate(current);
+      const normStart = normalizeDate(start);
+      const normEnd = normalizeDate(end);
+      
+      // Ensure we have valid dates before comparison
+      if (!normCurrent || !normStart || !normEnd) return false;
+      
+      return normCurrent > normStart && normCurrent < normEnd;
+    } catch (error) {
+      console.error('Error in isInRange:', error);
+      return false;
+    }
   };
   
   const isSelected = (date) => {
-    return date.toDateString() === selectedDate.toDateString();
+    try {
+      if (!date) return false;
+      
+      const current = safeDate(date);
+      if (!current) return false;
+      
+      // Check if the date matches the start of the range
+      if (dateRange?.start) {
+        const start = safeDate(dateRange.start);
+        if (start && current.getTime() === start.getTime()) return true;
+      }
+      
+      // Check if the date matches the end of the range
+      if (dateRange?.end) {
+        const end = safeDate(dateRange.end);
+        if (end && current.getTime() === end.getTime()) return true;
+      }
+      
+      // Check if the date matches the selected date
+      const selected = safeDate(selectedDate);
+      return selected ? current.getTime() === selected.getTime() : false;
+    } catch (error) {
+      console.error('Error in isSelected:', error);
+      return false;
+    }
   };
   
   const handleDateClick = (dayInfo) => {
-    if (!dayInfo.isCurrentMonth) {
-      // If clicking on prev/next month day, navigate to that month
-      const newDate = new Date(dayInfo.fullDate);
-      onDateSelect(newDate);
-    } else {
-      // If clicking on current month day, select that specific date
-      onDateSelect(dayInfo.fullDate);
+    if (!dayInfo?.fullDate) return;
+    
+    try {
+      // Safely create and validate the clicked date
+      const clickedDate = new Date(dayInfo.fullDate);
+      if (isNaN(clickedDate.getTime())) return;
+      
+      // If clicking on a day from a different month, navigate to that month
+      if (!dayInfo.isCurrentMonth) {
+        onDateSelect(clickedDate);
+        return;
+      }
+      
+      // Create a safe date object from the range start if it exists
+      const safeDate = (d) => {
+        if (!d) return null;
+        const dt = d instanceof Date ? new Date(d) : new Date(d);
+        return isNaN(dt.getTime()) ? null : dt;
+      };
+      
+      // Handle range selection logic
+      const currentStart = safeDate(dateRange.start);
+      const currentEnd = safeDate(dateRange.end);
+      
+      // If no range started or we're starting a new range
+      if (!currentStart || currentEnd) {
+        setDateRange({
+          start: new Date(clickedDate),
+          end: null,
+          selecting: true
+        });
+        onDateSelect(clickedDate);
+      } 
+      // If we have a start date but no end date (in the process of selecting a range)
+      else if (currentStart && !currentEnd) {
+        const start = new Date(Math.min(clickedDate, currentStart));
+        const end = new Date(Math.max(clickedDate, currentStart));
+        
+        setDateRange({
+          start,
+          end,
+          selecting: false
+        });
+        
+        // Pass both dates to the parent component
+        onDateSelect?.({ start, end });
+      }
+    } catch (error) {
+      console.error('Error in handleDateClick:', error);
     }
   };
   
@@ -309,19 +457,27 @@ const CalendarGrid = ({ selectedDate, onDateSelect }) => {
             <button
               key={index}
               onClick={() => handleDateClick(dayInfo)}
+              disabled={!dayInfo.isCurrentMonth}
               className={`
-                h-10 w-10 rounded-full text-sm font-medium transition-colors
+                relative h-10 w-10 rounded-full text-sm font-medium transition-colors
                 ${
-                  isSelectedDay
-                    ? 'bg-blue-600 text-white'
+                  isSelected(dayInfo.fullDate)
+                    ? 'bg-blue-600 text-white z-10'
+                    : isInRange(dayInfo.fullDate)
+                    ? 'bg-blue-100 dark:bg-blue-800 text-blue-700 dark:text-blue-200'
                     : isCurrentDay
                     ? 'bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-300'
                     : dayInfo.isCurrentMonth
                     ? 'text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700'
-                    : 'text-gray-400 dark:text-gray-600 hover:bg-gray-50 dark:hover:bg-gray-800'
+                    : 'text-gray-400 dark:text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-800/50 cursor-default'
                 }
+                ${!dayInfo.isCurrentMonth ? 'opacity-60' : ''}
               `}
             >
+              {/* Range indicator background */}
+              {isInRange(dayInfo.fullDate) && (
+                <div className="absolute inset-y-0 -left-1 -right-1 bg-blue-100 dark:bg-blue-800 -z-10"></div>
+              )}
               {dayInfo.date}
             </button>
           );
@@ -701,24 +857,35 @@ const EventCreateModal = ({ isOpen, onClose, onEventCreated, availableCalendars,
 const EventDetailsModal = ({ event, isOpen, onClose, calendarColor }) => {
   if (!isOpen || !event) return null;
 
-  const formatDateTime = (dateTime) => {
-    if (!dateTime) return 'No date specified';
-    const date = new Date(dateTime);
-    return date.toLocaleString('en-US', {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      hour: 'numeric',
-      minute: '2-digit',
-      timeZoneName: 'short'
-    });
+  const formatDateString = (date, options = {}) => {
+    if (!date) return '';
+    try {
+      const d = date instanceof Date ? new Date(date) : new Date(date);
+      if (isNaN(d.getTime())) return '';
+      
+      // Ensure we have a valid date before calling toLocaleDateString
+      if (typeof d.toLocaleDateString !== 'function') {
+        console.error('toLocaleDateString is not a function on date:', d);
+        return '';
+      }
+      
+      return d.toLocaleDateString('en-US', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        ...options
+      });
+    } catch (error) {
+      console.error('Error formatting date string:', error);
+      return '';
+    }
   };
 
   const formatDate = (dateStr) => {
     if (!dateStr) return 'No date specified';
     const date = new Date(dateStr);
-    return date.toLocaleDateString('en-US', {
+    return formatDateString(date, {
       weekday: 'long',
       year: 'numeric',
       month: 'long',
@@ -1114,6 +1281,13 @@ const GoogleCalendar = ({ className = '' }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isCreatingEvent, setIsCreatingEvent] = useState(false);
+  const [isSendingToDocs, setIsSendingToDocs] = useState(false);
+  const [showDateRangeModal, setShowDateRangeModal] = useState(false);
+  const [dateRange, setDateRange] = useState('today');
+  const [customDateRange, setCustomDateRange] = useState({
+    start: new Date(),
+    end: new Date()
+  });
 
   // Initialize Google API
   useEffect(() => {
@@ -1599,6 +1773,188 @@ const GoogleCalendar = ({ className = '' }) => {
     }
   };
 
+  // Format events for Google Docs
+  const formatEventsForDocs = (events) => {
+    const today = new Date().toLocaleDateString('en-US', { 
+      weekday: 'long', 
+      year: 'numeric', 
+      month: 'long', 
+      day: 'numeric' 
+    });
+    
+    let markdown = `# Today's Schedule (${today})\n\n`;
+    
+    // Group events by time
+    const eventsByTime = events.reduce((acc, event) => {
+      const time = event.start.dateTime 
+        ? new Date(event.start.dateTime).toLocaleTimeString('en-US', { 
+            hour: '2-digit', 
+            minute: '2-digit',
+            hour12: true 
+          })
+        : 'All Day';
+      
+      if (!acc[time]) {
+        acc[time] = [];
+      }
+      acc[time].push(event);
+      return acc;
+    }, {});
+    
+    // Add events to markdown by time
+    Object.entries(eventsByTime).sort(([timeA], [timeB]) => {
+      if (timeA === 'All Day') return -1;
+      if (timeB === 'All Day') return 1;
+      return new Date(`1970/01/01 ${timeA}`) - new Date(`1970/01/01 ${timeB}`);
+    }).forEach(([time, events]) => {
+      markdown += `## ${time}\n\n`;
+      
+      events.forEach(event => {
+        const title = event.summary || 'No title';
+        const description = event.description ? `\n${event.description}` : '';
+        const location = event.location ? `\n📍 ${event.location}` : '';
+        const calendar = availableCalendars.find(c => c.id === (event.calendarId || 'primary'))?.summary || '';
+        const calendarInfo = calendar ? `\n📅 ${calendar}` : '';
+        
+        markdown += `- **${title}**${calendarInfo}${location}${description}\n`;
+      });
+      
+      markdown += '\n';
+    });
+    
+    return markdown;
+  };
+
+  // Format date to YYYY-MM-DD
+  const formatDate = (date) => {
+    return date.toISOString().split('T')[0];
+  };
+
+  // Get events for the selected date range
+  const getEventsForDateRange = (range) => {
+    const now = new Date();
+    const start = new Date(now);
+    const end = new Date(now);
+    
+    switch(range) {
+      case 'today':
+        start.setHours(0, 0, 0, 0);
+        end.setHours(23, 59, 59, 999);
+        break;
+      case 'week':
+        const day = now.getDay();
+        const diff = now.getDate() - day + (day === 0 ? -6 : 1); // Adjust when day is Sunday
+        start.setDate(diff);
+        start.setHours(0, 0, 0, 0);
+        end.setDate(diff + 6);
+        end.setHours(23, 59, 59, 999);
+        break;
+      case 'month':
+        start.setDate(1);
+        start.setHours(0, 0, 0, 0);
+        end.setMonth(end.getMonth() + 1);
+        end.setDate(0);
+        end.setHours(23, 59, 59, 999);
+        break;
+      case 'custom':
+        // Use the custom date range
+        start.setTime(customDateRange.start.getTime());
+        start.setHours(0, 0, 0, 0);
+        end.setTime(customDateRange.end.getTime());
+        end.setHours(23, 59, 59, 999);
+        break;
+      default:
+        start.setHours(0, 0, 0, 0);
+        end.setHours(23, 59, 59, 999);
+    }
+
+    return events.filter(event => {
+      const eventDate = new Date(event.start.dateTime || event.start.date);
+      return eventDate >= start && eventDate <= end;
+    });
+  };
+
+  // Get display text for the selected date range
+  const getDateRangeText = () => {
+    switch(dateRange) {
+      case 'today':
+        return 'Today';
+      case 'week':
+        return 'This Week';
+      case 'month':
+        return 'This Month';
+      case 'custom':
+        return `Custom (${formatDate(customDateRange.start)} to ${formatDate(customDateRange.end)})`;
+      default:
+        return 'Select Range';
+    }
+  };
+
+  // Send events to Google Docs
+  const sendToGoogleDocs = async (range = dateRange) => {
+    if (!events || events.length === 0) {
+      setExportStatus('No events to export to Google Docs');
+      setTimeout(() => setExportStatus(''), 3000);
+      return;
+    }
+
+    try {
+      setIsSendingToDocs(true);
+      setExportStatus('Creating Google Doc with events...');
+      
+      // Get events for the selected date range
+      const filteredEvents = getEventsForDateRange(range);
+      
+      if (filteredEvents.length === 0) {
+        setExportStatus(`No events found for the selected date range (${getDateRangeText()})`);
+        setTimeout(() => setExportStatus(''), 3000);
+        return;
+      }
+      
+      // Format events for docs
+      const docContent = formatEventsForDocs(filteredEvents);
+      
+      // Create document title with date range
+      let docTitle = '';
+      const dateOptions = { year: 'numeric', month: 'long', day: 'numeric' };
+      
+      if (range === 'today') {
+        docTitle = `Today's Schedule - ${new Date().toLocaleDateString('en-US', dateOptions)}`;
+      } else if (range === 'week') {
+        const start = new Date();
+        const day = start.getDay();
+        const diff = start.getDate() - day + (day === 0 ? -6 : 1);
+        const weekStart = new Date(start.setDate(diff));
+        const weekEnd = new Date(weekStart);
+        weekEnd.setDate(weekStart.getDate() + 6);
+        docTitle = `Weekly Schedule - ${weekStart.toLocaleDateString('en-US', dateOptions)} to ${weekEnd.toLocaleDateString('en-US', dateOptions)}`;
+      } else if (range === 'month') {
+        docTitle = `Monthly Schedule - ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long' })}`;
+      } else {
+        docTitle = `Schedule (${formatDate(customDateRange.start)} to ${formatDate(customDateRange.end)})`;
+      }
+      
+      // Create new Google Doc
+      const doc = await googleDocsService.createDocument(docTitle, docContent);
+      
+      // Open the document in a new tab
+      if (doc && doc.documentId) {
+        window.open(`https://docs.google.com/document/d/${doc.documentId}/edit`, '_blank');
+        setExportStatus('✅ Google Doc created successfully!');
+      } else {
+        throw new Error('Failed to create document');
+      }
+      
+    } catch (error) {
+      console.error('Error creating Google Doc:', error);
+      setExportStatus(`❌ Failed to create Google Doc: ${error.message}`);
+    } finally {
+      setIsSendingToDocs(false);
+      // Clear status after 5 seconds
+      setTimeout(() => setExportStatus(''), 5000);
+    }
+  };
+
   // Manual export to MCard function
   const handleExportToMCard = async () => {
     if (!events || events.length === 0) {
@@ -1648,6 +2004,32 @@ const GoogleCalendar = ({ className = '' }) => {
         setExportStatus('');
         setIsExportingToMCard(false);
       }, 7000);
+    }
+  };
+
+  // Handle date range selection
+  const handleDateRangeSelect = (range) => {
+    setDateRange(range);
+    if (range !== 'custom') {
+      setShowDateRangeModal(false);
+      sendToGoogleDocs(range);
+    }
+  };
+
+  // Handle custom date range change
+  const handleCustomDateChange = (field, value) => {
+    setCustomDateRange(prev => ({
+      ...prev,
+      [field]: new Date(value)
+    }));
+  };
+
+  // Handle applying custom date range
+  const handleApplyCustomRange = () => {
+    if (customDateRange.start && customDateRange.end) {
+      setDateRange('custom');
+      setShowDateRangeModal(false);
+      sendToGoogleDocs('custom');
     }
   };
 
@@ -1749,6 +2131,118 @@ const GoogleCalendar = ({ className = '' }) => {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10" />
                   </svg>
                 </button>
+                <div className="relative">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      e.currentTarget.blur(); // Remove focus after click
+                      setShowDateRangeModal(!showDateRangeModal);
+                    }}
+                    onMouseDown={(e) => e.preventDefault()} // Prevent focus on mousedown
+                    disabled={isLoading || isSendingToDocs || events.length === 0}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
+                      showDateRangeModal 
+                        ? 'bg-purple-700' 
+                        : 'bg-purple-600 hover:bg-purple-700'
+                    } text-white disabled:opacity-50`}
+                    title="Send to Google Docs"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    <span>Send to Docs</span>
+                    <svg className={`w-4 h-4 ml-1 transition-transform ${showDateRangeModal ? 'transform rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </button>
+                  
+                  {showDateRangeModal && (
+                    <div 
+                      className="absolute right-0 mt-1 w-56 bg-white dark:bg-gray-800 rounded-md shadow-lg z-50 border border-gray-200 dark:border-gray-700 overflow-visible"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <div className="p-2">
+                        <div className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider px-2 py-1 mb-1">
+                          Export Date Range
+                        </div>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDateRangeSelect('today');
+                          }}
+                          className={`w-full text-left px-4 py-2 text-sm rounded-md ${
+                            dateRange === 'today' 
+                              ? 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-100' 
+                              : 'text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700'
+                          }`}
+                        >
+                          Today
+                        </button>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDateRangeSelect('week');
+                          }}
+                          className={`w-full text-left px-4 py-2 text-sm rounded-md ${
+                            dateRange === 'week' 
+                              ? 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-100' 
+                              : 'text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700'
+                          }`}
+                        >
+                          This Week
+                        </button>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDateRangeSelect('month');
+                          }}
+                          className={`w-full text-left px-4 py-2 text-sm rounded-md ${
+                            dateRange === 'month' 
+                              ? 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-100' 
+                              : 'text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700'
+                          }`}
+                        >
+                          This Month
+                        </button>
+                        <div className="border-t border-gray-200 dark:border-gray-700 my-1"></div>
+                        <div className="p-2">
+                          <div className="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-2">Custom Range</div>
+                          <div className="space-y-2">
+                            <div>
+                              <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Start Date</label>
+                              <input
+                                type="date"
+                                value={formatDate(customDateRange.start)}
+                                onChange={(e) => handleCustomDateChange('start', e.target.value)}
+                                className="w-full text-sm rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-2 py-1"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">End Date</label>
+                              <input
+                                type="date"
+                                value={formatDate(customDateRange.end)}
+                                onChange={(e) => handleCustomDateChange('end', e.target.value)}
+                                className="w-full text-sm rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-2 py-1"
+                                min={formatDate(customDateRange.start)}
+                              />
+                            </div>
+                            <button
+                              onClick={handleApplyCustomRange}
+                              disabled={!customDateRange.start || !customDateRange.end}
+                              className="w-full mt-2 px-3 py-1.5 bg-purple-600 text-white text-sm rounded-md hover:bg-purple-700 disabled:opacity-50"
+                            >
+                              Apply Custom Range
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
                 <button
                   onClick={handleSignOut}
                   disabled={isLoading}
@@ -1919,6 +2413,8 @@ const GoogleCalendar = ({ className = '' }) => {
         availableCalendars={availableCalendars}
         selectedDate={selectedDate}
       />
+      
+      {/* Modal backdrop removed as per user request */}
     </div>
   );
 };
