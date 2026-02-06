@@ -114,6 +114,9 @@ PKC implements a sophisticated **triadic architecture** where every component wo
 git clone https://github.com/githubhenrykoo/PKC.git
 cd PKC
 
+# Initialize submodules
+git submodule update --init --recursive
+
 # Install dependencies
 npm install
 
@@ -207,6 +210,8 @@ These changes standardize UI and logic across components, reduce duplication, an
 
 ```
 PKC/
+├── LandingPage/               # [Submodule] WebRTC landing page & meeting interface
+├── PrologueOfSpacetime/       # [Submodule] Core curriculum and narrative content
 ├── src/
 │   ├── components/            # UI components (Astro islands)
 │   │   └── ui/
@@ -229,6 +234,18 @@ PKC/
 ├── Dockerfile                 # Multi-stage build for pkc-app image
 ├── package.json               # Scripts & dependencies
 └── exmaple.env                # Sample environment variables
+
+## 🧩 Submodules
+
+This repository integrates external components as git submodules to maintain modularity:
+
+- **[LandingPage](https://github.com/xlp0/LandingPage)**: A dedicated WebRTC-enabled landing page and meeting interface.
+- **[PrologueOfSpacetime](https://github.com/xlp0/PrologueOfSpacetime)**: A comprehensive narrative and curriculum container, providing the content foundation for the "Prologue of Spacetime" chapters.
+
+To ensure you have the latest code for these submodules, run:
+```bash
+git submodule update --init --recursive
+```
 ```
 
 ## 🛠️ Technology Stack
