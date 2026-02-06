@@ -1,0 +1,29 @@
+name: Notify Forks of Updates
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  notify-forks:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Notify Unio-ai fork
+        run: |
+          # Trigger sync in the Unio-ai fork repository
+          curl -X POST \
+            -H "Accept: application/vnd.github.v3+json" \
+            -H "Authorization: token ${{ secrets.UNIO_FORK_TOKEN }}" \
+            https://api.github.com/repos/Unio-ai/PKC/dispatches \
+            -d '{"event_type":"upstream-update","client_payload":{"upstream_commit":"${{ github.sha }}","upstream_ref":"${{ github.ref }}"}}'
+        continue-on-error: true
+
+      - name: Log notification
+        run: |
+          echo "## Fork Notification Summary" >> $GITHUB_STEP_SUMMARY
+          echo "- **Triggered by**: Push to main branch" >> $GITHUB_STEP_SUMMARY
+          echo "- **Commit**: ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Time**: $(date)" >> $GITHUB_STEP_SUMMARY
+          echo "- **Notified**: Unio-ai/PKC fork" >> $GITHUB_STEP_SUMMARY

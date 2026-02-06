@@ -1,0 +1,108 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e1]:
+  - banner [ref=e2]:
+    - navigation [ref=e3]:
+      - generic [ref=e4]:
+        - generic [ref=e5]:
+          - generic [ref=e6]: PKC
+          - generic [ref=e7]: Epistemic Athenæum
+        - generic [ref=e8]:
+          - button "Login" [ref=e9] [cursor=pointer]
+          - button "🌓" [ref=e10] [cursor=pointer]
+  - main [ref=e11]:
+    - generic [ref=e12]:
+      - complementary [ref=e13]:
+        - complementary [ref=e14]:
+          - generic [ref=e15]:
+            - heading "MCard Navigation" [level=2] [ref=e16]
+            - generic [ref=e17]: 1 / 13
+          - generic [ref=e18]:
+            - textbox "Search MCards..." [ref=e19]
+            - button "Clear" [ref=e20] [cursor=pointer]
+          - list [ref=e21]:
+            - listitem [ref=e22]:
+              - button "📄 977084ce text/plain" [ref=e23] [cursor=pointer]:
+                - generic [ref=e24] [cursor=pointer]: 📄
+                - text: 977084ce
+                - generic [ref=e25] [cursor=pointer]: text/plain
+            - listitem [ref=e26]:
+              - button "📄 17f7b258 text/plain" [ref=e27] [cursor=pointer]:
+                - generic [ref=e28] [cursor=pointer]: 📄
+                - text: 17f7b258
+                - generic [ref=e29] [cursor=pointer]: text/plain
+            - listitem [ref=e30]:
+              - button "📄 96acc510 text/plain" [ref=e31] [cursor=pointer]:
+                - generic [ref=e32] [cursor=pointer]: 📄
+                - text: 96acc510
+                - generic [ref=e33] [cursor=pointer]: text/plain
+            - listitem [ref=e34]:
+              - button "📄 26c12d12 text/plain" [ref=e35] [cursor=pointer]:
+                - generic [ref=e36] [cursor=pointer]: 📄
+                - text: 26c12d12
+                - generic [ref=e37] [cursor=pointer]: text/plain
+            - listitem [ref=e38]:
+              - button "📄 8efe44ee text/x-sql" [ref=e39] [cursor=pointer]:
+                - generic [ref=e40] [cursor=pointer]: 📄
+                - text: 8efe44ee
+                - generic [ref=e41] [cursor=pointer]: text/x-sql
+            - listitem [ref=e42]:
+              - button "📄 e889b67f text/plain" [ref=e43] [cursor=pointer]:
+                - generic [ref=e44] [cursor=pointer]: 📄
+                - text: e889b67f
+                - generic [ref=e45] [cursor=pointer]: text/plain
+            - listitem [ref=e46]:
+              - button "📄 1f72e6e0 text/plain" [ref=e47] [cursor=pointer]:
+                - generic [ref=e48] [cursor=pointer]: 📄
+                - text: 1f72e6e0
+                - generic [ref=e49] [cursor=pointer]: text/plain
+            - listitem [ref=e50]:
+              - button "📄 8d9d5272 text/plain" [ref=e51] [cursor=pointer]:
+                - generic [ref=e52] [cursor=pointer]: 📄
+                - text: 8d9d5272
+                - generic [ref=e53] [cursor=pointer]: text/plain
+          - generic [ref=e54]:
+            - button "← Prev" [disabled] [ref=e55]
+            - generic [ref=e56]: 100 items
+            - button "Next →" [ref=e57] [cursor=pointer]
+      - generic [ref=e59]:
+        - generic [ref=e60]:
+          - heading "Notion" [level=2] [ref=e61]:
+            - img [ref=e62]
+            - text: Notion
+          - generic [ref=e64]:
+            - generic [ref=e65]: Notion Integration
+            - generic [ref=e66]: 10/3/2025, 6:23:55 PM
+        - button "Connect to Notion" [ref=e74] [cursor=pointer]
+      - complementary [ref=e75]:
+        - complementary [ref=e76]:
+          - heading "Right Panel" [level=2] [ref=e77]
+          - generic [ref=e78]:
+            - heading "Productivity" [level=3] [ref=e79]
+            - button "Google Calendar" [ref=e80] [cursor=pointer]:
+              - img [ref=e81] [cursor=pointer]
+              - generic [ref=e83] [cursor=pointer]: Google Calendar
+            - button "Google Docs" [ref=e84] [cursor=pointer]:
+              - img [ref=e85] [cursor=pointer]
+              - generic [ref=e87] [cursor=pointer]: Google Docs
+            - button "Google Slides" [ref=e88] [cursor=pointer]:
+              - img [ref=e89] [cursor=pointer]
+              - generic [ref=e91] [cursor=pointer]: Google Slides
+          - button "Notion" [active] [ref=e92] [cursor=pointer]:
+            - img [ref=e93] [cursor=pointer]
+            - generic [ref=e95] [cursor=pointer]: Notion
+          - generic [ref=e96]:
+            - heading "AI Assistant" [level=3] [ref=e97]
+            - button "Chatbot" [ref=e98] [cursor=pointer]:
+              - img [ref=e99] [cursor=pointer]
+              - generic [ref=e101] [cursor=pointer]: Chatbot
+            - button "RAG Intelligence" [ref=e102] [cursor=pointer]:
+              - img [ref=e103] [cursor=pointer]
+              - generic [ref=e106] [cursor=pointer]: RAG Intelligence
+  - contentinfo [ref=e107]:
+    - contentinfo [ref=e108]:
+      - generic [ref=e109]:
+        - paragraph [ref=e110]: Balanced Expectations & Epistemic Equilibrium will manifest here in future iterations
+        - paragraph [ref=e111]: © 2025 PKC — Progressive Knowledge Container
+```

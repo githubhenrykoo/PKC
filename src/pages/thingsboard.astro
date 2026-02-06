@@ -1,0 +1,75 @@
+---
+import TelemetryPanel from '../components/thingsboard/TelemetryPanel';
+---
+
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ThingsBoard Telemetry</title>
+    <style is:inline>
+      :root { 
+        --background: #f8fafc; 
+        --text: #1e293b; 
+        --surface: #ffffff;
+      }
+      .dark-theme { 
+        --background: #0f172a; 
+        --text: #f8fafc; 
+        --surface: #1e293b; 
+      }
+      body { background: var(--background); color: var(--text); }
+      /* Ensure all ThingsBoard content renders white in dark theme */
+      .dark-theme .tb-root, .dark-theme .tb-root * { color: #ffffff !important; }
+    </style>
+  </head>
+  <body class="min-h-screen bg-[var(--background)] text-[var(--text)] dark:text-white">
+    <script is:inline>
+      (function(){
+        const key = 'theme';
+        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        const saved = localStorage.getItem(key);
+        const initial = saved || (prefersDark ? 'dark' : 'light');
+        document.documentElement.classList.toggle('dark-theme', initial === 'dark');
+        // Sync with parent (if embedded via iframe in same origin)
+        try {
+          if (window.top && window.top !== window) {
+            const topDoc = window.top.document;
+            const isDark = topDoc?.documentElement?.classList?.contains('dark-theme');
+            if (typeof isDark === 'boolean') {
+              document.documentElement.classList.toggle('dark-theme', isDark);
+            }
+          }
+        } catch(_) {}
+        window.addEventListener('storage', (e) => {
+          if (e.key === key && e.newValue) {
+            document.documentElement.classList.toggle('dark-theme', e.newValue === 'dark');
+          }
+        });
+
+        // Observe parent document class changes and mirror to iframe
+        try {
+          if (window.top && window.top !== window) {
+            const topDoc = window.top.document;
+            const mirror = () => {
+              const isDark = topDoc?.documentElement?.classList?.contains('dark-theme');
+              if (typeof isDark === 'boolean') {
+                document.documentElement.classList.toggle('dark-theme', isDark);
+              }
+            };
+            mirror();
+            const mo = new MutationObserver(mirror);
+            mo.observe(topDoc.documentElement, { attributes: true, attributeFilter: ['class'] });
+          }
+        } catch (_) {}
+      })();
+    </script>
+    <main class="w-full max-w-none px-4 py-4">
+      <div class="bg-[var(--surface)] border border-black/5 dark:border-white/10 rounded-xl shadow-sm p-2">
+        <TelemetryPanel client:load />
+      </div>
+    </main>
+
+    
+  </body>
+</html>
