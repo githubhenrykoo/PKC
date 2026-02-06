@@ -1,0 +1,6 @@
+[submodule "PrologueOfSpacetime"]
+	path = PrologueOfSpacetime
+	url = git@github.com:xlp0/PrologueOfSpacetime.git
+[submodule "LandingPage"]
+	path = LandingPage
+	url = git@github.com:xlp0/LandingPage.git
