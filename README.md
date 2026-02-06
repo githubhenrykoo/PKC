@@ -235,6 +235,10 @@ PKC/
 ├── package.json               # Scripts & dependencies
 └── exmaple.env                # Sample environment variables
 
+## 🧩 Ecosystem & Roles
+
+To understand how PKC fits into the broader picture including **GovTech**, **THKMesh**, and our development tools, please read the **[PKC Ecosystem Guide](./Docs/PKC_Ecosystem.md)**.
+
 ## 🧩 Submodules
 
 This repository integrates external components as git submodules to maintain modularity:
